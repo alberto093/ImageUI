@@ -35,9 +35,15 @@ class IFCollectionViewController: UIViewController {
         static let minimumItemWidthMultiplier: CGFloat = 0.5
         static let minimumLineSpacing: CGFloat = 1
         static let maximumLineSpacingMultiplier: CGFloat = 0.28
-        static let layoutTransitionDuration: TimeInterval = 0.2
+        static let layoutTransitionDuration: TimeInterval = 0.24
         static let layoutTransitionRate: UIScrollView.DecelerationRate = .normal
     }
+    
+    private let toolbar: UIToolbar = {
+        let toolbar = UIToolbar()
+        toolbar.translatesAutoresizingMaskIntoConstraints = false
+        return toolbar
+    }()
     
     private let collectionView: UICollectionView = {
         let view = UICollectionView(frame: .zero, collectionViewLayout: IFCollectionViewFlowLayout())
@@ -75,8 +81,12 @@ class IFCollectionViewController: UIViewController {
     // MARK: - Lifecycle
     override func loadView() {
         view = UIView()
-        view.addSubview(collectionView)
+        [toolbar, collectionView].forEach(view.addSubview)
         NSLayoutConstraint.activate([
+            toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            toolbar.topAnchor.constraint(equalTo: view.topAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -88,15 +98,10 @@ class IFCollectionViewController: UIViewController {
         setup()
     }
     
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        setupInitialContentOffsetIfNeeded()
-    }
-    
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+    public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        updateFlowLayout()
-        flowLayout.invalidateLayout()
+        toolbar.invalidateIntrinsicContentSize()
+        preferredContentSize.height = toolbar.intrinsicContentSize.height
     }
     
     private func setup() {
@@ -104,25 +109,12 @@ class IFCollectionViewController: UIViewController {
         collectionView.showsVerticalScrollIndicator = false
         collectionView.showsHorizontalScrollIndicator = false
         collectionView.dataSource = self
+        collectionView.prefetchDataSource = self
         collectionView.delegate = self
         collectionView.alwaysBounceHorizontal = true
         flowLayout.centerIndexPath = IndexPath(item: imageManager.dysplaingImageIndex, section: 0)
-    }
-    
-    private func setupInitialContentOffsetIfNeeded() {
-        guard needsInitialContentOffset else { return }
-        needsInitialContentOffset = false
-        updateFlowLayout()
-        collectionView.contentOffset = flowLayout.targetContentOffset(forProposedContentOffset: collectionView.contentOffset)
-    }
-    
-    private func updateFlowLayout() {
-        let height = collectionView.bounds.height - Constants.verticalPadding * 2
-        flowLayout.itemSize = CGSize(width: height * Constants.minimumItemWidthMultiplier, height: height)
-        let horizontalPadding = collectionView.bounds.width / 2
-        flowLayout.sectionInset = UIEdgeInsets(top: Constants.verticalPadding, left: horizontalPadding, bottom: Constants.verticalPadding, right: horizontalPadding)
-        flowLayout.minimumLineSpacing = Constants.minimumLineSpacing
-        flowLayout.maximumLineSpacing = height * Constants.maximumLineSpacingMultiplier
+        toolbar.barTintColor = navigationController?.toolbar.barTintColor
+        preferredContentSize.height = toolbar.intrinsicContentSize.height
     }
 
     private func invalidateLayout(style: IFCollectionViewFlowLayout.Style, completion: ((Bool) -> Void)? = nil) {
@@ -130,7 +122,7 @@ class IFCollectionViewController: UIViewController {
         UIView.animate(
             withDuration: Constants.layoutTransitionDuration,
             delay: 0,
-            options: [.curveEaseInOut, .beginFromCurrentState, .allowUserInteraction],
+            options: [.curveEaseInOut, .allowUserInteraction],
             animations: { [weak self] in
                 guard let self = self else { return }
                 let centerIndexPath = IndexPath(item: self.imageManager.dysplaingImageIndex, section: 0)

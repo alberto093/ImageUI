@@ -37,14 +37,14 @@ class ViewController: UIViewController {
         ].map { URL(string: $0)! }
     
     @IBAction private func showImagesButtonDidTap() {
-        let viewController = IFBrowserViewController(imageURLs: imageURLs, initialImageIndex: 22)
+        let viewController = IFBrowserViewController(imageURLs: imageURLs, initialImageIndex: 10)
         viewController.title = "Images"
         viewController.actions = [.share, .delete]
         navigationController?.pushViewController(viewController, animated: true)
     }
     
     @IBAction private func presentImagesButtonDidTap() {
-        let viewController = IFBrowserViewController(imageURLs: imageURLs, initialImageIndex: 22)
+        let viewController = IFBrowserViewController(imageURLs: imageURLs, initialImageIndex: 10)
         viewController.title = "Images"
         viewController.actions = [.share, .delete]
         let navigationController = UINavigationController(rootViewController: viewController)

@@ -29,6 +29,15 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         case normal
     }
     
+    private struct Constants {
+        static let verticalPadding: CGFloat = 1
+        static let minimumItemWidthMultiplier: CGFloat = 0.5
+        static let minimumLineSpacing: CGFloat = 1
+        static let maximumLineSpacingMultiplier: CGFloat = 0.28
+        static let layoutTransitionDuration: TimeInterval = 0.24
+        static let layoutTransitionRate: UIScrollView.DecelerationRate = .normal
+    }
+    
     private struct Transition {
         let indexPath: IndexPath
         var progress: CGFloat
@@ -56,6 +65,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     private lazy var transition = Transition(indexPath: centerIndexPath)
     private var visibleAttributesCache: [IndexPath: UICollectionViewLayoutAttributes] = [:]
     private var preferredItemSizes: [IndexPath: CGSize] = [:]
+    private var needsInitialContentOffset = true
     
     private var maximumItemWidth: CGFloat {
         style == .normal ? itemSize.width : itemSize.width * maximumWidthMultiplier
@@ -90,7 +100,15 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     
     override func prepare() {
         visibleAttributesCache = [:]
+        update()
         super.prepare()
+    }
+    
+    override func prepare(forAnimatedBoundsChange oldBounds: CGRect) {
+        defer { super.prepare(forAnimatedBoundsChange: oldBounds) }
+        update()
+        guard let collectionView = collectionView, oldBounds.size != collectionView.bounds.size else { return }
+        collectionView.contentOffset.x = contentOffsetX(forItemAt: centerIndexPath)
     }
     
     override func layoutAttributesForElements(in rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
@@ -136,12 +154,9 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         
         preferredItemSizes[preferredAttributes.indexPath] = preferredAttributes.size
         
-        guard style == .preview else { return false }
-        
         switch preferredAttributes.indexPath {
-        case centerIndexPath,
-             transition.indexPath where isTransitioning:
-            return true
+        case centerIndexPath, transition.indexPath:
+            return style == .preview
         default:
             return false
         }
@@ -150,15 +165,17 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     override func invalidationContext(
         forPreferredLayoutAttributes preferredAttributes: UICollectionViewLayoutAttributes,
         withOriginalAttributes originalAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutInvalidationContext {
-        #warning("Improve algorithm: contentOffsetAdjustment should change whenever indexPath is equal to currentOldIndexPath or newNewNewIndexPath;")
-        #warning("not only when layout is not transitioning. In order to do that maybe i need to call super implementation!")
+      
         let context = UICollectionViewFlowLayoutInvalidationContext()
+        switch originalAttributes.indexPath {
+        case centerIndexPath, transition.indexPath:
+            if style == .preview {
+                context.contentOffsetAdjustment.x = preferredSize(forItemAt: centerIndexPath).width / 2 - itemSize.width / 2
+            }
+        default:
+            break
+        }
         
-        guard
-            originalAttributes.indexPath == preferredAttributes.indexPath,
-            centerIndexPath == transition.indexPath,
-            originalAttributes.indexPath == centerIndexPath else { return context }
-        context.contentOffsetAdjustment.x = preferredSize(forItemAt: centerIndexPath).width / 2 - itemSize.width / 2
         return context
     }
     
@@ -198,17 +215,17 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
                 return
         }
         
-        let targetOffsetX = initalOffsetX - progress * (initalOffsetX - finalOffsetX)
+        let context = UICollectionViewFlowLayoutInvalidationContext()
         
-        switch style {
-        case .normal:
-            collectionView.contentOffset.x = targetOffsetX
-            print(targetOffsetX)
-        case .preview:
-            let context = UICollectionViewFlowLayoutInvalidationContext()
+        switch progress {
+        case 0, 1:
+            context.contentOffsetAdjustment.x = contentOffsetX(forItemAt: centerIndexPath) - collectionView.contentOffset.x
+        default:
+            let targetOffsetX = initalOffsetX - progress * (initalOffsetX - finalOffsetX)
             context.contentOffsetAdjustment.x = targetOffsetX - collectionView.contentOffset.x
-            invalidateLayout(with: context)
         }
+        
+        invalidateLayout(with: context)
     }
     
     func invalidateLayout(with style: Style, centerIndexPath: IndexPath) {
@@ -294,6 +311,20 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
             return previousItemOffset + minimumLineSpacing + itemSize.width / 2
         case .preview:
             return previousItemOffset + maximumLineSpacing + preferredSize(forItemAt: indexPath).width / 2
+        }
+    }
+    
+    private func update() {
+        guard let collectionView = collectionView else { return }
+        let height = collectionView.bounds.height - Constants.verticalPadding * 2
+        itemSize = CGSize(width: height * Constants.minimumItemWidthMultiplier, height: height)
+        let horizontalPadding = collectionView.bounds.width / 2
+        sectionInset = UIEdgeInsets(top: Constants.verticalPadding, left: horizontalPadding, bottom: Constants.verticalPadding, right: horizontalPadding)
+        minimumLineSpacing = Constants.minimumLineSpacing
+        maximumLineSpacing = height * Constants.maximumLineSpacingMultiplier
+        if needsInitialContentOffset {
+            collectionView.contentOffset.x = contentOffsetX(forItemAt: centerIndexPath)
+            needsInitialContentOffset = false
         }
     }
 }
