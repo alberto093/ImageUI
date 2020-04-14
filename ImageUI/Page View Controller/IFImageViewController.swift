@@ -96,14 +96,14 @@ class IFImageViewController: UIViewController {
         update()
     }
     
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        updateScrollView()
-    }
-    
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         scrollView.zoomScale = scrollView.minimumZoomScale
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        updateScrollView()
     }
     
     private func setup() {
@@ -116,11 +116,7 @@ class IFImageViewController: UIViewController {
     
     private func update() {
         guard isViewLoaded, let url = imageManager.imageURLs[safe: displayingImageIndex] else { return }
-        #warning("Add tiling process")
-        let request = ImageRequest.init(
-            url: url,
-            processors: [],
-            priority: .veryHigh)
+        let request = ImageRequest.init(url: url, processors: [], priority: .veryHigh)
         
         loadImage(with: request, options: ImageLoadingOptions(transition: .fadeIn(duration: 0.1)), into: imageView) { [weak self] result in
             self?.updateScrollView()
@@ -128,14 +124,14 @@ class IFImageViewController: UIViewController {
     }
     
     private func updateScrollView() {
-        guard let image = imageView.image, image.size.width > 0, image.size.height > 0, view.frame.size != .zero else { return }
-        let aspectFitZoom = min(view.frame.width / image.size.width, view.frame.height / image.size.height)
-        aspectFillZoom = max(view.frame.width / image.size.width, view.frame.height / image.size.height)
+        guard let image = imageView.image else { return }
+        let aspectFitZoom = min(scrollView.frame.width / image.size.width, scrollView.frame.height / image.size.height)
+        aspectFillZoom = max(scrollView.frame.width / image.size.width, scrollView.frame.height / image.size.height)
         scrollView.minimumZoomScale = aspectFitZoom
-        scrollView.zoomScale = aspectFitZoom
-        scrollView.contentInset.top = (view.frame.height - image.size.height * aspectFitZoom) / 2
-        scrollView.contentInset.left = (view.frame.width - image.size.width * aspectFitZoom) / 2
         scrollView.maximumZoomScale = max(aspectFitZoom * Constants.minimumMaximumZoomFactor, aspectFillZoom, 1 / UIScreen.main.scale)
+        scrollView.zoomScale = aspectFitZoom
+        scrollView.contentInset.top = (scrollView.frame.height - image.size.height * aspectFitZoom) / 2
+        scrollView.contentInset.left = (scrollView.frame.width - image.size.width * aspectFitZoom) / 2
     }
     
     // MARK: - UI Actions

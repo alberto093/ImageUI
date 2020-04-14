@@ -49,17 +49,13 @@ public class IFBrowserViewController: UIViewController {
         return view
     }()
     
-    private let toolbar: UIToolbar = {
-        let toolbar = UIToolbar()
-        toolbar.translatesAutoresizingMaskIntoConstraints = false
-        return toolbar
-    }()
-    
     private let collectionContainerView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
+    
+    private var collectionContainerViewHeightConstraint: NSLayoutConstraint?
     
     // MARK: - Public properties
     public weak var delegate: IFBrowserViewControllerDelegate?
@@ -102,20 +98,17 @@ public class IFBrowserViewController: UIViewController {
             view.backgroundColor = .white
         }
         
-        [pageContainerView, toolbar, collectionContainerView].forEach(view.addSubview)
-        
+        [pageContainerView, collectionContainerView].forEach(view.addSubview)
+        collectionContainerViewHeightConstraint = collectionContainerView.heightAnchor.constraint(equalToConstant: 0)
         NSLayoutConstraint.activate([
             pageContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             pageContainerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             pageContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             pageContainerView.topAnchor.constraint(equalTo: view.topAnchor),
-            toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionContainerView.leadingAnchor.constraint(equalTo: toolbar.leadingAnchor),
-            collectionContainerView.bottomAnchor.constraint(equalTo: toolbar.bottomAnchor),
-            collectionContainerView.trailingAnchor.constraint(equalTo: toolbar.trailingAnchor),
-            collectionContainerView.topAnchor.constraint(equalTo: toolbar.topAnchor)])
+            collectionContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            collectionContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionContainerViewHeightConstraint!])
     }
     
     public override func viewDidLoad() {
@@ -130,6 +123,11 @@ public class IFBrowserViewController: UIViewController {
         updateToolbars()
     }
     
+    public override func preferredContentSizeDidChange(forChildContentContainer container: UIContentContainer) {
+        guard container === collectionViewController else { return }
+        collectionContainerViewHeightConstraint?.constant = container.preferredContentSize.height
+    }
+    
     // MARK: - Style
     private func setup() {
         if shouldShowCancelButton, navigationItem.leftBarButtonItem == nil {
@@ -137,11 +135,9 @@ public class IFBrowserViewController: UIViewController {
         }
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(viewDidTap))
-//        tapGesture.cancelsTouchesInView = false
         tapGesture.delegate = self
         view.addGestureRecognizer(tapGesture)
         navigationController?.toolbar.setShadowImage(UIImage(), forToolbarPosition: .bottom)
-        toolbar.barTintColor = navigationController?.toolbar.barTintColor
 
         addChild(pageViewController)
         pageViewController.progressDelegate = collectionViewController
@@ -167,13 +163,11 @@ public class IFBrowserViewController: UIViewController {
             toolbarItems = []
         }
         
-        toolbar.invalidateIntrinsicContentSize()
         navigationController?.isToolbarHidden = traitCollection.verticalSizeClass == .compact
     }
     
     private func update() {
         guard isViewLoaded else { return }
-        toolbar.isHidden = !shouldShowCollectionView
         collectionContainerView.isHidden = !shouldShowCollectionView
     }
     
