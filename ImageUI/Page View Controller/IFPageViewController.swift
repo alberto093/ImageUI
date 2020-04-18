@@ -116,7 +116,11 @@ extension IFPageViewController: UIScrollViewDelegate {
 
 extension IFPageViewController: IFCollectionViewControllerDelegate {
     func collectionViewController(_ collectionViewController: IFCollectionViewController, didSelectItemAt index: Int) {
-        guard let imageViewController = viewControllers?.first as? IFImageViewController, scrollView?.isDragging == false else { return }
+        guard
+            let imageViewController = viewControllers?.first as? IFImageViewController,
+            imageViewController.displayingImageIndex != index,
+            scrollView?.isDragging == false else { return }
+        
         imageViewController.displayingImageIndex = index
         beforeViewController?.displayingImageIndex = index - 1
         afterViewController?.displayingImageIndex = index + 1
