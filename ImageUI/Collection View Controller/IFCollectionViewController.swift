@@ -39,12 +39,6 @@ class IFCollectionViewController: UIViewController {
         static let layoutTransitionRate: UIScrollView.DecelerationRate = .normal
     }
     
-    private let toolbar: UIToolbar = {
-        let toolbar = UIToolbar()
-        toolbar.translatesAutoresizingMaskIntoConstraints = false
-        return toolbar
-    }()
-    
     private let collectionView: UICollectionView = {
         let view = UICollectionView(frame: .zero, collectionViewLayout: IFCollectionViewFlowLayout())
         view.backgroundColor = .clear
@@ -81,12 +75,8 @@ class IFCollectionViewController: UIViewController {
     // MARK: - Lifecycle
     override func loadView() {
         view = UIView()
-        [toolbar, collectionView].forEach(view.addSubview)
+        view.addSubview(collectionView)
         NSLayoutConstraint.activate([
-            toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            toolbar.topAnchor.constraint(equalTo: view.topAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -98,12 +88,6 @@ class IFCollectionViewController: UIViewController {
         setup()
     }
     
-    public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        toolbar.invalidateIntrinsicContentSize()
-        preferredContentSize.height = toolbar.intrinsicContentSize.height
-    }
-    
     private func setup() {
         collectionView.register(IFCollectionViewCell.self, forCellWithReuseIdentifier: IFCollectionViewCell.identifier)
         collectionView.showsVerticalScrollIndicator = false
@@ -113,8 +97,6 @@ class IFCollectionViewController: UIViewController {
         collectionView.delegate = self
         collectionView.alwaysBounceHorizontal = true
         flowLayout.centerIndexPath = IndexPath(item: imageManager.dysplaingImageIndex, section: 0)
-        toolbar.barTintColor = navigationController?.toolbar.barTintColor
-        preferredContentSize.height = toolbar.intrinsicContentSize.height
     }
 
     private func invalidateLayout(style: IFCollectionViewFlowLayout.Style, completion: ((Bool) -> Void)? = nil) {

@@ -49,26 +49,27 @@ public class IFBrowserViewController: UIViewController {
         return view
     }()
     
+    private let toolbar: UIToolbar = {
+        let toolbar = UIToolbar()
+        toolbar.translatesAutoresizingMaskIntoConstraints = false
+        return toolbar
+    }()
+    
     private let collectionContainerView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
-    private var collectionContainerViewHeightConstraint: NSLayoutConstraint?
-    
     // MARK: - Public properties
     public weak var delegate: IFBrowserViewControllerDelegate?
-    public var actions: [Action] = [] {
-        didSet { barButtonItems = actions.map { $0.barButtonItem(target: self, action: #selector(actionButtonDidTap)) } }
-    }
+    public var actions: [Action] = []
     
     // MARK: - Accessory properties
     private let imageManager: IFImageManager
     
     private lazy var pageViewController = IFPageViewController(imageManager: imageManager)
     private lazy var collectionViewController = IFCollectionViewController(imageManager: imageManager)
-    private var barButtonItems: [UIBarButtonItem] = []
     
     private var shouldShowCancelButton: Bool {
         navigationController.map { $0.presentingViewController != nil && $0.viewControllers.first === self } ?? false
@@ -98,17 +99,20 @@ public class IFBrowserViewController: UIViewController {
             view.backgroundColor = .white
         }
         
-        [pageContainerView, collectionContainerView].forEach(view.addSubview)
-        collectionContainerViewHeightConstraint = collectionContainerView.heightAnchor.constraint(equalToConstant: 0)
+        [pageContainerView, toolbar, collectionContainerView].forEach(view.addSubview)
+        
         NSLayoutConstraint.activate([
             pageContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             pageContainerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             pageContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             pageContainerView.topAnchor.constraint(equalTo: view.topAnchor),
-            collectionContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            collectionContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            collectionContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionContainerViewHeightConstraint!])
+            toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionContainerView.centerXAnchor.constraint(equalTo: toolbar.centerXAnchor),
+            collectionContainerView.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
+            collectionContainerView.widthAnchor.constraint(equalTo: toolbar.widthAnchor),
+            collectionContainerView.heightAnchor.constraint(equalTo: toolbar.heightAnchor)])
     }
     
     public override func viewDidLoad() {
@@ -123,11 +127,6 @@ public class IFBrowserViewController: UIViewController {
         updateToolbars()
     }
     
-    public override func preferredContentSizeDidChange(forChildContentContainer container: UIContentContainer) {
-        guard container === collectionViewController else { return }
-        collectionContainerViewHeightConstraint?.constant = container.preferredContentSize.height
-    }
-    
     // MARK: - Style
     private func setup() {
         if shouldShowCancelButton, navigationItem.leftBarButtonItem == nil {
@@ -138,6 +137,7 @@ public class IFBrowserViewController: UIViewController {
         tapGesture.delegate = self
         view.addGestureRecognizer(tapGesture)
         navigationController?.toolbar.setShadowImage(UIImage(), forToolbarPosition: .bottom)
+        toolbar.barTintColor = navigationController?.toolbar.barTintColor
 
         addChild(pageViewController)
         pageViewController.progressDelegate = collectionViewController
@@ -153,21 +153,26 @@ public class IFBrowserViewController: UIViewController {
     }
         
     private func updateToolbars() {
-        navigationItem.rightBarButtonItems = traitCollection.verticalSizeClass == .compact ? barButtonItems.reversed() : []
+        let barButtonItems = actions.map { $0.barButtonItem(target: self, action: #selector(actionButtonDidTap)) }
         
-        if traitCollection.verticalSizeClass == .regular {
-            toolbarItems = barButtonItems.isEmpty ? [] : (0..<barButtonItems.count * 2 - 1).map {
+        switch traitCollection.verticalSizeClass {
+        case .compact:
+            navigationItem.setRightBarButtonItems(barButtonItems.reversed(), animated: true)
+            setToolbarItems([], animated: true)
+        default:
+            navigationItem.setRightBarButtonItems([], animated: true)
+            let toolbarItems = barButtonItems.isEmpty ? [] : (0..<barButtonItems.count * 2 - 1).map {
                 $0.isMultiple(of: 2) ? barButtonItems[$0 / 2] : UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
             }
-        } else {
-            toolbarItems = []
+            setToolbarItems(toolbarItems, animated: true)
         }
-        
-        navigationController?.isToolbarHidden = traitCollection.verticalSizeClass == .compact
+        toolbar.invalidateIntrinsicContentSize()
+        navigationController?.setToolbarHidden(traitCollection.verticalSizeClass == .compact, animated: true)
     }
     
     private func update() {
         guard isViewLoaded else { return }
+        toolbar.isHidden = !shouldShowCollectionView
         collectionContainerView.isHidden = !shouldShowCollectionView
     }
     
