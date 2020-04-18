@@ -93,6 +93,19 @@ class IFCollectionViewController: UIViewController {
         super.viewWillTransition(to: size, with: coordinator)
     }
     
+    // MARK: - Public methods
+    func scroll(toItemAt index: Int, progress: CGFloat) {
+        guard isViewLoaded else { return }
+        
+        if collectionView.isDecelerating {
+            collectionView.setContentOffset(collectionView.contentOffset, animated: false)
+            invalidateLayout(style: .preview)
+        } else {
+            flowLayout.invalidateLayoutIfNeeded(forTransitionIndexPath: IndexPath(item: index, section: 0), progress: progress)
+        }
+    }
+    
+    // MARK: - Private methods
     private func setup() {
         collectionView.register(IFCollectionViewCell.self, forCellWithReuseIdentifier: IFCollectionViewCell.identifier)
         collectionView.showsVerticalScrollIndicator = false
@@ -209,27 +222,5 @@ extension IFCollectionViewController: UICollectionViewDelegate {
         guard imageManager.dysplaingImageIndex != indexPath.item else { return }
         invalidateLayout(with: indexPath)
         delegate?.collectionViewController(self, didSelectItemAt: indexPath.item)
-    }
-}
-
-extension IFCollectionViewController: IFPageViewControllerDelegate {
-    func pageViewController(_ pageViewController: IFPageViewController, didScrollFrom startIndex: Int, direction: UIPageViewController.NavigationDirection, progress: CGFloat) {
-        let transitionIndexPath: IndexPath
-        switch direction {
-        case .forward:
-            transitionIndexPath = IndexPath(item: startIndex + 1, section: 0)
-        case .reverse:
-            transitionIndexPath = IndexPath(item: startIndex - 1, section: 0)
-        @unknown default:
-            fatalError("UICollectionViewLayout \(flowLayout) does not support direction: \(direction.rawValue)")
-        }
-        
-        if collectionView.isDecelerating {
-            collectionView.setContentOffset(collectionView.contentOffset, animated: false)
-            invalidateLayout(style: .preview)
-        } else {
-            flowLayout.centerIndexPath.item = startIndex
-            flowLayout.invalidateLayoutIfNeeded(forTransitionIndexPath: transitionIndexPath, progress: progress)
-        }
     }
 }

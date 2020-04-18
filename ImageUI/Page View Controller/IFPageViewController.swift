@@ -60,6 +60,20 @@ class IFPageViewController: UIPageViewController {
         setup()
     }
     
+    // MARK: - Public methods
+    func updateVisibleImage(index: Int) {
+        guard
+            isViewLoaded,
+            let imageViewController = viewControllers?.first as? IFImageViewController,
+            imageViewController.displayingImageIndex != index,
+            scrollView?.isDragging == false else { return }
+        
+        imageViewController.displayingImageIndex = index
+        beforeViewController?.displayingImageIndex = index - 1
+        afterViewController?.displayingImageIndex = index + 1
+    }
+    
+    // MARK: - Private methods
     private func setup() {
         dataSource = self
         delegate = self
@@ -111,18 +125,5 @@ extension IFPageViewController: UIScrollViewDelegate {
         let direction: UIPageViewController.NavigationDirection = progress < 0 ? .reverse : .forward
         let normalizedProgress = min(max(abs(progress), 0), 1)
         progressDelegate?.pageViewController(self, didScrollFrom: imageManager.dysplaingImageIndex, direction: direction, progress: normalizedProgress)
-    }
-}
-
-extension IFPageViewController: IFCollectionViewControllerDelegate {
-    func collectionViewController(_ collectionViewController: IFCollectionViewController, didSelectItemAt index: Int) {
-        guard
-            let imageViewController = viewControllers?.first as? IFImageViewController,
-            imageViewController.displayingImageIndex != index,
-            scrollView?.isDragging == false else { return }
-        
-        imageViewController.displayingImageIndex = index
-        beforeViewController?.displayingImageIndex = index - 1
-        afterViewController?.displayingImageIndex = index + 1
     }
 }

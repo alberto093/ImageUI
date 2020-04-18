@@ -69,6 +69,7 @@ public class IFBrowserViewController: UIViewController {
     
     // MARK: - Accessory properties
     private let imageManager: IFImageManager
+    private var initialTitle: String?
     
     private lazy var pageViewController = IFPageViewController(imageManager: imageManager)
     private lazy var collectionViewController = IFCollectionViewController(imageManager: imageManager)
@@ -134,6 +135,7 @@ public class IFBrowserViewController: UIViewController {
         if shouldShowCancelButton, navigationItem.leftBarButtonItem == nil {
             navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelButtonDidTap))
         }
+        initialTitle = title
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(viewDidTap))
         tapGesture.delegate = self
@@ -142,13 +144,13 @@ public class IFBrowserViewController: UIViewController {
         toolbar.barTintColor = navigationController?.toolbar.barTintColor
 
         addChild(pageViewController)
-        pageViewController.progressDelegate = collectionViewController
+        pageViewController.progressDelegate = self
         pageContainerView.addSubview(pageViewController.view)
         pageViewController.view.frame = pageContainerView.bounds
         pageViewController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         
         addChild(collectionViewController)
-        collectionViewController.delegate = pageViewController
+        collectionViewController.delegate = self
         collectionContainerView.addSubview(collectionViewController.view)
         collectionViewController.view.frame = collectionContainerView.bounds
         collectionViewController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -210,6 +212,21 @@ public class IFBrowserViewController: UIViewController {
 extension IFBrowserViewController: UIGestureRecognizerDelegate {
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         !collectionContainerView.frame.contains(touch.location(in: view))
+    }
+}
+
+extension IFBrowserViewController: IFPageViewControllerDelegate {
+    func pageViewController(_ pageViewController: IFPageViewController, didScrollFrom startIndex: Int, direction: UIPageViewController.NavigationDirection, progress: CGFloat) {
+        let endIndex = direction == .forward ? startIndex + 1 : startIndex - 1
+        collectionViewController.scroll(toItemAt: endIndex, progress: progress)
+        title = initialTitle ?? imageManager.images[safe: progress >= 0.5 ? endIndex : startIndex]?.title
+    }
+}
+
+extension IFBrowserViewController: IFCollectionViewControllerDelegate {
+    func collectionViewController(_ collectionViewController: IFCollectionViewController, didSelectItemAt index: Int) {
+        pageViewController.updateVisibleImage(index: index)
+        title = initialTitle ?? imageManager.images[safe: index]?.title
     }
 }
 

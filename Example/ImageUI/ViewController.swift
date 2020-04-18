@@ -38,14 +38,12 @@ class ViewController: UIViewController {
     
     @IBAction private func showImagesButtonDidTap() {
         let viewController = IFBrowserViewController(images: images, initialImageIndex: 10)
-        viewController.title = "Images"
         viewController.actions = [.share, .delete]
         navigationController?.pushViewController(viewController, animated: true)
     }
     
     @IBAction private func presentImagesButtonDidTap() {
         let viewController = IFBrowserViewController(images: images, initialImageIndex: 10)
-        viewController.title = "Images"
         viewController.actions = [.share, .delete]
         let navigationController = UINavigationController(rootViewController: viewController)
         navigationController.modalPresentationStyle = .fullScreen
