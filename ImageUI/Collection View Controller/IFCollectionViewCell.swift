@@ -22,8 +22,6 @@
 //  THE SOFTWARE.
 //
 
-import Nuke
-
 class IFCollectionViewCell: UICollectionViewCell {
     // MARK: - View
     let imageView: UIImageView = {

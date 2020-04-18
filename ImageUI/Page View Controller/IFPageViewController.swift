@@ -50,7 +50,7 @@ class IFPageViewController: UIPageViewController {
     }
     
     required init?(coder: NSCoder) {
-        self.imageManager = IFImageManager(imageURLs: [])
+        self.imageManager = IFImageManager(images: [])
         super.init(coder: coder)
     }
     
@@ -72,7 +72,7 @@ class IFPageViewController: UIPageViewController {
 extension IFPageViewController: UIPageViewControllerDataSource {
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
         let previousIndex = imageManager.dysplaingImageIndex - 1
-        guard imageManager.imageURLs.indices.contains(previousIndex) else { return nil }
+        guard imageManager.images.indices.contains(previousIndex) else { return nil }
         let viewController = IFImageViewController(imageManager: imageManager, displayingImageIndex: previousIndex)
         beforeViewController = viewController
         return viewController
@@ -80,7 +80,7 @@ extension IFPageViewController: UIPageViewControllerDataSource {
     
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
         let nextIndex = imageManager.dysplaingImageIndex + 1
-        guard imageManager.imageURLs.indices.contains(nextIndex) else { return nil }
+        guard imageManager.images.indices.contains(nextIndex) else { return nil }
         let viewController = IFImageViewController(imageManager: imageManager, displayingImageIndex: nextIndex)
         afterViewController = viewController
         return viewController

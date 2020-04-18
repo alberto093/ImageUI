@@ -68,7 +68,7 @@ class IFImageViewController: UIViewController {
     }
     
     public required init?(coder: NSCoder) {
-        self.imageManager = IFImageManager(imageURLs: [])
+        self.imageManager = IFImageManager(images: [])
         self.displayingImageIndex = 0
         super.init(nibName: nil, bundle: nil)
     }
@@ -115,10 +115,11 @@ class IFImageViewController: UIViewController {
     }
     
     private func update() {
-        guard isViewLoaded, let url = imageManager.imageURLs[safe: displayingImageIndex] else { return }
-        let request = ImageRequest.init(url: url, processors: [], priority: .veryHigh)
-        
-        loadImage(with: request, options: ImageLoadingOptions(transition: .fadeIn(duration: 0.1)), into: imageView) { [weak self] result in
+        guard isViewLoaded, let url = imageManager.images[safe: displayingImageIndex]?.url else { return }
+        let request = ImageRequest(url: url, processors: [], priority: .veryHigh)
+        var options = ImageLoadingOptions(transition: .fadeIn(duration: 0.1))
+        options.pipeline = imageManager.pipeline
+        loadImage(with: request, options: options, into: imageView) { [weak self] result in
             self?.updateScrollView()
         }
     }

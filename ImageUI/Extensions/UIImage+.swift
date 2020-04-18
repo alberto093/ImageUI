@@ -1,5 +1,5 @@
 //
-//  IFImageUIService.swift
+//  UIImage+.swift
 //
 //  Copyright © 2020 ImageUI - Alberto Saltarelli
 //
@@ -22,25 +22,32 @@
 //  THE SOFTWARE.
 //
 
-import Nuke
-
-class IFImageManager {
-    let images: [IFImage]
-    var dysplaingImageIndex = 0
-    let pipeline: ImagePipeline
+extension UIImage {
+    func resizedToFill(size newSize: CGSize) -> UIImage {
+        guard size.width > newSize.width || size.height > newSize.height else { return self }
+        
+        let ratio = size.width / size.height
+        if newSize.width / ratio > newSize.height {
+            return resized(to: CGSize(width: newSize.width, height: newSize.width / ratio))
+        } else {
+            return resized(to: CGSize(width: newSize.height * ratio, height: newSize.height))
+        }
+    }
     
-    private let dataCache: DataCache? = {
-        let dataCache = try? DataCache(name: "org.cocoapods.ImageUI.dataCache")
-        dataCache?.countLimit = 3
-        dataCache?.sweepInterval = 5
-        return dataCache
-    }()
+    func resizedToFit(size newSize: CGSize) -> UIImage {
+        guard size.width > newSize.width || size.height > newSize.height else { return self }
+        
+        let ratio = size.width / size.height
+        if newSize.width / ratio < newSize.height {
+            return resized(to: CGSize(width: newSize.width, height: newSize.width / ratio))
+        } else {
+            return resized(to: CGSize(width: newSize.height * ratio, height: newSize.height))
+        }
+    }
     
-    init(images: [IFImage], initialImageIndex: Int = 0) {
-        self.images = images
-        self.dysplaingImageIndex = min(max(initialImageIndex, 0), images.count - 1)
-        var configuration = ImagePipeline.Configuration()
-        configuration.dataCache = dataCache
-        self.pipeline = ImagePipeline(configuration: configuration)
+    func resized(to size: CGSize) -> UIImage {
+        UIGraphicsImageRenderer(size: size).image { _ in
+            draw(in: CGRect(origin: .zero, size: size))
+        }
     }
 }

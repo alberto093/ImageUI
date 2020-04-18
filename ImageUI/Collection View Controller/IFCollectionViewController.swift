@@ -68,7 +68,7 @@ class IFCollectionViewController: UIViewController {
     }
     
     required init?(coder: NSCoder) {
-        self.imageManager = IFImageManager(imageURLs: [])
+        self.imageManager = IFImageManager(images: [])
         super.init(coder: coder)
     }
     
@@ -134,18 +134,19 @@ class IFCollectionViewController: UIViewController {
 
 extension IFCollectionViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        imageManager.imageURLs.count
+        imageManager.images.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: IFCollectionViewCell.identifier, for: indexPath)
-        if let cell = cell as? IFCollectionViewCell, let url = imageManager.imageURLs[safe: indexPath.item] {
-            let request = ImageRequest.init(
+        if let cell = cell as? IFCollectionViewCell, let url = imageManager.images[safe: indexPath.item]?.url {
+            let request = ImageRequest(
                 url: url,
                 processors: [ImageProcessor.Resize(size: flowLayout.itemSize)],
                 priority: indexPath.item == imageManager.dysplaingImageIndex ? .high : .normal)
-            
-            loadImage(with: request, options: ImageLoadingOptions(transition: .fadeIn(duration: 0.1)), into: cell.imageView) { [weak self] result in
+            var options = ImageLoadingOptions(transition: .fadeIn(duration: 0.1))
+            options.pipeline = imageManager.pipeline
+            loadImage(with: request, options: options, into: cell.imageView) { [weak self] result in
                 guard
                     case .success = result,
                     let index = collectionView.indexPath(for: cell)?.item,
@@ -160,12 +161,12 @@ extension IFCollectionViewController: UICollectionViewDataSource {
 
 extension IFCollectionViewController: UICollectionViewDataSourcePrefetching {
     func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
-        let urls = indexPaths.compactMap { imageManager.imageURLs[safe: $0.item] }
+        let urls = indexPaths.compactMap { imageManager.images[safe: $0.item]?.url }
         prefetcher.startPreheating(with: urls)
     }
     
     func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
-        let urls = indexPaths.compactMap { imageManager.imageURLs[safe: $0.item] }
+        let urls = indexPaths.compactMap { imageManager.images[safe: $0.item]?.url }
         prefetcher.stopPreheating(with: urls)
     }
 }

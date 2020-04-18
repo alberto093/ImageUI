@@ -10,7 +10,7 @@ import UIKit
 import ImageUI
 
 class ViewController: UIViewController {
-    let imageURLs = [
+    let images = [
         "https://i.imgur.com/GJoXDDu.jpg",
         "https://i.imgur.com/NCaJTv1.jpeg",
         "https://i.imgur.com/2zyjIRm.jpg",
@@ -34,17 +34,17 @@ class ViewController: UIViewController {
         "https://i.imgur.com/LHDhBwR.jpg",
         "https://i.imgur.com/XawVasr.jpeg",
         "https://i.imgur.com/3xDRjrW.jpeg"
-        ].map { URL(string: $0)! }
+        ].enumerated().map { IFImage(title: "Image \($0.offset + 1)", url: URL(string: $0.element)!)  }
     
     @IBAction private func showImagesButtonDidTap() {
-        let viewController = IFBrowserViewController(imageURLs: imageURLs, initialImageIndex: 10)
+        let viewController = IFBrowserViewController(images: images, initialImageIndex: 10)
         viewController.title = "Images"
         viewController.actions = [.share, .delete]
         navigationController?.pushViewController(viewController, animated: true)
     }
     
     @IBAction private func presentImagesButtonDidTap() {
-        let viewController = IFBrowserViewController(imageURLs: imageURLs, initialImageIndex: 10)
+        let viewController = IFBrowserViewController(images: images, initialImageIndex: 10)
         viewController.title = "Images"
         viewController.actions = [.share, .delete]
         let navigationController = UINavigationController(rootViewController: viewController)

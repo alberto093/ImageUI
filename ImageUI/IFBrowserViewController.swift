@@ -22,6 +22,8 @@
 //  THE SOFTWARE.
 //
 
+import Nuke
+
 public protocol IFBrowserViewControllerDelegate: class {
     func browserViewController(_ browserViewController: IFBrowserViewController, didSelectActionWith identifier: String, forImageAt index: Int)
 }
@@ -76,17 +78,17 @@ public class IFBrowserViewController: UIViewController {
     }
     
     private var shouldShowCollectionView: Bool {
-        imageManager.imageURLs.count > 1
+        imageManager.images.count > 1
     }
     
     // MARK: - Initializer
-    public init(imageURLs: [URL], initialImageIndex: Int = 0) {
-        imageManager = IFImageManager(imageURLs: imageURLs, initialImageIndex: initialImageIndex)
+    public init(images: [IFImage], initialImageIndex: Int = 0) {
+        imageManager = IFImageManager(images: images, initialImageIndex: initialImageIndex)
         super.init(nibName: nil, bundle: nil)
     }
     
     public required init?(coder: NSCoder) {
-        imageManager = IFImageManager(imageURLs: [])
+        imageManager = IFImageManager(images: [])
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -189,9 +191,13 @@ public class IFBrowserViewController: UIViewController {
         guard let actionIndex = toolbarItems?.firstIndex(of: sender), let action = actions[safe: actionIndex] else { return }
         switch action {
         case .share:
-            #warning("Add implementation")
-            let viewController = UIActivityViewController(activityItems: [], applicationActivities: nil)
-            present(viewController, animated: true)
+            guard let image = imageManager.images[safe: imageManager.dysplaingImageIndex] else { return }
+            ImagePipeline.shared.loadImage(with: image.url) { [weak self] result in
+                guard case .success(let response) = result else { return }
+                let item = IFSharingImage(source: image, image: response.image)
+                let viewController = UIActivityViewController(activityItems: [item], applicationActivities: nil)
+                self?.present(viewController, animated: true)
+            }
         case .delete:
             #warning("Add implementation")
             break
