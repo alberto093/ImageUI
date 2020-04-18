@@ -106,9 +106,8 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     
     override func prepare(forAnimatedBoundsChange oldBounds: CGRect) {
         defer { super.prepare(forAnimatedBoundsChange: oldBounds) }
+        needsInitialContentOffset = true
         update()
-        guard let collectionView = collectionView, oldBounds.size != collectionView.bounds.size else { return }
-        collectionView.contentOffset.x = contentOffsetX(forItemAt: centerIndexPath)
     }
     
     override func layoutAttributesForElements(in rect: CGRect) -> [UICollectionViewLayoutAttributes]? {

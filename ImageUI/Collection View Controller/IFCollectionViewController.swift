@@ -88,6 +88,11 @@ class IFCollectionViewController: UIViewController {
         setup()
     }
     
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        flowLayout.invalidateLayout()
+        super.viewWillTransition(to: size, with: coordinator)
+    }
+    
     private func setup() {
         collectionView.register(IFCollectionViewCell.self, forCellWithReuseIdentifier: IFCollectionViewCell.identifier)
         collectionView.showsVerticalScrollIndicator = false
