@@ -1,0 +1,11 @@
+use_frameworks!
+
+target 'ImageUI_Example' do
+  pod 'ImageUI', :path => '../'
+
+  target 'ImageUI_Tests' do
+    inherit! :search_paths
+
+    
+  end
+end
