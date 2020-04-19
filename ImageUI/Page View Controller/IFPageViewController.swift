@@ -41,6 +41,9 @@ class IFPageViewController: UIPageViewController {
     
     // MARK: - Accessory properties
     private var beforeViewController: IFImageViewController?
+    private var visibleViewController: IFImageViewController? {
+        viewControllers?.first as? IFImageViewController
+    }
     private var afterViewController: IFImageViewController?
     
     // MARK: - Initializer
@@ -64,13 +67,11 @@ class IFPageViewController: UIPageViewController {
     func updateVisibleImage(index: Int) {
         guard
             isViewLoaded,
-            let imageViewController = viewControllers?.first as? IFImageViewController,
-            imageViewController.displayingImageIndex != index,
+            let visibleViewController = visibleViewController,
+            visibleViewController.displayingImageIndex != index,
             scrollView?.isDragging == false else { return }
-        
-        imageViewController.displayingImageIndex = index
-        beforeViewController?.displayingImageIndex = index - 1
-        afterViewController?.displayingImageIndex = index + 1
+        visibleViewController.displayingImageIndex = index
+        setViewControllers([visibleViewController], direction: .forward, animated: false)
     }
     
     // MARK: - Private methods
@@ -103,10 +104,10 @@ extension IFPageViewController: UIPageViewControllerDataSource {
 
 extension IFPageViewController: UIPageViewControllerDelegate {
     func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
-        guard completed, let imageViewController = viewControllers?.first as? IFImageViewController else { return }
-        imageManager.dysplaingImageIndex = imageViewController.displayingImageIndex
+        guard completed, let visibleViewController = visibleViewController else { return }
+        imageManager.dysplaingImageIndex = visibleViewController.displayingImageIndex
         
-        switch viewControllers?.first {
+        switch visibleViewController {
         case afterViewController:
             beforeViewController = previousViewControllers.first as? IFImageViewController
             afterViewController = nil

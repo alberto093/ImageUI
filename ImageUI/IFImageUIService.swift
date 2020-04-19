@@ -24,6 +24,7 @@
 
 import Nuke
 
+#warning("Add fetchImage api instead of use global Nuke function")
 class IFImageManager {
     let images: [IFImage]
     var dysplaingImageIndex = 0

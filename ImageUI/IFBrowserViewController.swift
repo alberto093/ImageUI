@@ -211,7 +211,7 @@ public class IFBrowserViewController: UIViewController {
 
 extension IFBrowserViewController: UIGestureRecognizerDelegate {
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-        !collectionContainerView.frame.contains(touch.location(in: view))
+        !collectionContainerView.point(inside: touch.location(in: view), with: nil)
     }
 }
 
