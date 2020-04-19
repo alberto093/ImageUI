@@ -186,7 +186,7 @@ extension IFCollectionViewController: UICollectionViewDataSourcePrefetching {
 
 extension IFCollectionViewController: UICollectionViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        guard collectionView.isDragging, !flowLayout.isTransitioning else { return }
+        guard collectionView.isDragging else { return }
         let centerIndexPath = flowLayout.indexPath(forContentOffset: collectionView.contentOffset)
         guard imageManager.dysplaingImageIndex != centerIndexPath.item else { return }
         imageManager.dysplaingImageIndex = centerIndexPath.item
@@ -199,7 +199,9 @@ extension IFCollectionViewController: UICollectionViewDelegate {
     }
     
     func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
-        let targetIndexPath = flowLayout.indexPath(forContentOffset: targetContentOffset.pointee)
+        let offsetX = CGFloat(signOf: velocity.x, magnitudeOf: flowLayout.itemSize.width)
+        let preferredContentOffset = CGPoint(x: targetContentOffset.pointee.x + offsetX, y: targetContentOffset.pointee.y)
+        let targetIndexPath = flowLayout.indexPath(forContentOffset: preferredContentOffset)
         let scrollDuration = collectionView.scrollDuration(velocity: velocity)
         let transitionOffset = (1 - TimeInterval(Constants.layoutTransitionRate.rawValue)) * Constants.layoutTransitionDuration
         let delay = scrollDuration - (Constants.layoutTransitionDuration + transitionOffset)

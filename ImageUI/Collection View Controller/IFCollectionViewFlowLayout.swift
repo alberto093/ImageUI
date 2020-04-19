@@ -58,7 +58,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         centerIndexPath != transition.indexPath && transition.progress > 0
     }
     // MARK: - Accessory properties
-    private lazy var transition = Transition(indexPath: centerIndexPath)
+    private var transition: Transition
     private var visibleAttributesCache: [IndexPath: UICollectionViewLayoutAttributes] = [:]
     private var preferredItemSizes: [IndexPath: CGSize] = [:]
     
@@ -84,11 +84,13 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     
     // MARK: - Overrides
     override init() {
+        transition = Transition(indexPath: centerIndexPath)
         super.init()
         scrollDirection = .horizontal
     }
     
     required init?(coder: NSCoder) {
+        transition = Transition(indexPath: centerIndexPath)
         super.init(coder: coder)
         scrollDirection = .horizontal
     }
@@ -225,7 +227,8 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         guard let collectionView = collectionView else { return }
         self.style = style
         self.centerIndexPath = centerIndexPath
-
+        self.transition = Transition(indexPath: centerIndexPath)
+        
         let context = UICollectionViewFlowLayoutInvalidationContext()
         context.contentOffsetAdjustment.x = contentOffsetX(forItemAt: centerIndexPath) - collectionView.contentOffset.x
         invalidateLayout(with: context)

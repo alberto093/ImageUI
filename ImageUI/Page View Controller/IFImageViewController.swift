@@ -130,9 +130,11 @@ class IFImageViewController: UIViewController {
         aspectFillZoom = max(scrollView.frame.width / image.size.width, scrollView.frame.height / image.size.height)
         scrollView.minimumZoomScale = aspectFitZoom
         scrollView.maximumZoomScale = max(aspectFitZoom * Constants.minimumMaximumZoomFactor, aspectFillZoom, 1 / UIScreen.main.scale)
-        scrollView.zoomScale = aspectFitZoom
-        scrollView.contentInset.top = (scrollView.frame.height - image.size.height * aspectFitZoom) / 2
-        scrollView.contentInset.left = (scrollView.frame.width - image.size.width * aspectFitZoom) / 2
+        UIView.performWithoutAnimation {
+            scrollView.zoomScale = aspectFitZoom
+            scrollView.contentInset.top = (scrollView.frame.height - image.size.height * aspectFitZoom) / 2
+            scrollView.contentInset.left = (scrollView.frame.width - image.size.width * aspectFitZoom) / 2
+        }
     }
     
     // MARK: - UI Actions
