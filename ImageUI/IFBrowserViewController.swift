@@ -67,10 +67,20 @@ public class IFBrowserViewController: UIViewController {
     public weak var delegate: IFBrowserViewControllerDelegate?
     public var actions: [Action] = []
     
+    public override var prefersStatusBarHidden: Bool {
+        collectionContainerView.alpha == 0 || collectionContainerView.isHidden
+    }
+    
+    public override var prefersHomeIndicatorAutoHidden: Bool {
+        collectionContainerView.alpha == 0 || collectionContainerView.isHidden
+    }
+    
     // MARK: - Accessory properties
     private let imageManager: IFImageManager
     private var initialTitle: String?
     
+    private lazy var tapGesture = UITapGestureRecognizer(target: self, action: #selector(gestureRecognizerDidChange))
+    private lazy var pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(gestureRecognizerDidChange))
     private lazy var pageViewController = IFPageViewController(imageManager: imageManager)
     private lazy var collectionViewController = IFCollectionViewController(imageManager: imageManager)
     
@@ -80,6 +90,22 @@ public class IFBrowserViewController: UIViewController {
     
     private var shouldShowCollectionView: Bool {
         imageManager.images.count > 1
+    }
+    
+    private var isToolbarEnabled: Bool {
+        traitCollection.verticalSizeClass != .compact
+    }
+    
+    private var hidingViews: [UIView] {
+        (navigationController.map { [$0.navigationBar, $0.toolbar] } ?? []) + [toolbar, collectionContainerView]
+    }
+    
+    private var defaultBackgroundColor: UIColor {
+        if #available(iOS 13.0, *) {
+            return .systemBackground
+        } else {
+            return .white
+        }
     }
     
     // MARK: - Initializer
@@ -96,11 +122,7 @@ public class IFBrowserViewController: UIViewController {
     // MARK: - Lifecycle
     public override func loadView() {
         view = UIView()
-        if #available(iOS 13.0, *) {
-            view.backgroundColor = .systemBackground
-        } else {
-            view.backgroundColor = .white
-        }
+        view.backgroundColor = defaultBackgroundColor
         
         [pageContainerView, toolbar, collectionContainerView].forEach(view.addSubview)
         
@@ -122,12 +144,12 @@ public class IFBrowserViewController: UIViewController {
         super.viewDidLoad()
         setup()
         update()
-        updateToolbars()
+        setupBars()
     }
     
     public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        updateToolbars()
+        setupBars()
     }
     
     // MARK: - Style
@@ -137,9 +159,10 @@ public class IFBrowserViewController: UIViewController {
         }
         initialTitle = title
         
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(viewDidTap))
-        tapGesture.delegate = self
-        view.addGestureRecognizer(tapGesture)
+        [tapGesture, pinchGesture].forEach {
+            $0.delegate = self
+            view.addGestureRecognizer($0)
+        }
         navigationController?.toolbar.setShadowImage(UIImage(), forToolbarPosition: .bottom)
         toolbar.barTintColor = navigationController?.toolbar.barTintColor
 
@@ -156,7 +179,7 @@ public class IFBrowserViewController: UIViewController {
         collectionViewController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     }
         
-    private func updateToolbars() {
+    private func setupBars() {
         let barButtonItems = actions.map { $0.barButtonItem(target: self, action: #selector(actionButtonDidTap)) }
         
         switch traitCollection.verticalSizeClass {
@@ -171,7 +194,41 @@ public class IFBrowserViewController: UIViewController {
             setToolbarItems(toolbarItems, animated: true)
         }
         toolbar.invalidateIntrinsicContentSize()
-        navigationController?.setToolbarHidden(traitCollection.verticalSizeClass == .compact, animated: true)
+        updateBars(toggle: false)
+    }
+    
+    private func updateBars(toggle: Bool) {
+        guard toggle else {
+            navigationController?.setToolbarHidden(!isToolbarEnabled, animated: true)
+            return
+        }
+        
+        let isHidden = collectionContainerView.isHidden
+        
+        if isHidden {
+            navigationController?.setNavigationBarHidden(false, animated: false)
+            navigationController?.setToolbarHidden(!isToolbarEnabled, animated: false)
+            [toolbar, collectionContainerView].forEach {
+                $0.isHidden = false
+            }
+            hidingViews.forEach { $0.alpha = 0 }
+        }
+
+        UIView.animate(
+            withDuration: TimeInterval(UINavigationController.hideShowBarDuration),
+            animations: { [weak self] in
+                self?.view.backgroundColor = isHidden ? self?.defaultBackgroundColor : .black
+                self?.hidingViews.forEach { $0.alpha = isHidden ? 1 : 0 }
+                self?.setNeedsStatusBarAppearanceUpdate()
+                self?.setNeedsUpdateOfHomeIndicatorAutoHidden()
+            },
+            completion: { [weak self] _ in
+                self?.navigationController?.setNavigationBarHidden(!isHidden, animated: false)
+                self?.navigationController?.setToolbarHidden(!isHidden, animated: false)
+                [self?.toolbar, self?.collectionContainerView].forEach {
+                    $0?.isHidden = !isHidden
+                }
+        })
     }
     
     private func update() {
@@ -181,8 +238,9 @@ public class IFBrowserViewController: UIViewController {
     }
     
     // MARK: - UI Actions
-    @objc private func viewDidTap() {
-
+    @objc private func gestureRecognizerDidChange(_ sender: UIGestureRecognizer) {
+        guard sender === tapGesture || (sender === pinchGesture && sender.state == .began && !collectionContainerView.isHidden) else { return }
+        updateBars(toggle: true)
     }
     
     @objc private func cancelButtonDidTap() {
@@ -210,8 +268,13 @@ public class IFBrowserViewController: UIViewController {
 }
 
 extension IFBrowserViewController: UIGestureRecognizerDelegate {
+    public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        gestureRecognizer === pinchGesture || otherGestureRecognizer === pinchGesture
+    }
+    
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-        !collectionContainerView.point(inside: touch.location(in: view), with: nil)
+        guard gestureRecognizer === tapGesture else { return true }
+        return collectionContainerView.isHidden || !collectionContainerView.frame.contains(touch.location(in: view))
     }
 }
 

@@ -186,10 +186,10 @@
 			isa = PBXGroup;
 			children = (
 				D3FEBC3724438A0400A1BD16 /* IFBrowserViewController.swift */,
-				D3CC74C4244B7D9D00E6517D /* Image */,
 				D3FEBC4524438A0500A1BD16 /* IFImageUIService.swift */,
 				D3FEBC3824438A0400A1BD16 /* Collection View Controller */,
 				D3FEBC3C24438A0400A1BD16 /* Extensions */,
+				D3CC74C4244B7D9D00E6517D /* Image */,
 				D3FEBC4124438A0400A1BD16 /* Page View Controller */,
 				56C0E44896FD0ADF924D7A7DAA34E4AA /* Support Files */,
 			);
@@ -350,9 +350,9 @@
 			isa = PBXGroup;
 			children = (
 				D3FEBC3D24438A0400A1BD16 /* Collection+.swift */,
-				D3FEBC3E24438A0400A1BD16 /* UIView+.swift */,
 				D3CC74C2244B79F900E6517D /* UIImage+.swift */,
 				D3FEBC3F24438A0400A1BD16 /* UIScrollView+.swift */,
+				D3FEBC3E24438A0400A1BD16 /* UIView+.swift */,
 			);
 			name = Extensions;
 			path = ImageUI/Extensions;
