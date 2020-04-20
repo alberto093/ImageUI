@@ -266,7 +266,7 @@ public class IFBrowserViewController: UIViewController {
         switch action {
         case .share:
             guard let image = imageManager.images[safe: imageManager.dysplaingImageIndex] else { return }
-            ImagePipeline.shared.loadImage(with: image.url) { [weak self] result in
+            imageManager.pipeline.loadImage(with: image.url) { [weak self] result in
                 guard case .success(let response) = result else { return }
                 let item = IFSharingImage(source: image, image: response.image)
                 let viewController = UIActivityViewController(activityItems: [item], applicationActivities: nil)
@@ -293,8 +293,7 @@ extension IFBrowserViewController: UIGestureRecognizerDelegate {
     
     
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-        guard gestureRecognizer === tapGesture else { return true }
-        return collectionContainerView.isHidden || !collectionContainerView.frame.contains(touch.location(in: view))
+        collectionContainerView.isHidden || !collectionContainerView.frame.contains(touch.location(in: view))
     }
     
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRequireFailureOf otherGestureRecognizer: UIGestureRecognizer) -> Bool {
