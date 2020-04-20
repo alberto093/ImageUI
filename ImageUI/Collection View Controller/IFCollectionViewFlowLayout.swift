@@ -22,7 +22,6 @@
 //  THE SOFTWARE.
 //
 
-#warning("Update layout attributes that are not equal to fullyVisibleIndexPath and oldFullyVisibleIndexPath based on transitionProgress. In this way there will not be lack during animations")
 class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     enum Style {
         case preview

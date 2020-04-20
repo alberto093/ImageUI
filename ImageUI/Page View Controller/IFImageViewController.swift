@@ -59,6 +59,7 @@ class IFImageViewController: UIViewController {
     
     // MARK: - Accessory properties
     private var aspectFillZoom: CGFloat = 1
+    private var needsFirstLayout = true
     
     // MARK: - Initializer
     public init(imageManager: IFImageManager, displayingImageIndex: Int? = nil) {
@@ -103,7 +104,15 @@ class IFImageViewController: UIViewController {
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        updateScrollView()
+        if needsFirstLayout {
+            needsFirstLayout = false
+            updateScrollView()
+        }
+    }
+    
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        updateScrollView(resetZoom: false)
     }
     
     private func setup() {
@@ -124,17 +133,21 @@ class IFImageViewController: UIViewController {
         }
     }
     
-    private func updateScrollView() {
+    private func updateScrollView(resetZoom: Bool = true) {
         guard let image = imageView.image else { return }
-        let aspectFitZoom = min(scrollView.frame.width / image.size.width, scrollView.frame.height / image.size.height)
-        aspectFillZoom = max(scrollView.frame.width / image.size.width, scrollView.frame.height / image.size.height)
+        let aspectFitZoom = min(view.frame.width / image.size.width, view.frame.height / image.size.height)
+        aspectFillZoom = max(view.frame.width / image.size.width, view.frame.height / image.size.height)
+        let zoomMultiplier = (scrollView.zoomScale - scrollView.minimumZoomScale) / (scrollView.maximumZoomScale - scrollView.minimumZoomScale)
         scrollView.minimumZoomScale = aspectFitZoom
         scrollView.maximumZoomScale = max(aspectFitZoom * Constants.minimumMaximumZoomFactor, aspectFillZoom, 1 / UIScreen.main.scale)
-        UIView.performWithoutAnimation {
+        if resetZoom {
             scrollView.zoomScale = aspectFitZoom
-            scrollView.contentInset.top = (scrollView.frame.height - image.size.height * aspectFitZoom) / 2
-            scrollView.contentInset.left = (scrollView.frame.width - image.size.width * aspectFitZoom) / 2
+        } else {
+            scrollView.zoomScale = aspectFitZoom + (scrollView.maximumZoomScale - aspectFitZoom) * zoomMultiplier
         }
+
+        scrollView.contentInset.top = (view.frame.height - image.size.height * scrollView.zoomScale) / 2
+        scrollView.contentInset.left = (view.frame.width - image.size.width * scrollView.zoomScale) / 2
     }
     
     // MARK: - UI Actions
