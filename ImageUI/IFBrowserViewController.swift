@@ -284,7 +284,7 @@ public class IFBrowserViewController: UIViewController {
 extension IFBrowserViewController: UIGestureRecognizerDelegate {
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
         switch (gestureRecognizer, otherGestureRecognizer) {
-        case (doubleTapGesture, _), (pinchGesture, _), (_, doubleTapGesture), (_, pinchGesture):
+        case (doubleTapGesture, is UITapGestureRecognizer), (pinchGesture, is UIPinchGestureRecognizer):
             return true
         default:
             return false
@@ -306,7 +306,8 @@ extension IFBrowserViewController: IFPageViewControllerDelegate {
     func pageViewController(_ pageViewController: IFPageViewController, didScrollFrom startIndex: Int, direction: UIPageViewController.NavigationDirection, progress: CGFloat) {
         let endIndex = direction == .forward ? startIndex + 1 : startIndex - 1
         collectionViewController.scroll(toItemAt: endIndex, progress: progress)
-        title = initialTitle ?? imageManager.images[safe: progress >= 0.5 ? endIndex : startIndex]?.title
+        let imageIndex = min(max(endIndex, 0), imageManager.images.count - 1)
+        title = initialTitle ?? imageManager.images[safe: progress >= 0.5 ? imageIndex : startIndex]?.title
     }
 }
 
