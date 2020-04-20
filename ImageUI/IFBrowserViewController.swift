@@ -80,6 +80,11 @@ public class IFBrowserViewController: UIViewController {
     private var initialTitle: String?
     
     private lazy var tapGesture = UITapGestureRecognizer(target: self, action: #selector(gestureRecognizerDidChange))
+    private lazy var doubleTapGesture: UITapGestureRecognizer = {
+        let gesture = UITapGestureRecognizer(target: self, action: #selector(gestureRecognizerDidChange))
+        gesture.numberOfTapsRequired = 2
+        return gesture
+    }()
     private lazy var pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(gestureRecognizerDidChange))
     private lazy var pageViewController = IFPageViewController(imageManager: imageManager)
     private lazy var collectionViewController = IFCollectionViewController(imageManager: imageManager)
@@ -159,7 +164,7 @@ public class IFBrowserViewController: UIViewController {
         }
         initialTitle = title
         
-        [tapGesture, pinchGesture].forEach {
+        [tapGesture, doubleTapGesture, pinchGesture].forEach {
             $0.delegate = self
             view.addGestureRecognizer($0)
         }
@@ -198,12 +203,12 @@ public class IFBrowserViewController: UIViewController {
     }
     
     private func updateBars(toggle: Bool) {
+        let isHidden = collectionContainerView.isHidden
+        let isToolbarHidden = !isToolbarEnabled || isHidden
         guard toggle else {
-            navigationController?.setToolbarHidden(!isToolbarEnabled, animated: true)
+            navigationController?.setToolbarHidden(isToolbarHidden, animated: true)
             return
         }
-        
-        let isHidden = collectionContainerView.isHidden
         
         if isHidden {
             navigationController?.setNavigationBarHidden(false, animated: false)
@@ -223,8 +228,9 @@ public class IFBrowserViewController: UIViewController {
                 self?.setNeedsUpdateOfHomeIndicatorAutoHidden()
             },
             completion: { [weak self] _ in
+                let isToolbarHidden = self?.isToolbarEnabled == false || !isHidden
                 self?.navigationController?.setNavigationBarHidden(!isHidden, animated: false)
-                self?.navigationController?.setToolbarHidden(!isHidden, animated: false)
+                self?.navigationController?.setToolbarHidden(isToolbarHidden, animated: false)
                 [self?.toolbar, self?.collectionContainerView].forEach {
                     $0?.isHidden = !isHidden
                 }
@@ -239,8 +245,16 @@ public class IFBrowserViewController: UIViewController {
     
     // MARK: - UI Actions
     @objc private func gestureRecognizerDidChange(_ sender: UIGestureRecognizer) {
-        guard sender === tapGesture || (sender === pinchGesture && sender.state == .began && !collectionContainerView.isHidden) else { return }
-        updateBars(toggle: true)
+        switch sender {
+        case tapGesture:
+            updateBars(toggle: true)
+        case doubleTapGesture where !collectionContainerView.isHidden:
+            updateBars(toggle: true)
+        case pinchGesture where sender.state == .began && !collectionContainerView.isHidden:
+            updateBars(toggle: true)
+        default:
+            break
+        }
     }
     
     @objc private func cancelButtonDidTap() {
@@ -269,12 +283,22 @@ public class IFBrowserViewController: UIViewController {
 
 extension IFBrowserViewController: UIGestureRecognizerDelegate {
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        gestureRecognizer === pinchGesture || otherGestureRecognizer === pinchGesture
+        switch (gestureRecognizer, otherGestureRecognizer) {
+        case (doubleTapGesture, _), (pinchGesture, _), (_, doubleTapGesture), (_, pinchGesture):
+            return true
+        default:
+            return false
+        }
     }
+    
     
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         guard gestureRecognizer === tapGesture else { return true }
         return collectionContainerView.isHidden || !collectionContainerView.frame.contains(touch.location(in: view))
+    }
+    
+    public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRequireFailureOf otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        gestureRecognizer === tapGesture && otherGestureRecognizer === doubleTapGesture
     }
 }
 
