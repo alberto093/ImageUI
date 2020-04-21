@@ -7,13 +7,36 @@
 
 import Foundation
 
-#warning("Add file and Data support --> Use DataLoader on ImageRequestOptions in Nuke")
 public struct IFImage {
+    public enum Source {
+        case local(path: String)
+        case remote(url: URL)
+    }
+
     public let title: String?
-    public let url: URL
+    public let source: Source
+    
+    internal var url: URL {
+        switch source {
+        case .local(let path):
+            return URL(fileURLWithPath: path)
+        case .remote(let url):
+            return url
+        }
+    }
+    
+    public init(title: String? = nil, source: Source) {
+        self.title = title
+        self.source = source
+    }
     
     public init(title: String? = nil, url: URL) {
         self.title = title
-        self.url = url
+        self.source = .remote(url: url)
+    }
+    
+    public init(title: String? = nil, path: String) {
+        self.title = title
+        self.source = .local(path: path)
     }
 }

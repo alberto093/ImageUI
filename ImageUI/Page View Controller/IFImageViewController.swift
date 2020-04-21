@@ -129,7 +129,9 @@ class IFImageViewController: UIViewController {
         var options = ImageLoadingOptions(transition: .fadeIn(duration: 0.1))
         options.pipeline = imageManager.pipeline
         loadImage(with: request, options: options, into: imageView) { [weak self] result in
-            self?.updateScrollView()
+            UIView.performWithoutAnimation {
+                self?.updateScrollView()
+            }
         }
     }
     

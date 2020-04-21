@@ -1,5 +1,5 @@
 //
-//  IFImageUIService.swift
+//  IFImageManager.swift
 //
 //  Copyright © 2020 ImageUI - Alberto Saltarelli
 //
@@ -24,7 +24,6 @@
 
 import Nuke
 
-#warning("Add fetchImage api instead of use global Nuke function")
 class IFImageManager {
     let images: [IFImage]
     var dysplaingImageIndex = 0
@@ -40,7 +39,7 @@ class IFImageManager {
     init(images: [IFImage], initialImageIndex: Int = 0) {
         self.images = images
         self.dysplaingImageIndex = min(max(initialImageIndex, 0), images.count - 1)
-        var configuration = ImagePipeline.Configuration()
+        var configuration = ImagePipeline.Configuration(dataLoader: IFImageLoader())
         configuration.dataCache = dataCache
         self.pipeline = ImagePipeline(configuration: configuration)
     }
