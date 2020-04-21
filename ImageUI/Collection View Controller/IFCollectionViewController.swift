@@ -31,10 +31,6 @@ protocol IFCollectionViewControllerDelegate: class {
 class IFCollectionViewController: UIViewController {
     // MARK: - View
     private struct Constants {
-        static let verticalPadding: CGFloat = 1
-        static let minimumItemWidthMultiplier: CGFloat = 0.5
-        static let minimumLineSpacing: CGFloat = 1
-        static let maximumLineSpacingMultiplier: CGFloat = 0.28
         static let layoutTransitionDuration: TimeInterval = 0.24
         static let layoutTransitionRate: UIScrollView.DecelerationRate = .normal
     }
@@ -45,6 +41,8 @@ class IFCollectionViewController: UIViewController {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
+    
+    private var horizontalConstraints: [NSLayoutConstraint] = []
     
     // MARK: - Public properties
     weak var delegate: IFCollectionViewControllerDelegate?
@@ -75,17 +73,26 @@ class IFCollectionViewController: UIViewController {
     // MARK: - Lifecycle
     override func loadView() {
         view = UIView()
+        view.clipsToBounds = true
         view.addSubview(collectionView)
-        NSLayoutConstraint.activate([
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor)])
+        let leading = collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor)
+        let bottom = view.bottomAnchor.constraint(equalTo: collectionView.bottomAnchor)
+        let trailing = view.trailingAnchor.constraint(equalTo: collectionView.trailingAnchor)
+        let top = collectionView.topAnchor.constraint(equalTo: view.topAnchor)
+        horizontalConstraints = [leading, trailing]
+        NSLayoutConstraint.activate([leading, bottom, trailing, top])
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setup()
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        horizontalConstraints.forEach {
+            $0.constant = -flowLayout.preferredOffBoundsPadding
+        }
     }
     
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -117,17 +124,18 @@ class IFCollectionViewController: UIViewController {
         flowLayout.centerIndexPath = IndexPath(item: imageManager.dysplaingImageIndex, section: 0)
     }
 
-    private func invalidateLayout(style: IFCollectionViewFlowLayout.Style, completion: ((Bool) -> Void)? = nil) {
+    private func invalidateLayout(style: IFCollectionViewFlowLayout.Style) {
         pendingLayoutInvalidation = nil
-        UIView.animate(
-            withDuration: Constants.layoutTransitionDuration,
-            delay: 0,
-            options: [.curveEaseInOut, .allowUserInteraction],
+
+        UIView.transition(
+            with: collectionView,
+            duration: Constants.layoutTransitionDuration,
+            options: [.curveEaseInOut, .allowUserInteraction, .beginFromCurrentState],
             animations: { [weak self] in
                 guard let self = self else { return }
                 let centerIndexPath = IndexPath(item: self.imageManager.dysplaingImageIndex, section: 0)
                 self.flowLayout.invalidateLayout(with: style, centerIndexPath: centerIndexPath)
-            }, completion: completion)
+            }, completion: nil)
     }
     
     private func invalidateLayout(with indexPath: IndexPath, delay: TimeInterval = 0) {

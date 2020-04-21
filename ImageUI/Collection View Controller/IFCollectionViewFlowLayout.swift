@@ -28,15 +28,6 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         case normal
     }
     
-    private struct Constants {
-        static let verticalPadding: CGFloat = 1
-        static let minimumItemWidthMultiplier: CGFloat = 0.5
-        static let minimumLineSpacing: CGFloat = 1
-        static let maximumLineSpacingMultiplier: CGFloat = 0.28
-        static let layoutTransitionDuration: TimeInterval = 0.24
-        static let layoutTransitionRate: UIScrollView.DecelerationRate = .normal
-    }
-    
     private struct Transition {
         let indexPath: IndexPath
         let progress: CGFloat
@@ -50,20 +41,32 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     // MARK: - Public properties
     var style: Style = .preview
     var centerIndexPath = IndexPath(item: 0, section: 0)
-    lazy var maximumWidthMultiplier: CGFloat = 34 / 9
-    lazy var maximumLineSpacing = minimumLineSpacing
+    var verticalPadding: CGFloat = 1
+    var minimumItemWidthMultiplier: CGFloat = 0.5
+    var maximumItemWidthMultiplier: CGFloat = 34 / 9
+    var maximumLineSpacingMultiplier: CGFloat = 0.28
+    
+    var maximumItemWidth: CGFloat {
+        itemSize.width * maximumItemWidthMultiplier
+    }
     
     var isTransitioning: Bool {
         centerIndexPath != transition.indexPath && transition.progress > 0
     }
+    
+    var preferredOffBoundsPadding: CGFloat {
+        if let collectionView = collectionView {
+            return collectionView.bounds.width / 4
+        } else {
+            return (maximumLineSpacing - minimumLineSpacing) * 2 + (maximumItemWidth - itemSize.width)
+        }
+    }
+    
     // MARK: - Accessory properties
     private var transition: Transition
     private var visibleAttributesCache: [IndexPath: UICollectionViewLayoutAttributes] = [:]
     private var preferredItemSizes: [IndexPath: CGSize] = [:]
-    
-    private var maximumItemWidth: CGFloat {
-        style == .normal ? itemSize.width : itemSize.width * maximumWidthMultiplier
-    }
+    private lazy var maximumLineSpacing = minimumLineSpacing
     
     override var estimatedItemSize: CGSize {
         willSet {
@@ -85,12 +88,17 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     override init() {
         transition = Transition(indexPath: centerIndexPath)
         super.init()
-        scrollDirection = .horizontal
+        setup()
     }
     
     required init?(coder: NSCoder) {
         transition = Transition(indexPath: centerIndexPath)
         super.init(coder: coder)
+        setup()
+    }
+    
+    private func setup() {
+        minimumLineSpacing = 1
         scrollDirection = .horizontal
     }
     
@@ -275,7 +283,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     private func preferredSize(forItemAt indexPath: IndexPath) -> CGSize {
-        guard let preferredItemSize = preferredItemSizes[indexPath] else { return itemSize }
+        guard style == .preview, let preferredItemSize = preferredItemSizes[indexPath] else { return itemSize }
         let widthRange = itemSize.width...maximumItemWidth
         let preferredWidth = min(max(preferredItemSize.width, widthRange.lowerBound), widthRange.upperBound)
         return CGSize(width: preferredWidth, height: itemSize.height)
@@ -294,11 +302,10 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     
     private func update() {
         guard let collectionView = collectionView else { return }
-        let height = collectionView.bounds.height - Constants.verticalPadding * 2
-        itemSize = CGSize(width: height * Constants.minimumItemWidthMultiplier, height: height)
+        let height = collectionView.bounds.height - verticalPadding * 2
+        itemSize = CGSize(width: height * minimumItemWidthMultiplier, height: height)
         let horizontalPadding = collectionView.bounds.width / 2
-        sectionInset = UIEdgeInsets(top: Constants.verticalPadding, left: horizontalPadding, bottom: Constants.verticalPadding, right: horizontalPadding)
-        minimumLineSpacing = Constants.minimumLineSpacing
-        maximumLineSpacing = height * Constants.maximumLineSpacingMultiplier
+        sectionInset = UIEdgeInsets(top: verticalPadding, left: horizontalPadding, bottom: verticalPadding, right: horizontalPadding)
+        maximumLineSpacing = height * maximumLineSpacingMultiplier
     }
 }
