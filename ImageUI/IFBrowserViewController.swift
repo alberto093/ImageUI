@@ -262,7 +262,17 @@ public class IFBrowserViewController: UIViewController {
     }
     
     @objc private func actionButtonDidTap(_ sender: UIBarButtonItem) {
-        guard let actionIndex = toolbarItems?.firstIndex(of: sender), let action = actions[safe: actionIndex] else { return }
+        let senderIndex: Int?
+        
+        switch traitCollection.verticalSizeClass {
+        case .compact:
+            senderIndex = navigationItem.rightBarButtonItems?.reversed().firstIndex(of: sender)
+        default:
+            senderIndex = toolbarItems?.firstIndex(of: sender)
+        }
+        
+        guard let actionIndex = senderIndex, let action = actions[safe: actionIndex] else { return }
+        
         switch action {
         case .share:
             guard let image = imageManager.images[safe: imageManager.dysplaingImageIndex] else { return }
