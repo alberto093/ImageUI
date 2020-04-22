@@ -278,7 +278,7 @@ public class IFBrowserViewController: UIViewController {
             guard let image = imageManager.images[safe: imageManager.dysplaingImageIndex] else { return }
             imageManager.pipeline.loadImage(with: image.url) { [weak self] result in
                 guard case .success(let response) = result else { return }
-                let item = IFSharingImage(source: image, image: response.image)
+                let item = IFSharingImage(container: image, image: response.image)
                 let viewController = UIActivityViewController(activityItems: [item], applicationActivities: nil)
                 self?.present(viewController, animated: true)
             }

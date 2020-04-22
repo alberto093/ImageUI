@@ -49,7 +49,7 @@ class ViewController: UIViewController {
         }
     
     var browserViewController: IFBrowserViewController {
-        let viewController = IFBrowserViewController(images: (0...10).reduce([]) { result, _ in result + images }, initialImageIndex: 15)
+        let viewController = IFBrowserViewController(images: images, initialImageIndex: 10)
         viewController.actions = [.share, .delete]
         return viewController
     }

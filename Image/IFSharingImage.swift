@@ -26,16 +26,16 @@ import MobileCoreServices
 import Nuke
 
 class IFSharingImage: NSObject, UIActivityItemSource {
-    let source: IFImage
+    let container: IFImage
     let image: UIImage
     
-    init(source: IFImage, image: UIImage) {
-        self.source = source
+    init(container: IFImage, image: UIImage) {
+        self.container = container
         self.image = image
     }
     
     func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
-        image
+        UIImage()
     }
     
     func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
@@ -56,13 +56,14 @@ class IFSharingImage: NSObject, UIActivityItemSource {
 
 import LinkPresentation
 
+@available(iOS 13.0, *)
 extension IFSharingImage {
-    @available(iOS 13.0, *)
     func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
         let metadata = LPLinkMetadata()
-        metadata.title = source.title
-        metadata.imageProvider = NSItemProvider(object: image)
-        metadata.iconProvider = NSItemProvider(object: image)
+        metadata.title = container.title
+        let provider = NSItemProvider(object: image)
+        metadata.imageProvider = provider
+        metadata.iconProvider = provider
         return metadata
     }
 }
