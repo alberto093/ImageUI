@@ -68,8 +68,7 @@ class IFPageViewController: UIPageViewController {
         guard
             isViewLoaded,
             let visibleViewController = visibleViewController,
-            visibleViewController.displayingImageIndex != index,
-            scrollView?.isDragging == false else { return }
+            visibleViewController.displayingImageIndex != index else { return }
         visibleViewController.displayingImageIndex = index
         setViewControllers([visibleViewController], direction: .forward, animated: false)
     }
