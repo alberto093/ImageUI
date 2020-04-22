@@ -31,7 +31,7 @@ protocol IFCollectionViewControllerDelegate: class {
 class IFCollectionViewController: UIViewController {
     // MARK: - View
     private struct Constants {
-        static let layoutTransitionDuration: TimeInterval = 0.24
+        static let layoutTransitionDuration: TimeInterval = 0.28
         static let layoutTransitionRate: UIScrollView.DecelerationRate = .normal
     }
     
@@ -202,7 +202,6 @@ extension IFCollectionViewController: UICollectionViewDelegate {
     }
     
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
-        pendingLayoutInvalidation = nil
         invalidateLayout(style: .normal)
     }
     
@@ -214,18 +213,6 @@ extension IFCollectionViewController: UICollectionViewDelegate {
         let transitionOffset = (1 - TimeInterval(Constants.layoutTransitionRate.rawValue)) * Constants.layoutTransitionDuration
         let delay = scrollDuration - (Constants.layoutTransitionDuration + transitionOffset)
         invalidateLayout(with: targetIndexPath, delay: collectionView.isBouncingHorizontally ? 0 : delay)
-    }
-    
-    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-        guard !decelerate, pendingLayoutInvalidation == nil else { return }
-        let targetIndexPath = flowLayout.indexPath(forContentOffset: collectionView.contentOffset)
-        invalidateLayout(with: targetIndexPath)
-    }
-    
-    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-        guard pendingLayoutInvalidation != nil else { return }
-        let targetIndexPath = flowLayout.indexPath(forContentOffset: collectionView.contentOffset)
-        invalidateLayout(with: targetIndexPath)
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {

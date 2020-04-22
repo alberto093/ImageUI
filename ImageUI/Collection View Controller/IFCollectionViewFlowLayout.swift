@@ -67,6 +67,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     private var visibleAttributesCache: [IndexPath: UICollectionViewLayoutAttributes] = [:]
     private var preferredItemSizes: [IndexPath: CGSize] = [:]
     private lazy var maximumLineSpacing = minimumLineSpacing
+    private var needsInitialContentOffset = true
     
     override var estimatedItemSize: CGSize {
         willSet {
@@ -105,6 +106,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     override func prepare() {
         visibleAttributesCache = [:]
         update()
+        setInitialContentOffsetIfNeeded()
         super.prepare()
     }
     
@@ -307,5 +309,11 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         let horizontalPadding = collectionView.bounds.width / 2
         sectionInset = UIEdgeInsets(top: verticalPadding, left: horizontalPadding, bottom: verticalPadding, right: horizontalPadding)
         maximumLineSpacing = height * maximumLineSpacingMultiplier
+    }
+    
+    private func setInitialContentOffsetIfNeeded() {
+        guard needsInitialContentOffset else { return }
+        needsInitialContentOffset = false
+        collectionView?.contentOffset.x = contentOffsetX(forItemAt: centerIndexPath)
     }
 }
