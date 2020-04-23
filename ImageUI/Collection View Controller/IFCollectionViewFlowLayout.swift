@@ -39,8 +39,8 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     // MARK: - Public properties
-    var style: Style = .preview
-    var centerIndexPath = IndexPath(item: 0, section: 0)
+    private(set) var style: Style = .preview
+    private(set) var centerIndexPath: IndexPath
     var verticalPadding: CGFloat = 1
     var minimumItemWidthMultiplier: CGFloat = 0.5
     var maximumItemWidthMultiplier: CGFloat = 34 / 9
@@ -69,30 +69,16 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     private lazy var maximumLineSpacing = minimumLineSpacing
     private var needsInitialContentOffset = true
     
-    override var estimatedItemSize: CGSize {
-        willSet {
-            if newValue != .zero {
-                fatalError("UICollectionViewLayout: \(self) does not support estimated item size.")
-            }
-        }
-    }
-        
-    override var scrollDirection: UICollectionView.ScrollDirection {
-        willSet {
-            if newValue == .vertical {
-                fatalError("UICollectionViewLayout: \(self) does not support vertical scroll direction.")
-            }
-        }
-    }
-    
     // MARK: - Overrides
-    override init() {
+    init(centerIndexPath: IndexPath) {
+        self.centerIndexPath = centerIndexPath
         transition = Transition(indexPath: centerIndexPath)
         super.init()
         setup()
     }
     
     required init?(coder: NSCoder) {
+        centerIndexPath = IndexPath(item: 0, section: 0)
         transition = Transition(indexPath: centerIndexPath)
         super.init(coder: coder)
         setup()
@@ -112,6 +98,9 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     
     override func prepare(forAnimatedBoundsChange oldBounds: CGRect) {
         update()
+//        if oldBounds.size != collectionView?.bounds.size {
+//            collectionView?.contentOffset.x = contentOffsetX(forItemAt: centerIndexPath)
+//        }
         super.prepare(forAnimatedBoundsChange: oldBounds)
     }
     
@@ -202,7 +191,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     // MARK: - Public methods
     func indexPath(forContentOffset contentOffset: CGPoint) -> IndexPath {
         let itemsRange = (0...(collectionView.map { $0.numberOfItems(inSection: 0) - 1 } ?? 0))
-        let itemIndex = (contentOffset.x + minimumLineSpacing / 2) / (itemSize.width + minimumLineSpacing)
+        let itemIndex = (contentOffset.x - minimumLineSpacing / 2) / (itemSize.width + minimumLineSpacing)
         let normalizedIndex = min(max(Int(itemIndex), itemsRange.lowerBound), itemsRange.upperBound)
         return IndexPath(item: normalizedIndex, section: 0)
     }

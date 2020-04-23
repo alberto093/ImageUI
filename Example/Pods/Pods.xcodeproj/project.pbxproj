@@ -51,7 +51,6 @@
 		D3FEBC4A24438A0500A1BD16 /* IFCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3FEBC3B24438A0400A1BD16 /* IFCollectionViewCell.swift */; };
 		D3FEBC4B24438A0500A1BD16 /* Collection+.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3FEBC3D24438A0400A1BD16 /* Collection+.swift */; };
 		D3FEBC4C24438A0500A1BD16 /* UIView+.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3FEBC3E24438A0400A1BD16 /* UIView+.swift */; };
-		D3FEBC4D24438A0500A1BD16 /* UIScrollView+.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3FEBC3F24438A0400A1BD16 /* UIScrollView+.swift */; };
 		D3FEBC4F24438A0500A1BD16 /* IFPageViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3FEBC4224438A0400A1BD16 /* IFPageViewController.swift */; };
 		D3FEBC5024438A0500A1BD16 /* IFImageViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3FEBC4324438A0400A1BD16 /* IFImageViewController.swift */; };
 		D3FEBC5224438A0500A1BD16 /* IFImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3FEBC4524438A0500A1BD16 /* IFImageManager.swift */; };
@@ -142,7 +141,6 @@
 		D3FEBC3B24438A0400A1BD16 /* IFCollectionViewCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IFCollectionViewCell.swift; sourceTree = "<group>"; };
 		D3FEBC3D24438A0400A1BD16 /* Collection+.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Collection+.swift"; sourceTree = "<group>"; };
 		D3FEBC3E24438A0400A1BD16 /* UIView+.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIView+.swift"; sourceTree = "<group>"; };
-		D3FEBC3F24438A0400A1BD16 /* UIScrollView+.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIScrollView+.swift"; sourceTree = "<group>"; };
 		D3FEBC4224438A0400A1BD16 /* IFPageViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IFPageViewController.swift; sourceTree = "<group>"; };
 		D3FEBC4324438A0400A1BD16 /* IFImageViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IFImageViewController.swift; sourceTree = "<group>"; };
 		D3FEBC4524438A0500A1BD16 /* IFImageManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = IFImageManager.swift; path = ImageUI/IFImageManager.swift; sourceTree = "<group>"; };
@@ -357,7 +355,6 @@
 				D3FEBC3D24438A0400A1BD16 /* Collection+.swift */,
 				D3027E95244F536500080759 /* DispatchWorkItem+.swift */,
 				D3CC74C2244B79F900E6517D /* UIImage+.swift */,
-				D3FEBC3F24438A0400A1BD16 /* UIScrollView+.swift */,
 				D3FEBC3E24438A0400A1BD16 /* UIView+.swift */,
 			);
 			name = Extensions;
@@ -582,7 +579,6 @@
 			files = (
 				D3FEBC4724438A0500A1BD16 /* IFBrowserViewController.swift in Sources */,
 				D3CC74C1244B6D4B00E6517D /* IFSharingImage.swift in Sources */,
-				D3FEBC4D24438A0500A1BD16 /* UIScrollView+.swift in Sources */,
 				D3FEBC5024438A0500A1BD16 /* IFImageViewController.swift in Sources */,
 				D3FEBC4824438A0500A1BD16 /* IFCollectionViewController.swift in Sources */,
 				D3FEBC4C24438A0500A1BD16 /* UIView+.swift in Sources */,

@@ -28,15 +28,22 @@ protocol IFCollectionViewControllerDelegate: class {
     func collectionViewController(_ collectionViewController: IFCollectionViewController, didSelectItemAt index: Int)
 }
 
+class Test: UICollectionView {
+    override var contentOffset: CGPoint {
+        didSet { print(contentOffset.x) }
+    }
+}
+
 class IFCollectionViewController: UIViewController {
     // MARK: - View
     private struct Constants {
-        static let layoutTransitionDuration: TimeInterval = 0.28
-        static let layoutTransitionRate: UIScrollView.DecelerationRate = .normal
+        static let layoutScrollDuration = 0.28
+        static let layoutTransitionDuration = 0.36
     }
     
-    private let collectionView: UICollectionView = {
-        let view = UICollectionView(frame: .zero, collectionViewLayout: IFCollectionViewFlowLayout())
+    private lazy var collectionView: UICollectionView = {
+        let layout = IFCollectionViewFlowLayout(centerIndexPath: IndexPath(item: imageManager.dysplaingImageIndex, section: 0))
+        let view = Test(frame: .zero, collectionViewLayout: layout)
         view.backgroundColor = .clear
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -50,10 +57,7 @@ class IFCollectionViewController: UIViewController {
     
     // MARK: - Accessory properties
     private let prefetcher = ImagePreheater()
-    private var needsInitialContentOffset = true
-    private var pendingLayoutInvalidation: DispatchWorkItem? {
-        didSet { oldValue?.cancel() }
-    }
+    private var pendingIndexPath: IndexPath?
     
     private var flowLayout: IFCollectionViewFlowLayout {
         collectionView.collectionViewLayout as! IFCollectionViewFlowLayout
@@ -121,35 +125,37 @@ class IFCollectionViewController: UIViewController {
         collectionView.prefetchDataSource = self
         collectionView.delegate = self
         collectionView.alwaysBounceHorizontal = true
-        flowLayout.centerIndexPath = IndexPath(item: imageManager.dysplaingImageIndex, section: 0)
+    }
+    
+    @discardableResult private func updateDysplaingImageIndexIfNeeded(with index: Int) -> Bool {
+        guard imageManager.dysplaingImageIndex != index else { return false }
+        imageManager.dysplaingImageIndex = index
+        delegate?.collectionViewController(self, didSelectItemAt: index)
+        return true
+    }
+    
+    private func invalidateNormalFlowLayoutIfNeeded(with indexPath: IndexPath) {
+        guard pendingIndexPath == indexPath else { return }
+
+        if indexPath.item != 0, indexPath.item != imageManager.images.count - 1 {
+            collectionView.setContentOffset(collectionView.contentOffset, animated: false)
+        }
+        invalidateLayout(style: .preview)
     }
 
     private func invalidateLayout(style: IFCollectionViewFlowLayout.Style) {
-        pendingLayoutInvalidation = nil
-
+        let duration = pendingIndexPath != nil ? Constants.layoutTransitionDuration : Constants.layoutScrollDuration
+        pendingIndexPath = nil
+        
         UIView.transition(
             with: collectionView,
-            duration: Constants.layoutTransitionDuration,
-            options: [.curveEaseInOut, .allowUserInteraction, .beginFromCurrentState],
+            duration: duration,
+            options: [.curveEaseOut, .allowUserInteraction, .beginFromCurrentState],
             animations: { [weak self] in
                 guard let self = self else { return }
                 let centerIndexPath = IndexPath(item: self.imageManager.dysplaingImageIndex, section: 0)
                 self.flowLayout.invalidateLayout(with: style, centerIndexPath: centerIndexPath)
             }, completion: nil)
-    }
-    
-    private func invalidateLayout(with indexPath: IndexPath, delay: TimeInterval = 0) {
-        let pendingLayoutInvalidation = DispatchWorkItem { [weak self] in
-            self?.imageManager.dysplaingImageIndex = indexPath.item
-            self?.invalidateLayout(style: .preview)
-        }
-        
-        if delay > 0 {
-            self.pendingLayoutInvalidation = pendingLayoutInvalidation
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: pendingLayoutInvalidation)
-        } else {
-            DispatchQueue.main.async(execute: pendingLayoutInvalidation)
-        }
     }
 }
 
@@ -194,11 +200,10 @@ extension IFCollectionViewController: UICollectionViewDataSourcePrefetching {
 
 extension IFCollectionViewController: UICollectionViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        guard collectionView.isDragging else { return }
+        guard scrollView.isDragging else { return }
         let centerIndexPath = flowLayout.indexPath(forContentOffset: collectionView.contentOffset)
-        guard imageManager.dysplaingImageIndex != centerIndexPath.item else { return }
-        imageManager.dysplaingImageIndex = centerIndexPath.item
-        delegate?.collectionViewController(self, didSelectItemAt: centerIndexPath.item)
+        updateDysplaingImageIndexIfNeeded(with: centerIndexPath.item)
+        invalidateNormalFlowLayoutIfNeeded(with: centerIndexPath)
     }
     
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
@@ -206,18 +211,15 @@ extension IFCollectionViewController: UICollectionViewDelegate {
     }
     
     func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
-        let offsetX = CGFloat(signOf: velocity.x, magnitudeOf: flowLayout.itemSize.width)
-        let preferredContentOffset = CGPoint(x: targetContentOffset.pointee.x + offsetX, y: targetContentOffset.pointee.y)
-        let targetIndexPath = flowLayout.indexPath(forContentOffset: preferredContentOffset)
-        let scrollDuration = collectionView.scrollDuration(velocity: velocity)
-        let transitionOffset = (1 - TimeInterval(Constants.layoutTransitionRate.rawValue)) * Constants.layoutTransitionDuration
-        let delay = scrollDuration - (Constants.layoutTransitionDuration + transitionOffset)
-        invalidateLayout(with: targetIndexPath, delay: collectionView.isBouncingHorizontally ? 0 : delay)
+        if velocity.x == 0 {
+            invalidateLayout(style: .preview)
+        } else {
+            pendingIndexPath = flowLayout.indexPath(forContentOffset: targetContentOffset.pointee)
+        }
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard imageManager.dysplaingImageIndex != indexPath.item else { return }
-        invalidateLayout(with: indexPath)
-        delegate?.collectionViewController(self, didSelectItemAt: indexPath.item)
+        guard updateDysplaingImageIndexIfNeeded(with: indexPath.item) else { return }
+        invalidateLayout(style: .preview)
     }
 }
