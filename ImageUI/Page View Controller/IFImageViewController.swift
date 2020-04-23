@@ -110,9 +110,9 @@ class IFImageViewController: UIViewController {
         }
     }
     
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        updateScrollView(resetZoom: false)
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        coordinator.animate(alongsideTransition: { _ in self.updateScrollView(resetZoom: false) })
+        super.viewWillTransition(to: size, with: coordinator)
     }
     
     private func setup() {

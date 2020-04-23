@@ -121,8 +121,9 @@ extension IFPageViewController: UIPageViewControllerDelegate {
 
 extension IFPageViewController: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        guard scrollView.isDragging || scrollView.isDecelerating else { return }
         let progress = (scrollView.contentOffset.x - scrollView.bounds.width) / scrollView.bounds.width
-        let direction: UIPageViewController.NavigationDirection = progress < 0 ? .reverse : .forward
+        let direction: NavigationDirection = progress < 0 ? .reverse : .forward
         let normalizedProgress = min(max(abs(progress), 0), 1)
         progressDelegate?.pageViewController(self, didScrollFrom: imageManager.dysplaingImageIndex, direction: direction, progress: normalizedProgress)
     }

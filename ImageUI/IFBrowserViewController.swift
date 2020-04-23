@@ -29,6 +29,10 @@ public protocol IFBrowserViewControllerDelegate: class {
 }
 
 public class IFBrowserViewController: UIViewController {
+    private struct Constants {
+        static let toolbarContentInset = UIEdgeInsets(top: -1, left: 0, bottom: 0, right: 0)
+    }
+    
     // MARK: - View
     public enum Action: Hashable {
         case share
@@ -55,6 +59,12 @@ public class IFBrowserViewController: UIViewController {
         let toolbar = UIToolbar()
         toolbar.translatesAutoresizingMaskIntoConstraints = false
         return toolbar
+    }()
+
+    private let toolbarMaskLayer: CALayer = {
+        let layer = CALayer()
+        layer.backgroundColor = UIColor.black.cgColor
+        return layer
     }()
     
     private let collectionContainerView: UIView = {
@@ -151,10 +161,12 @@ public class IFBrowserViewController: UIViewController {
         update()
         setupBars()
     }
-    
+        
     public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        setupBars()
+        if traitCollection.verticalSizeClass != previousTraitCollection?.verticalSizeClass {
+            setupBars()
+        }
     }
     
     // MARK: - Style
@@ -167,6 +179,10 @@ public class IFBrowserViewController: UIViewController {
         [tapGesture, doubleTapGesture, pinchGesture].forEach {
             $0.delegate = self
             view.addGestureRecognizer($0)
+        }
+
+        if let customShadow = navigationController?.toolbar.shadowImage(forToolbarPosition: .bottom) {
+            toolbar.setShadowImage(customShadow, forToolbarPosition: .bottom)
         }
         navigationController?.toolbar.setShadowImage(UIImage(), forToolbarPosition: .bottom)
         toolbar.barTintColor = navigationController?.toolbar.barTintColor
@@ -198,7 +214,7 @@ public class IFBrowserViewController: UIViewController {
             }
             setToolbarItems(toolbarItems, animated: true)
         }
-        toolbar.invalidateIntrinsicContentSize()
+        
         updateBars(toggle: false)
     }
     
@@ -218,7 +234,7 @@ public class IFBrowserViewController: UIViewController {
             }
             hidingViews.forEach { $0.alpha = 0 }
         }
-
+        updateToolbarMask()
         UIView.animate(
             withDuration: TimeInterval(UINavigationController.hideShowBarDuration),
             animations: { [weak self] in
@@ -234,6 +250,7 @@ public class IFBrowserViewController: UIViewController {
                 [self?.toolbar, self?.collectionContainerView].forEach {
                     $0?.isHidden = !isHidden
                 }
+                self?.toolbar.layer.mask = nil
         })
     }
     
@@ -243,14 +260,22 @@ public class IFBrowserViewController: UIViewController {
         collectionContainerView.isHidden = !shouldShowCollectionView
     }
     
+    private func updateToolbarMask() {
+        toolbarMaskLayer.frame = CGRect(
+            x: Constants.toolbarContentInset.left,
+            y: Constants.toolbarContentInset.top,
+            width: toolbar.frame.width - (Constants.toolbarContentInset.left + Constants.toolbarContentInset.right),
+            height: toolbar.frame.height - (Constants.toolbarContentInset.top + Constants.toolbarContentInset.bottom))
+        toolbar.layer.mask = traitCollection.verticalSizeClass == .compact ? nil : toolbarMaskLayer
+    }
+    
     // MARK: - UI Actions
     @objc private func gestureRecognizerDidChange(_ sender: UIGestureRecognizer) {
         switch sender {
-        case tapGesture:
-            updateBars(toggle: true)
-        case doubleTapGesture where !collectionContainerView.isHidden:
-            updateBars(toggle: true)
-        case pinchGesture where sender.state == .began && !collectionContainerView.isHidden:
+        case tapGesture,
+             doubleTapGesture where !collectionContainerView.isHidden,
+             pinchGesture where sender.state == .began && !collectionContainerView.isHidden:
+            
             updateBars(toggle: true)
         default:
             break
