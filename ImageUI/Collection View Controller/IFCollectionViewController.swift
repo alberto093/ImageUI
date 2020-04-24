@@ -37,7 +37,7 @@ class Test: UICollectionView {
 class IFCollectionViewController: UIViewController {
     // MARK: - View
     private struct Constants {
-        static let layoutScrollDuration = 0.28
+        static let layoutScrollDuration = 0.22
         static let layoutTransitionDuration = 0.36
     }
     
@@ -216,6 +216,11 @@ extension IFCollectionViewController: UICollectionViewDelegate {
         } else {
             pendingIndexPath = flowLayout.indexPath(forContentOffset: targetContentOffset.pointee)
         }
+    }
+    
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        guard pendingIndexPath != nil else { return }
+        invalidateLayout(style: .preview)
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
