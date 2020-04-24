@@ -159,6 +159,7 @@ public class IFBrowserViewController: UIViewController {
         super.viewDidLoad()
         setup()
         update()
+        updateTitle()
         setupBars()
     }
         
@@ -260,6 +261,10 @@ public class IFBrowserViewController: UIViewController {
         collectionContainerView.isHidden = !shouldShowCollectionView
     }
     
+    private func updateTitle(imageIndex: Int? = nil) {
+        title = initialTitle ?? imageManager.images[safe: imageIndex ?? imageManager.dysplaingImageIndex]?.title
+    }
+    
     private func updateToolbarMask() {
         toolbarMaskLayer.frame = CGRect(
             x: Constants.toolbarContentInset.left,
@@ -341,14 +346,14 @@ extension IFBrowserViewController: IFPageViewControllerDelegate {
         let endIndex = direction == .forward ? startIndex + 1 : startIndex - 1
         collectionViewController.scroll(toItemAt: endIndex, progress: progress)
         let imageIndex = min(max(endIndex, 0), imageManager.images.count - 1)
-        title = initialTitle ?? imageManager.images[safe: progress >= 0.5 ? imageIndex : startIndex]?.title
+        updateTitle(imageIndex: progress >= 0.5 ? imageIndex : startIndex)
     }
 }
 
 extension IFBrowserViewController: IFCollectionViewControllerDelegate {
     func collectionViewController(_ collectionViewController: IFCollectionViewController, didSelectItemAt index: Int) {
         pageViewController.updateVisibleImage(index: index)
-        title = initialTitle ?? imageManager.images[safe: index]?.title
+        updateTitle(imageIndex: index)
     }
 }
 
