@@ -50,10 +50,6 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         itemSize.width * maximumItemWidthMultiplier
     }
     
-    var isTransitioning: Bool {
-        centerIndexPath != transition.indexPath && transition.progress > 0
-    }
-    
     var preferredOffBoundsPadding: CGFloat {
         if let collectionView = collectionView {
             return collectionView.bounds.width / 4
@@ -98,9 +94,6 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     
     override func prepare(forAnimatedBoundsChange oldBounds: CGRect) {
         update()
-//        if oldBounds.size != collectionView?.bounds.size {
-//            collectionView?.contentOffset.x = contentOffsetX(forItemAt: centerIndexPath)
-//        }
         super.prepare(forAnimatedBoundsChange: oldBounds)
     }
     
