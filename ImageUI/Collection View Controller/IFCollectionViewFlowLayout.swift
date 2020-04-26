@@ -139,30 +139,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
             preferredItemSizes[preferredAttributes.indexPath] != preferredAttributes.size else { return false }
         
         preferredItemSizes[preferredAttributes.indexPath] = preferredAttributes.size
-        
-        switch preferredAttributes.indexPath {
-        case centerIndexPath, transition.indexPath:
-            return style == .preview
-        default:
-            return false
-        }
-    }
-    
-    override func invalidationContext(
-        forPreferredLayoutAttributes preferredAttributes: UICollectionViewLayoutAttributes,
-        withOriginalAttributes originalAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutInvalidationContext {
-      
-        let context = UICollectionViewFlowLayoutInvalidationContext()
-        switch originalAttributes.indexPath {
-        case centerIndexPath, transition.indexPath:
-            if style == .preview {
-                context.contentOffsetAdjustment.x = preferredSize(forItemAt: centerIndexPath).width / 2 - itemSize.width / 2
-            }
-        default:
-            break
-        }
-        
-        return context
+        return false
     }
     
     override func initialLayoutAttributesForAppearingItem(at itemIndexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
@@ -192,11 +169,11 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     func invalidateLayoutIfNeeded(forTransitionIndexPath indexPath: IndexPath, progress: CGFloat) {
         let progress = min(max(progress, 0), 1)
         transition = Transition(indexPath: indexPath, progress: progress)
-        
+        updatePreferredItemSizeIfNeeded()
         if progress == 1 {
             centerIndexPath = indexPath
         }
-    
+        
         guard let collectionView = collectionView else { return }
         
         let context = UICollectionViewFlowLayoutInvalidationContext()
@@ -219,6 +196,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         self.style = style
         self.centerIndexPath = centerIndexPath
         self.transition = Transition(indexPath: centerIndexPath)
+        updatePreferredItemSizeIfNeeded()
         
         let context = UICollectionViewFlowLayoutInvalidationContext()
         context.contentOffsetAdjustment.x = contentOffsetX(forItemAt: centerIndexPath) - collectionView.contentOffset.x
@@ -297,5 +275,18 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         guard needsInitialContentOffset else { return }
         needsInitialContentOffset = false
         collectionView?.contentOffset.x = contentOffsetX(forItemAt: centerIndexPath)
+    }
+    
+    private func updatePreferredItemSizeIfNeeded() {
+        let indexPaths = centerIndexPath == transition.indexPath ? [centerIndexPath] : [centerIndexPath, transition.indexPath]
+        indexPaths.forEach {
+            guard
+                let collectionView = collectionView,
+                let layoutAttribute = layoutAttributesForItem(at: $0),
+                let cell = collectionView.cellForItem(at: $0) else { return }
+
+            let preferredAttribute = cell.preferredLayoutAttributesFitting(layoutAttribute)
+            preferredItemSizes[$0] = preferredAttribute.size
+        }
     }
 }
