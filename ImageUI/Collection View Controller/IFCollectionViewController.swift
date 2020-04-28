@@ -28,22 +28,20 @@ protocol IFCollectionViewControllerDelegate: class {
     func collectionViewController(_ collectionViewController: IFCollectionViewController, didSelectItemAt index: Int)
 }
 
-class Test: UICollectionView {
-    override var contentOffset: CGPoint {
-        didSet { print(contentOffset.x) }
-    }
-}
-
 class IFCollectionViewController: UIViewController {
-    // MARK: - View
     private struct Constants {
-        static let layoutScrollDuration = 0.22
-        static let layoutTransitionDuration = 0.36
+        static let layoutTransitionDuration = 0.3
     }
     
+    enum PendingInvalidation {
+        case bouncing
+        case dragging(targetIndexPath: IndexPath)
+    }
+    
+    // MARK: - View
     private lazy var collectionView: UICollectionView = {
         let layout = IFCollectionViewFlowLayout(centerIndexPath: IndexPath(item: imageManager.dysplaingImageIndex, section: 0))
-        let view = Test(frame: .zero, collectionViewLayout: layout)
+        let view = UICollectionView(frame: .zero, collectionViewLayout: layout)
         view.backgroundColor = .clear
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -57,7 +55,8 @@ class IFCollectionViewController: UIViewController {
     
     // MARK: - Accessory properties
     private let prefetcher = ImagePreheater()
-    private var pendingIndexPath: IndexPath?
+    private let bouncer = IFScrollViewBouncingManager()
+    private var pendingInvalidation: PendingInvalidation?
     
     private var flowLayout: IFCollectionViewFlowLayout {
         collectionView.collectionViewLayout as! IFCollectionViewFlowLayout
@@ -125,37 +124,49 @@ class IFCollectionViewController: UIViewController {
         collectionView.prefetchDataSource = self
         collectionView.delegate = self
         collectionView.alwaysBounceHorizontal = true
+        collectionView.panGestureRecognizer.addTarget(self, action: #selector(pangestureDidChange))
+        bouncer.startObserving(scrollView: collectionView, bouncingDirections: [.left, .right])
+        bouncer.delegate = self
     }
     
     @discardableResult private func updateDysplaingImageIndexIfNeeded(with index: Int) -> Bool {
         guard imageManager.dysplaingImageIndex != index else { return false }
         imageManager.dysplaingImageIndex = index
+        flowLayout.centerIndexPath = IndexPath(item: index, section: 0)
         delegate?.collectionViewController(self, didSelectItemAt: index)
         return true
     }
-    
-    private func invalidateNormalFlowLayoutIfNeeded(with indexPath: IndexPath) {
-        guard pendingIndexPath == indexPath else { return }
-
-        if indexPath.item != 0, indexPath.item != imageManager.images.count - 1 {
-            collectionView.setContentOffset(collectionView.contentOffset, animated: false)
-        }
-        invalidateLayout(style: .preview)
-    }
 
     private func invalidateLayout(style: IFCollectionViewFlowLayout.Style) {
-        let duration = pendingIndexPath != nil ? Constants.layoutTransitionDuration : Constants.layoutScrollDuration
-        pendingIndexPath = nil
-        
+        pendingInvalidation = nil
+        let flowLayout = IFCollectionViewFlowLayout(centerIndexPath: self.flowLayout.centerIndexPath)
+        flowLayout.style = style
+        flowLayout.needsInitialContentOffset = false
         UIView.transition(
             with: collectionView,
-            duration: duration,
-            options: [.curveEaseOut, .allowUserInteraction, .beginFromCurrentState],
-            animations: { [weak self] in
-                guard let self = self else { return }
-                let centerIndexPath = IndexPath(item: self.imageManager.dysplaingImageIndex, section: 0)
-                self.flowLayout.invalidateLayout(with: style, centerIndexPath: centerIndexPath)
-            }, completion: nil)
+            duration: Constants.layoutTransitionDuration,
+            options: .curveEaseOut,
+            animations: { self.collectionView.setCollectionViewLayout(flowLayout, animated: true) },
+            completion: nil)
+    }
+    
+    @objc private func pangestureDidChange(_ sender: UIPanGestureRecognizer) {
+        switch sender.state {
+        case .ended:
+            guard pendingInvalidation == nil else { return }
+            let flowLayout = IFCollectionViewFlowLayout(centerIndexPath: self.flowLayout.centerIndexPath)
+            flowLayout.style = .preview
+            flowLayout.needsInitialContentOffset = false
+            UIView.transition(
+                with: collectionView,
+                duration: Constants.layoutTransitionDuration,
+                options: .curveEaseOut,
+                animations: { self.collectionView.setCollectionViewLayout(flowLayout, animated: true) },
+                completion: nil)
+            print("pangestureDidChange invalidation")
+        default:
+            break
+        }
     }
 }
 
@@ -176,10 +187,13 @@ extension IFCollectionViewController: UICollectionViewDataSource {
             loadImage(with: request, options: options, into: cell.imageView) { [weak self] result in
                 guard
                     case .success = result,
-                    let index = collectionView.indexPath(for: cell)?.item,
-                    self?.imageManager.dysplaingImageIndex == index,
-                    self?.flowLayout.style == .preview else { return }
+                    self?.imageManager.dysplaingImageIndex == indexPath.item,
+                    self?.flowLayout.style == .preview,
+                    self?.collectionView.isDragging == false,
+                    self?.collectionView.isDecelerating == false,
+                    self?.flowLayout.isTransitioning == false else { return }
                 self?.invalidateLayout(style: .preview)
+                print("cellForItemAt invalidation")
             }
         }
         return cell
@@ -202,29 +216,55 @@ extension IFCollectionViewController: UICollectionViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView.isDragging else { return }
         let centerIndexPath = flowLayout.indexPath(forContentOffset: collectionView.contentOffset)
-        updateDysplaingImageIndexIfNeeded(with: centerIndexPath.item)
-        invalidateNormalFlowLayoutIfNeeded(with: centerIndexPath)
+        guard
+            updateDysplaingImageIndexIfNeeded(with: centerIndexPath.item),
+            case .dragging(let targetIndexPath) = pendingInvalidation,
+            targetIndexPath == centerIndexPath else { return }
+        invalidateLayout(style: .preview)
+        print("scrollViewDidScroll invalidation")
     }
     
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
-        invalidateLayout(style: .normal)
+        pendingInvalidation = nil
+        guard flowLayout.style == .preview else { return }
+        let contentOffset = collectionView.contentOffset
+        let flowLayout = IFCollectionViewFlowLayout(centerIndexPath: self.flowLayout.centerIndexPath)
+        flowLayout.style = .normal
+        flowLayout.needsInitialContentOffset = false
+        UIView.transition(
+            with: collectionView,
+            duration: Constants.layoutTransitionDuration,
+            options: .curveEaseOut,
+            animations: { self.collectionView.setCollectionViewLayout(flowLayout, animated: true) },
+            completion: nil)
+        
+        let updatedContentOffset = collectionView.contentOffset
+        collectionView.panGestureRecognizer.setTranslation(CGPoint(x: contentOffset.x - updatedContentOffset.x, y: 0), in: collectionView)
+        print("scrollViewWillBeginDragging invalidation")
     }
     
     func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
-        if velocity.x == 0 {
-            invalidateLayout(style: .preview)
+        guard velocity.x != 0 else { return }
+        let minimumContentOffsetX = -scrollView.contentInset.left.rounded(.up)
+        let maximumContentOffsetX = (scrollView.contentSize.width - scrollView.bounds.width + scrollView.contentInset.right).rounded(.down)
+        if targetContentOffset.pointee.x > minimumContentOffsetX, targetContentOffset.pointee.x < maximumContentOffsetX {
+            let targetIndexPath = flowLayout.indexPath(forContentOffset: targetContentOffset.pointee)
+            pendingInvalidation = .dragging(targetIndexPath: targetIndexPath)
         } else {
-            pendingIndexPath = flowLayout.indexPath(forContentOffset: targetContentOffset.pointee)
+            pendingInvalidation = .bouncing
         }
-    }
-    
-    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-        guard pendingIndexPath != nil else { return }
-        invalidateLayout(style: .preview)
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard updateDysplaingImageIndexIfNeeded(with: indexPath.item) else { return }
         invalidateLayout(style: .preview)
+        print("didSelectItemAt invalidation")
+    }
+}
+
+extension IFCollectionViewController: IFScrollViewBouncingDelegate {
+    func scrollView(_ scrollView: UIScrollView, didReverseBouncing direction: UIScrollView.BouncingDirection) {
+        invalidateLayout(style: .preview)
+        print("didReverseBouncing invalidation")
     }
 }
