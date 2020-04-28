@@ -39,8 +39,8 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     // MARK: - Public properties
-    private(set) var style: Style = .preview
-    private(set) var centerIndexPath: IndexPath
+    var style: Style = .preview
+    var centerIndexPath: IndexPath
     var verticalPadding: CGFloat = 1
     var minimumItemWidthMultiplier: CGFloat = 0.5
     var maximumItemWidthMultiplier: CGFloat = 34 / 9
@@ -58,12 +58,16 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         }
     }
     
+    var isTransitioning: Bool {
+        transition.indexPath != centerIndexPath
+    }
+    
     // MARK: - Accessory properties
     private var transition: Transition
     private var visibleAttributesCache: [IndexPath: UICollectionViewLayoutAttributes] = [:]
     private var preferredItemSizes: [IndexPath: CGSize] = [:]
     private lazy var maximumLineSpacing = minimumLineSpacing
-    private var needsInitialContentOffset = true
+    var needsInitialContentOffset = true
     
     // MARK: - Overrides
     init(centerIndexPath: IndexPath) {
@@ -86,7 +90,6 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     override func prepare() {
-        visibleAttributesCache = [:]
         update()
         setInitialContentOffsetIfNeeded()
         super.prepare()
@@ -131,6 +134,18 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         CGPoint(x: contentOffsetX(forItemAt: centerIndexPath), y: proposedContentOffset.y)
     }
     
+    override func targetContentOffset(forProposedContentOffset proposedContentOffset: CGPoint, withScrollingVelocity velocity: CGPoint) -> CGPoint {
+        guard let collectionView = collectionView else { return proposedContentOffset }
+        let minimumContentOffsetX = -collectionView.contentInset.left.rounded(.up)
+        let maximumContentOffsetX = (collectionView.contentSize.width - collectionView.bounds.width + collectionView.contentInset.right).rounded(.down)
+        if proposedContentOffset.x <= minimumContentOffsetX || proposedContentOffset.x >= maximumContentOffsetX {
+            return proposedContentOffset
+        } else {
+            let targetIndexPath = indexPath(forContentOffset: proposedContentOffset)
+            return CGPoint(x: contentOffsetX(forItemAt: targetIndexPath), y: proposedContentOffset.y)
+        }
+    }
+    
     override func shouldInvalidateLayout(
         forPreferredLayoutAttributes preferredAttributes: UICollectionViewLayoutAttributes,
         withOriginalAttributes originalAttributes: UICollectionViewLayoutAttributes) -> Bool {
@@ -156,6 +171,12 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     
     override func shouldInvalidateLayout(forBoundsChange newBounds: CGRect) -> Bool {
         collectionView?.bounds.size != newBounds.size
+    }
+    
+    override func prepareForTransition(to newLayout: UICollectionViewLayout) {
+        guard let flowLayout = newLayout as? IFCollectionViewFlowLayout else { return }
+        flowLayout.needsInitialContentOffset = false
+        flowLayout.preferredItemSizes = preferredItemSizes
     }
     
     // MARK: - Public methods
@@ -219,10 +240,10 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         let maximumLineSpacingIndexRange = (transition.indexPath.item...transition.indexPath.item + 1)
         
         let previousIndexPath = IndexPath(item: attribute.indexPath.item - 1, section: 0)
-        let startPositionX = visibleAttributesCache[previousIndexPath]?.frame.maxX ?? sectionInset.left
+        let previousAttributeMaxX = visibleAttributesCache[previousIndexPath]?.frame.maxX ?? sectionInset.left
         
         guard minimumLineSpacingIndexRange.contains(attribute.indexPath.item) || maximumLineSpacingIndexRange.contains(attribute.indexPath.item) else {
-            attribute.frame.origin.x = startPositionX + minimumLineSpacing
+            attribute.frame.origin.x = previousAttributeMaxX + minimumLineSpacing
             return
         }
         
@@ -241,7 +262,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         default:
             lineSpacing = compressedLineSpacing
         }
-        attribute.frame.origin.x = startPositionX + lineSpacing
+        attribute.frame.origin.x = previousAttributeMaxX + lineSpacing
     }
     
     private func preferredSize(forItemAt indexPath: IndexPath) -> CGSize {
