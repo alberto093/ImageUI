@@ -215,7 +215,7 @@ public class IFBrowserViewController: UIViewController {
             }
             setToolbarItems(toolbarItems, animated: true)
         }
-        
+        toolbar.invalidateIntrinsicContentSize()
         updateBars(toggle: false)
     }
     

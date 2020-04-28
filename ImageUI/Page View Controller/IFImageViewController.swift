@@ -54,7 +54,10 @@ class IFImageViewController: UIViewController {
     // MARK: - Public properties
     let imageManager: IFImageManager
     var displayingImageIndex: Int {
-        didSet { update() }
+        didSet {
+            guard displayingImageIndex != oldValue else { return }
+            update()
+        }
     }
     
     // MARK: - Accessory properties
