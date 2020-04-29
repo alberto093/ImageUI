@@ -106,7 +106,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
             style == .preview,
             let layoutAttributes = NSArray(array: superAttributes, copyItems: true) as? [UICollectionViewLayoutAttributes] else { return superAttributes }
         
-        visibleAttributesCache = layoutAttributes.reduce(into: [:]) { $0[$1.indexPath] = $1 }
+        visibleAttributesCache = layoutAttributes.reduce(into: visibleAttributesCache) { $0[$1.indexPath] = $1 }
         
         for attribute in layoutAttributes.sorted(by: { $0.indexPath < $1.indexPath }) {
             updateSizeIfNeeded(forLayoutAttribute: attribute)
@@ -174,8 +174,10 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     override func prepareForTransition(to newLayout: UICollectionViewLayout) {
+        super.prepareForTransition(to: newLayout)
         guard let flowLayout = newLayout as? IFCollectionViewFlowLayout else { return }
         flowLayout.needsInitialContentOffset = false
+        updatePreferredItemSize(forItemIndexPaths: [centerIndexPath, flowLayout.centerIndexPath])
         flowLayout.preferredItemSizes = preferredItemSizes
     }
     
@@ -190,7 +192,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     func invalidateLayoutIfNeeded(forTransitionIndexPath indexPath: IndexPath, progress: CGFloat) {
         let progress = min(max(progress, 0), 1)
         transition = Transition(indexPath: indexPath, progress: progress)
-        updatePreferredItemSizeIfNeeded()
+        updatePreferredItemSize()
         if progress == 1 {
             centerIndexPath = indexPath
         }
@@ -217,7 +219,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         self.style = style
         self.centerIndexPath = centerIndexPath
         self.transition = Transition(indexPath: centerIndexPath)
-        updatePreferredItemSizeIfNeeded()
+        updatePreferredItemSize()
         
         let context = UICollectionViewFlowLayoutInvalidationContext()
         context.contentOffsetAdjustment.x = contentOffsetX(forItemAt: centerIndexPath) - collectionView.contentOffset.x
@@ -240,6 +242,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         let maximumLineSpacingIndexRange = (transition.indexPath.item...transition.indexPath.item + 1)
         
         let previousIndexPath = IndexPath(item: attribute.indexPath.item - 1, section: 0)
+        #warning("Improve previousAttributeMaxX algorithm to avoid fallback on wrong value")
         let previousAttributeMaxX = visibleAttributesCache[previousIndexPath]?.frame.maxX ?? sectionInset.left
         
         guard minimumLineSpacingIndexRange.contains(attribute.indexPath.item) || maximumLineSpacingIndexRange.contains(attribute.indexPath.item) else {
@@ -298,14 +301,20 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         collectionView?.contentOffset.x = contentOffsetX(forItemAt: centerIndexPath)
     }
     
-    private func updatePreferredItemSizeIfNeeded() {
-        let indexPaths = centerIndexPath == transition.indexPath ? [centerIndexPath] : [centerIndexPath, transition.indexPath]
-        indexPaths.forEach {
+    private func updatePreferredItemSize(forItemIndexPaths indexPaths: [IndexPath]? = nil) {
+        let preferredIndexPaths: [IndexPath]
+        if let indexPaths = indexPaths {
+            preferredIndexPaths = indexPaths
+        } else {
+            preferredIndexPaths = centerIndexPath == transition.indexPath ? [centerIndexPath] : [centerIndexPath, transition.indexPath]
+        }
+        
+        preferredIndexPaths.forEach {
             guard
                 let collectionView = collectionView,
                 let layoutAttribute = layoutAttributesForItem(at: $0),
                 let cell = collectionView.cellForItem(at: $0) else { return }
-
+            
             let preferredAttribute = cell.preferredLayoutAttributesFitting(layoutAttribute)
             preferredItemSizes[$0] = preferredAttribute.size
         }
