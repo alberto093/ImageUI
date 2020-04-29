@@ -40,11 +40,9 @@ class IFPageViewController: UIPageViewController {
     let imageManager: IFImageManager
     
     // MARK: - Accessory properties
-    private var beforeViewController: IFImageViewController?
     private var visibleViewController: IFImageViewController? {
         viewControllers?.first as? IFImageViewController
     }
-    private var afterViewController: IFImageViewController?
     
     // MARK: - Initializer
     init(imageManager: IFImageManager) {
@@ -70,6 +68,7 @@ class IFPageViewController: UIPageViewController {
             let visibleViewController = visibleViewController,
             visibleViewController.displayingImageIndex != index else { return }
         visibleViewController.displayingImageIndex = index
+        prepareForImageUpdate()
         setViewControllers([visibleViewController], direction: .forward, animated: false)
     }
     
@@ -81,23 +80,28 @@ class IFPageViewController: UIPageViewController {
         let initialViewController = IFImageViewController(imageManager: imageManager)
         setViewControllers([initialViewController], direction: .forward, animated: false)
     }
+    
+    private func prepareForImageUpdate() {
+        guard let scrollView = scrollView else { return }
+        let defaultContentOffset = CGPoint(x: scrollView.bounds.width, y: scrollView.contentOffset.y)
+        guard scrollView.contentOffset != defaultContentOffset else { return }
+        scrollView.setContentOffset(defaultContentOffset, animated: false)
+        dataSource = nil
+        dataSource = self
+    }
 }
 
 extension IFPageViewController: UIPageViewControllerDataSource {
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
         let previousIndex = imageManager.dysplaingImageIndex - 1
         guard imageManager.images.indices.contains(previousIndex) else { return nil }
-        let viewController = IFImageViewController(imageManager: imageManager, displayingImageIndex: previousIndex)
-        beforeViewController = viewController
-        return viewController
+        return IFImageViewController(imageManager: imageManager, displayingImageIndex: previousIndex)
     }
     
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
         let nextIndex = imageManager.dysplaingImageIndex + 1
         guard imageManager.images.indices.contains(nextIndex) else { return nil }
-        let viewController = IFImageViewController(imageManager: imageManager, displayingImageIndex: nextIndex)
-        afterViewController = viewController
-        return viewController
+        return IFImageViewController(imageManager: imageManager, displayingImageIndex: nextIndex)
     }
 }
 
@@ -105,17 +109,6 @@ extension IFPageViewController: UIPageViewControllerDelegate {
     func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
         guard completed, let visibleViewController = visibleViewController else { return }
         imageManager.dysplaingImageIndex = visibleViewController.displayingImageIndex
-        
-        switch visibleViewController {
-        case afterViewController:
-            beforeViewController = previousViewControllers.first as? IFImageViewController
-            afterViewController = nil
-        case beforeViewController:
-            beforeViewController = nil
-            afterViewController = previousViewControllers.first as? IFImageViewController
-        default:
-            break
-        }
     }
 }
 
