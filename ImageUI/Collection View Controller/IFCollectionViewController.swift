@@ -30,7 +30,7 @@ protocol IFCollectionViewControllerDelegate: class {
 
 class IFCollectionViewController: UIViewController {
     private struct Constants {
-        static let layoutTransitionDuration = 0.3
+        static let layoutTransitionDuration = 0.24
     }
     
     enum PendingInvalidation {
@@ -109,7 +109,6 @@ class IFCollectionViewController: UIViewController {
         
         if collectionView.isDecelerating {
             collectionView.setContentOffset(collectionView.contentOffset, animated: false)
-            invalidateLayout(style: .preview)
         } else {
             flowLayout.invalidateLayoutIfNeeded(forTransitionIndexPath: IndexPath(item: index, section: 0), progress: progress)
         }
@@ -253,6 +252,11 @@ extension IFCollectionViewController: UICollectionViewDelegate {
         } else {
             pendingInvalidation = .bouncing
         }
+    }
+    
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        guard flowLayout.style == .normal else { return }
+        invalidateLayout(style: .preview)
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
