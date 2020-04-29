@@ -102,11 +102,9 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     
     override func layoutAttributesForElements(in rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
         guard let superAttributes = super.layoutAttributesForElements(in: rect) else { return nil }
-        guard
-            style == .preview,
-            let layoutAttributes = NSArray(array: superAttributes, copyItems: true) as? [UICollectionViewLayoutAttributes] else { return superAttributes }
-        
-        visibleAttributesCache = layoutAttributes.reduce(into: visibleAttributesCache) { $0[$1.indexPath] = $1 }
+        guard style == .preview else { return superAttributes }
+        let layoutAttributes = superAttributes.compactMap { $0.copy() as? UICollectionViewLayoutAttributes }
+        visibleAttributesCache = layoutAttributes.reduce(into: [:]) { $0[$1.indexPath] = $1 }
         
         for attribute in layoutAttributes.sorted(by: { $0.indexPath < $1.indexPath }) {
             updateSizeIfNeeded(forLayoutAttribute: attribute)
@@ -117,17 +115,19 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
   
     override func layoutAttributesForItem(at indexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
+        guard let attributes = super.layoutAttributesForItem(at: indexPath)?.copy() as? UICollectionViewLayoutAttributes else { return nil }
         switch style {
         case .preview:
-            guard visibleAttributesCache[indexPath] == nil else { return visibleAttributesCache[indexPath]! }
-            guard let superAttribute = super.layoutAttributesForItem(at: indexPath) else { return nil }
-            guard let layoutAttribute = superAttribute.copy() as? UICollectionViewLayoutAttributes else { return superAttribute }
-            updateSizeIfNeeded(forLayoutAttribute: layoutAttribute)
-            updatePositionIfNeeded(forLayoutAttribute: layoutAttribute)
-            return layoutAttribute
+            if let cachedAttribute = visibleAttributesCache[indexPath] {
+                attributes.frame = cachedAttribute.frame
+            } else {
+                updateSizeIfNeeded(forLayoutAttribute: attributes)
+                updatePositionIfNeeded(forLayoutAttribute: attributes)
+            }
         case .normal:
-            return super.layoutAttributesForItem(at: indexPath)
+            break
         }
+        return attributes
     }
     
     override func targetContentOffset(forProposedContentOffset proposedContentOffset: CGPoint) -> CGPoint {
@@ -242,7 +242,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         let maximumLineSpacingIndexRange = (transition.indexPath.item...transition.indexPath.item + 1)
         
         let previousIndexPath = IndexPath(item: attribute.indexPath.item - 1, section: 0)
-        #warning("Improve previousAttributeMaxX algorithm to avoid fallback on wrong value")
+        #warning("Improve previousAttributeMaxX algorithm to avoid fallback on wrong value and an unnecessary cache")
         let previousAttributeMaxX = visibleAttributesCache[previousIndexPath]?.frame.maxX ?? sectionInset.left
         
         guard minimumLineSpacingIndexRange.contains(attribute.indexPath.item) || maximumLineSpacingIndexRange.contains(attribute.indexPath.item) else {

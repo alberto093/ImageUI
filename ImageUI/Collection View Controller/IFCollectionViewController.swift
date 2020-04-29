@@ -30,7 +30,7 @@ protocol IFCollectionViewControllerDelegate: class {
 
 class IFCollectionViewController: UIViewController {
     private struct Constants {
-        static let layoutTransitionDuration = 0.24
+        static let layoutTransitionDuration = 0.28
     }
     
     enum PendingInvalidation {
