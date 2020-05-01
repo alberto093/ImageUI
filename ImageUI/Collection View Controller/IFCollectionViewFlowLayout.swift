@@ -66,6 +66,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     private var transition: Transition
 //    private var itemPositionCache: [IndexPath: CGFloat] = [:]
 //    private var layoutAttributesCache: [IndexPath: UICollectionViewLayoutAttributes] = [:]
+    private var animatedLayoutAttributes: [IndexPath: UICollectionViewLayoutAttributes] = [:]
     private var preferredItemSizes: [IndexPath: CGSize] = [:]
     private lazy var maximumLineSpacing = minimumLineSpacing
     var needsInitialContentOffset = true
@@ -99,10 +100,13 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     #warning("This should be unnecessary. It should be called after prepare()")
-//    override func prepare(forAnimatedBoundsChange oldBounds: CGRect) {
-//        update()
-//        super.prepare(forAnimatedBoundsChange: oldBounds)
-//    }
+    override func prepare(forAnimatedBoundsChange oldBounds: CGRect) {
+        if oldBounds.size != collectionView?.bounds.size {
+            update()
+            animatedLayoutAttributes = layoutAttributesForElements(in: oldBounds)?.reduce(into: [:]) { $0[$1.indexPath] = $1 } ?? [:]
+        }
+        super.prepare(forAnimatedBoundsChange: oldBounds)
+    }
     
     override func layoutAttributesForElements(in rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
         guard let superAttributes = super.layoutAttributesForElements(in: rect) else { return nil }
@@ -111,7 +115,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         for superAttribute in superAttributes {
             guard let layoutAttribute = superAttribute.copy() as? UICollectionViewLayoutAttributes else { continue }
             layoutAttribute.size = size(forItemAt: layoutAttribute.indexPath)
-            layoutAttribute.frame.origin.x = originX(forItemAt: layoutAttribute.indexPath)
+            layoutAttribute.frame.origin = CGPoint(x: originX(forItemAt: layoutAttribute.indexPath), y: verticalPadding)
             layoutAttributes.append(layoutAttribute)
 //            layoutAttributesCache[layoutAttribute.indexPath] = layoutAttribute
         }
@@ -124,7 +128,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         guard let superAttributes = super.layoutAttributesForItem(at: indexPath) else { return nil }
         guard let layoutAttributes = superAttributes.copy() as? UICollectionViewLayoutAttributes else { return superAttributes }
         layoutAttributes.size = size(forItemAt: layoutAttributes.indexPath)
-        layoutAttributes.frame.origin.x = originX(forItemAt: layoutAttributes.indexPath)
+        layoutAttributes.frame.origin = CGPoint(x: originX(forItemAt: layoutAttributes.indexPath), y: verticalPadding)
         return layoutAttributes
     }
     
@@ -156,10 +160,11 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     override func initialLayoutAttributesForAppearingItem(at itemIndexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
+        guard animatedLayoutAttributes[itemIndexPath] == nil else { return animatedLayoutAttributes[itemIndexPath]! }
         let attribute = super.initialLayoutAttributesForAppearingItem(at: itemIndexPath)
         attribute?.alpha = 1
         attribute?.size = size(forItemAt: itemIndexPath)
-        attribute?.frame.origin.x = originX(forItemAt: itemIndexPath)
+        attribute?.frame.origin = CGPoint(x: originX(forItemAt: itemIndexPath), y: verticalPadding)
         return attribute
     }
 
@@ -167,8 +172,13 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         let attribute = super.finalLayoutAttributesForDisappearingItem(at: itemIndexPath)
         attribute?.alpha = 1
         attribute?.size = size(forItemAt: itemIndexPath)
-        attribute?.frame.origin.x = originX(forItemAt: itemIndexPath)
+        attribute?.frame.origin = CGPoint(x: originX(forItemAt: itemIndexPath), y: verticalPadding)
         return attribute
+    }
+    
+    override func finalizeAnimatedBoundsChange() {
+        super.finalizeAnimatedBoundsChange()
+        animatedLayoutAttributes = [:]
     }
     
     override func shouldInvalidateLayout(forBoundsChange newBounds: CGRect) -> Bool {
