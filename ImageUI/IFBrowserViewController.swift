@@ -302,7 +302,7 @@ public class IFBrowserViewController: UIViewController {
         }
         
         guard let actionIndex = senderIndex, let action = actions[safe: actionIndex] else { return }
-        
+        collectionViewController.scroll(toItemAt: imageManager.dysplaingImageIndex)
         switch action {
         case .share:
             guard let image = imageManager.images[safe: imageManager.dysplaingImageIndex] else { return }
@@ -348,12 +348,20 @@ extension IFBrowserViewController: IFPageViewControllerDelegate {
         let imageIndex = min(max(endIndex, 0), imageManager.images.count - 1)
         updateTitle(imageIndex: progress >= 0.5 ? imageIndex : startIndex)
     }
+    
+    func pageViewControllerDidResetScroll(_ pageViewController: IFPageViewController) {
+        collectionViewController.scroll(toItemAt: imageManager.dysplaingImageIndex, animated: true)
+    }
 }
 
 extension IFBrowserViewController: IFCollectionViewControllerDelegate {
     func collectionViewController(_ collectionViewController: IFCollectionViewController, didSelectItemAt index: Int) {
         pageViewController.updateVisibleImage(index: index)
         updateTitle(imageIndex: index)
+    }
+    
+    func collectionViewControllerWillBeginScrolling(_ collectionViewController: IFCollectionViewController) {
+        pageViewController.prepareForUpdate()
     }
 }
 
