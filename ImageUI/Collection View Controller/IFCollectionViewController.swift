@@ -131,14 +131,14 @@ class IFCollectionViewController: UIViewController {
     @discardableResult private func updateDysplaingImageIndexIfNeeded(with index: Int) -> Bool {
         guard imageManager.dysplaingImageIndex != index else { return false }
         imageManager.dysplaingImageIndex = index
-        flowLayout.centerIndexPath = IndexPath(item: index, section: 0)
         delegate?.collectionViewController(self, didSelectItemAt: index)
         return true
     }
 
     private func invalidateLayout(style: IFCollectionViewFlowLayout.Style) {
         pendingInvalidation = nil
-        let flowLayout = IFCollectionViewFlowLayout(centerIndexPath: self.flowLayout.centerIndexPath)
+        let indexPath = IndexPath(item: imageManager.dysplaingImageIndex, section: 0)
+        let flowLayout = IFCollectionViewFlowLayout(centerIndexPath: indexPath)
         flowLayout.style = style
         flowLayout.needsInitialContentOffset = false
         UIView.transition(
@@ -184,15 +184,16 @@ extension IFCollectionViewController: UICollectionViewDataSource {
             var options = ImageLoadingOptions(transition: .fadeIn(duration: 0.1))
             options.pipeline = imageManager.pipeline
             loadImage(with: request, options: options, into: cell.imageView) { [weak self] result in
-                guard
-                    case .success = result,
-                    self?.imageManager.dysplaingImageIndex == indexPath.item,
-                    self?.flowLayout.style == .preview,
-                    self?.collectionView.isDragging == false,
-                    self?.collectionView.isDecelerating == false,
-                    self?.flowLayout.isTransitioning == false else { return }
-                self?.invalidateLayout(style: .preview)
-                print("cellForItemAt invalidation")
+                #warning("Think better, pendingInvalidation == nil????")
+//                guard
+//                    case .success = result,
+//                    self?.imageManager.dysplaingImageIndex == indexPath.item,
+//                    self?.flowLayout.style == .preview,
+//                    self?.collectionView.isDragging == false,
+//                    self?.collectionView.isDecelerating == false,
+//                    self?.flowLayout.isTransitioning == false else { return }
+//                self?.invalidateLayout(style: .preview)
+//                print("cellForItemAt invalidation")
             }
         }
         return cell
@@ -227,16 +228,7 @@ extension IFCollectionViewController: UICollectionViewDelegate {
         pendingInvalidation = nil
         guard flowLayout.style == .preview else { return }
         let contentOffset = collectionView.contentOffset
-        let flowLayout = IFCollectionViewFlowLayout(centerIndexPath: self.flowLayout.centerIndexPath)
-        flowLayout.style = .normal
-        flowLayout.needsInitialContentOffset = false
-        UIView.transition(
-            with: collectionView,
-            duration: Constants.layoutTransitionDuration,
-            options: .curveEaseOut,
-            animations: { self.collectionView.setCollectionViewLayout(flowLayout, animated: true) },
-            completion: nil)
-        
+        invalidateLayout(style: .normal)
         let updatedContentOffset = collectionView.contentOffset
         collectionView.panGestureRecognizer.setTranslation(CGPoint(x: contentOffset.x - updatedContentOffset.x, y: 0), in: collectionView)
         print("scrollViewWillBeginDragging invalidation")
@@ -252,6 +244,11 @@ extension IFCollectionViewController: UICollectionViewDelegate {
         } else {
             pendingInvalidation = .bouncing
         }
+
+        #warning("Setting threshold to avoid flow layout backpressure")
+//        if velocity.x > 123 {
+//            animator.finishRunningAnimation(at: .end)
+//        }
     }
     
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
@@ -268,6 +265,16 @@ extension IFCollectionViewController: UICollectionViewDelegate {
 
 extension IFCollectionViewController: IFScrollViewBouncingDelegate {
     func scrollView(_ scrollView: UIScrollView, didReverseBouncing direction: UIScrollView.BouncingDirection) {
+        let indexPath: IndexPath
+        switch direction {
+        case .left:
+            indexPath = IndexPath(item: 0, section: 0)
+        case .right:
+            indexPath = IndexPath(item: imageManager.images.count - 1, section: 0)
+        default:
+            return
+        }
+        imageManager.dysplaingImageIndex = indexPath.item
         invalidateLayout(style: .preview)
         print("didReverseBouncing invalidation")
     }
