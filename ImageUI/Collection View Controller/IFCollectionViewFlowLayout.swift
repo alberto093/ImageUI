@@ -28,7 +28,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         case normal
     }
     
-    private struct Transition {
+    struct Transition {
         let indexPath: IndexPath
         let progress: CGFloat
         
@@ -59,11 +59,11 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     var isTransitioning: Bool {
-        transition.indexPath != centerIndexPath
+        transition.progress > 0 && transition.progress < 1
     }
     
     // MARK: - Accessory properties
-    private var transition: Transition
+    var transition: Transition
     private var animatedLayoutAttributes: [IndexPath: UICollectionViewLayoutAttributes] = [:]
     private var preferredItemSizes: [IndexPath: CGSize] = [:]
     private lazy var maximumLineSpacing = minimumLineSpacing
@@ -127,7 +127,10 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     override func targetContentOffset(forProposedContentOffset proposedContentOffset: CGPoint) -> CGPoint {
-        CGPoint(x: contentOffsetX(forItemAt: centerIndexPath), y: proposedContentOffset.y)
+        let centerItemOffsetX = contentOffsetX(forItemAt: centerIndexPath)
+        let transitionItemOffsetX = contentOffsetX(forItemAt: transition.indexPath)
+        let targetOffsetX = centerItemOffsetX - transition.progress * (centerItemOffsetX - transitionItemOffsetX)
+        return CGPoint(x: targetOffsetX, y: proposedContentOffset.y)
     }
     
     override func targetContentOffset(forProposedContentOffset proposedContentOffset: CGPoint, withScrollingVelocity velocity: CGPoint) -> CGPoint {
@@ -180,8 +183,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
 
     override func prepareForTransition(to newLayout: UICollectionViewLayout) {
-        super.prepareForTransition(to: newLayout)
-//        transition = Transition(indexPath: centerIndexPath)
+        defer { super.prepareForTransition(to: newLayout) }
         guard let flowLayout = newLayout as? IFCollectionViewFlowLayout else { return }
         flowLayout.needsInitialContentOffset = false
         updatePreferredItemSize(forItemIndexPaths: [centerIndexPath, flowLayout.centerIndexPath])
