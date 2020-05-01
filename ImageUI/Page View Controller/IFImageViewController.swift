@@ -22,8 +22,6 @@
 //  THE SOFTWARE.
 //
 
-import Nuke
-
 class IFImageViewController: UIViewController {
     private struct Constants {
         static let minimumMaximumZoomFactor: CGFloat = 3
@@ -128,19 +126,18 @@ class IFImageViewController: UIViewController {
     }
     
     private func update() {
-        guard isViewLoaded, let url = imageManager.images[safe: displayingImageIndex]?.url else { return }
-        let request = ImageRequest(url: url, processors: [], priority: .veryHigh)
-        var options = ImageLoadingOptions(transition: .fadeIn(duration: 0.1))
-        options.pipeline = imageManager.pipeline
-        loadImage(with: request, options: options, into: imageView) { [weak self] result in
-            UIView.performWithoutAnimation {
+        guard isViewLoaded else { return }
+        UIView.performWithoutAnimation {
+            imageView.image = imageManager.placeholderImage
+            updateScrollView()
+            imageManager.loadImage(at: displayingImageIndex, sender: imageView) { [weak self] _ in
                 self?.updateScrollView()
             }
         }
     }
     
     private func updateScrollView(resetZoom: Bool = true) {
-        guard let image = imageView.image else { return }
+        guard let image = imageView.image, image.size.width > 0, image.size.height > 0 else { return }
         let aspectFitZoom = min(view.frame.width / image.size.width, view.frame.height / image.size.height)
         aspectFillZoom = max(view.frame.width / image.size.width, view.frame.height / image.size.height)
         let zoomMultiplier = (scrollView.zoomScale - scrollView.minimumZoomScale) / (scrollView.maximumZoomScale - scrollView.minimumZoomScale)

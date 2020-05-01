@@ -23,7 +23,6 @@
 //
 
 import MobileCoreServices
-import Nuke
 
 class IFSharingImage: NSObject, UIActivityItemSource {
     let container: IFImage
@@ -61,6 +60,7 @@ extension IFSharingImage {
     func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
         let metadata = LPLinkMetadata()
         metadata.title = container.title
+        metadata.originalURL = container.url
         let provider = NSItemProvider(object: image)
         metadata.imageProvider = provider
         metadata.iconProvider = provider

@@ -24,10 +24,19 @@
 
 import Nuke
 
+#if canImport(LinkPresentation)
+import LinkPresentation
+#endif
+
 class IFImageManager {
     let images: [IFImage]
-    var dysplaingImageIndex = 0
     let pipeline: ImagePipeline
+    
+    var prefersAspectFillZoom = false
+    var placeholderImage: UIImage?
+    var dysplaingImageIndex = 0
+    @available(iOS 13.0, *)
+    private(set) lazy var dysplaingLinkMetadata = LPLinkMetadata()
     
     private let dataCache: DataCache? = {
         let dataCache = try? DataCache(name: "org.cocoapods.ImageUI.dataCache")
@@ -42,5 +51,49 @@ class IFImageManager {
         var configuration = ImagePipeline.Configuration(dataLoader: IFImageLoader())
         configuration.dataCache = dataCache
         self.pipeline = ImagePipeline(configuration: configuration)
+    }
+    
+    func updateDysplaingImage(index: Int) {
+        guard images.indices.contains(index) else { return }
+        dysplaingImageIndex = index
+
+        if #available(iOS 13.0, *) {
+            let metadata = LPLinkMetadata()
+            let image = images[index]
+            metadata.title = image.title
+            metadata.originalURL = image.url
+            let provider = NSItemProvider(contentsOf: image.url)
+            metadata.imageProvider = provider
+            metadata.iconProvider = provider
+        }
+    }
+    
+    func loadImage(
+        at index: Int,
+        preferredSize: CGSize? = nil,
+        sender: ImageDisplayingView,
+        completion: ((Result<UIImage, Error>) -> Void)? = nil) {
+        
+        guard let image = images[safe: index] else { return }
+        let priority: ImageRequest.Priority
+        
+        if index == dysplaingImageIndex {
+            priority = preferredSize == nil ? .veryHigh : .high
+        } else {
+            priority = .normal
+        }
+        
+        let request = ImageRequest(
+            url: image.url,
+            processors: preferredSize.map { [ImageProcessor.Resize(size: $0)] } ?? [],
+            priority: priority)
+
+        var options = ImageLoadingOptions(
+            placeholder: placeholderImage,
+            transition: .fadeIn(duration: 0.1, options: .curveEaseOut))
+        options.pipeline = pipeline
+        Nuke.loadImage(with: request, options: options, into: sender) { result in
+            completion?(result.map { $0.image }.mapError { $0 })
+        }
     }
 }

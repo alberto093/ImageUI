@@ -29,6 +29,7 @@ protocol IFCollectionViewControllerDelegate: class {
     func collectionViewControllerWillBeginScrolling(_ collectionViewController: IFCollectionViewController)
 }
 
+#warning("Add constants to allow property animator timing and duration")
 class IFCollectionViewController: UIViewController {
     private struct Constants {
         static let layoutTransitionDuration = 0.28
@@ -164,6 +165,19 @@ class IFCollectionViewController: UIViewController {
             completion: nil)
     }
     
+    private func invalidateLayout(forPreferredImageAt index: Int) {
+        #warning("Think better, pendingInvalidation == nil????")
+        //                guard
+        //                    case .success = result,
+        //                    self?.imageManager.dysplaingImageIndex == indexPath.item,
+        //                    self?.flowLayout.style == .preview,
+        //                    self?.collectionView.isDragging == false,
+        //                    self?.collectionView.isDecelerating == false,
+        //                    self?.flowLayout.isTransitioning == false else { return }
+        //                self?.invalidateLayout(style: .preview)
+        //                print("cellForItemAt invalidation")
+    }
+    
     @objc private func pangestureDidChange(_ sender: UIPanGestureRecognizer) {
         switch sender.state {
         case .cancelled,
@@ -192,24 +206,10 @@ extension IFCollectionViewController: UICollectionViewDataSource {
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: IFCollectionViewCell.identifier, for: indexPath)
-        if let cell = cell as? IFCollectionViewCell, let url = imageManager.images[safe: indexPath.item]?.url {
-            let request = ImageRequest(
-                url: url,
-                processors: [ImageProcessor.Resize(size: flowLayout.itemSize)],
-                priority: indexPath.item == imageManager.dysplaingImageIndex ? .high : .normal)
-            var options = ImageLoadingOptions(transition: .fadeIn(duration: 0.1))
-            options.pipeline = imageManager.pipeline
-            loadImage(with: request, options: options, into: cell.imageView) { [weak self] result in
-                #warning("Think better, pendingInvalidation == nil????")
-//                guard
-//                    case .success = result,
-//                    self?.imageManager.dysplaingImageIndex == indexPath.item,
-//                    self?.flowLayout.style == .preview,
-//                    self?.collectionView.isDragging == false,
-//                    self?.collectionView.isDecelerating == false,
-//                    self?.flowLayout.isTransitioning == false else { return }
-//                self?.invalidateLayout(style: .preview)
-//                print("cellForItemAt invalidation")
+        if let cell = cell as? IFCollectionViewCell {
+            imageManager.loadImage(at: indexPath.item, preferredSize: flowLayout.itemSize, sender: cell) { [weak self] result in
+                guard case .success = result else { return }
+                self?.invalidateLayout(forPreferredImageAt: indexPath.item)
             }
         }
         return cell

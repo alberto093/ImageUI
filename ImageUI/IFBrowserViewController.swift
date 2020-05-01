@@ -22,8 +22,6 @@
 //  THE SOFTWARE.
 //
 
-import Nuke
-
 public protocol IFBrowserViewControllerDelegate: class {
     func browserViewController(_ browserViewController: IFBrowserViewController, didSelectActionWith identifier: String, forImageAt index: Int)
 }

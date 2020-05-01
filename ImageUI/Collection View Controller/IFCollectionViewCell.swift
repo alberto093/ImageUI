@@ -22,9 +22,11 @@
 //  THE SOFTWARE.
 //
 
+import Nuke
+
 class IFCollectionViewCell: UICollectionViewCell {
     // MARK: - View
-    let imageView: UIImageView = {
+    private let imageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.clipsToBounds = true
@@ -58,5 +60,11 @@ class IFCollectionViewCell: UICollectionViewCell {
             imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             imageView.topAnchor.constraint(equalTo: contentView.topAnchor)])
+    }
+}
+
+extension IFCollectionViewCell: Nuke_ImageDisplaying {
+    func nuke_display(image: PlatformImage?) {
+        imageView.image = image
     }
 }

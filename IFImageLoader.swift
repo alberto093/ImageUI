@@ -24,6 +24,8 @@
 
 import Nuke
 
+extension DispatchWorkItem: Cancellable { }
+
 class IFImageLoader: DataLoading {
     let networkLoader = DataLoader()
     private let fileFetchingQueue = DispatchQueue(label: "org.cocoapods.ImageUI", attributes: .concurrent, target: .global(qos: .userInitiated))
