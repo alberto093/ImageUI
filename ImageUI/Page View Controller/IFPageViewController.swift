@@ -24,6 +24,7 @@
 
 protocol IFPageViewControllerDelegate: class {
     func pageViewController(_ pageViewController: IFPageViewController, didScrollFrom startIndex: Int, direction: UIPageViewController.NavigationDirection, progress: CGFloat)
+    func pageViewControllerDidResetScroll(_ pageViewController: IFPageViewController)
 }
 
 class IFPageViewController: UIPageViewController {
@@ -63,13 +64,15 @@ class IFPageViewController: UIPageViewController {
     
     // MARK: - Public methods
     func updateVisibleImage(index: Int) {
-        guard
-            isViewLoaded,
-            let visibleViewController = visibleViewController,
-            visibleViewController.displayingImageIndex != index else { return }
+        guard isViewLoaded, let visibleViewController = visibleViewController, scrollView?.isDragging == false else { return }
         visibleViewController.displayingImageIndex = index
-        prepareForImageUpdate()
-        setViewControllers([visibleViewController], direction: .forward, animated: false)
+//        setViewControllers([visibleViewController], direction: .forward, animated: false)
+    }
+    
+    /// Disable the gesture-based navigation.
+    func prepareForUpdate() {
+        dataSource = nil
+        dataSource = self
     }
     
     // MARK: - Private methods
@@ -77,17 +80,18 @@ class IFPageViewController: UIPageViewController {
         dataSource = self
         delegate = self
         scrollView?.delegate = self
+        scrollView?.panGestureRecognizer.addTarget(self, action: #selector(panGestureDidChange))
         let initialViewController = IFImageViewController(imageManager: imageManager)
         setViewControllers([initialViewController], direction: .forward, animated: false)
     }
     
-    private func prepareForImageUpdate() {
-        guard let scrollView = scrollView else { return }
-        let defaultContentOffset = CGPoint(x: scrollView.bounds.width, y: scrollView.contentOffset.y)
-        guard scrollView.contentOffset != defaultContentOffset else { return }
-        scrollView.setContentOffset(defaultContentOffset, animated: false)
-        dataSource = nil
-        dataSource = self
+    @objc private func panGestureDidChange(_ sender: UIPanGestureRecognizer) {
+        switch sender.state {
+        case .cancelled:
+            progressDelegate?.pageViewControllerDidResetScroll(self)
+        default:
+            break
+        }
     }
 }
 
