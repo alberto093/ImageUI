@@ -28,6 +28,7 @@ class IFImageViewController: UIViewController {
     private struct Constants {
         static let minimumMaximumZoomFactor: CGFloat = 3
         static let doubleTapZoomMultiplier: CGFloat = 0.85
+        static let preferredAspectFillRatio: CGFloat = 0.9
         static let maxImageSize: CGSize = {
             let maxSize = max(UIScreen.main.nativeBounds.width, UIScreen.main.nativeBounds.height)
             return CGSize(width: maxSize, height: maxSize)
@@ -143,12 +144,20 @@ class IFImageViewController: UIViewController {
         let aspectFitZoom = min(view.frame.width / image.size.width, view.frame.height / image.size.height)
         aspectFillZoom = max(view.frame.width / image.size.width, view.frame.height / image.size.height)
         let zoomMultiplier = (scrollView.zoomScale - scrollView.minimumZoomScale) / (scrollView.maximumZoomScale - scrollView.minimumZoomScale)
-        scrollView.minimumZoomScale = aspectFitZoom
-        scrollView.maximumZoomScale = max(aspectFitZoom * Constants.minimumMaximumZoomFactor, aspectFillZoom, 1 / UIScreen.main.scale)
-        if resetZoom {
-            scrollView.zoomScale = aspectFitZoom
+
+        let minimumZoomScale: CGFloat
+        if imageManager.prefersAspectFillZoom, aspectFitZoom / aspectFillZoom >= Constants.preferredAspectFillRatio {
+            minimumZoomScale = aspectFillZoom
         } else {
-            scrollView.zoomScale = aspectFitZoom + (scrollView.maximumZoomScale - aspectFitZoom) * zoomMultiplier
+            minimumZoomScale = aspectFitZoom
+        }
+
+        scrollView.minimumZoomScale = minimumZoomScale
+        scrollView.maximumZoomScale = max(minimumZoomScale * Constants.minimumMaximumZoomFactor, aspectFillZoom)
+        if resetZoom {
+            scrollView.zoomScale = minimumZoomScale
+        } else {
+            scrollView.zoomScale = minimumZoomScale + (scrollView.maximumZoomScale - minimumZoomScale) * zoomMultiplier
         }
 
         scrollView.contentInset.top = (view.frame.height - image.size.height * scrollView.zoomScale) / 2

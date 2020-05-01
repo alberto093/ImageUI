@@ -75,7 +75,19 @@ public class IFBrowserViewController: UIViewController {
     
     // MARK: - Public properties
     public weak var delegate: IFBrowserViewControllerDelegate?
-    public var actions: [Action] = []
+    public var actions: [Action] = [] {
+        didSet { setupBars() }
+    }
+    
+    /// A Boolean value specifying whether the image should be zoomed to fill the entire container
+    ///
+    /// When this property is set to `true`, the browser allows the image to be displayed using the aspect fill zoom if the aspect ratio is similar to its container view one.
+    ///
+    /// When the property is set to `false` (the default), the browser use the aspect fit zoom as its minimum zoom value.
+    public var prefersAspectFillZoom: Bool {
+        get { imageManager.prefersAspectFillZoom }
+        set { imageManager.prefersAspectFillZoom = newValue }
+    }
     
     public override var prefersStatusBarHidden: Bool {
         collectionContainerView.alpha == 0 || collectionContainerView.isHidden
@@ -202,6 +214,7 @@ public class IFBrowserViewController: UIViewController {
     }
         
     private func setupBars() {
+        guard isViewLoaded else { return }
         let barButtonItems = actions.map { $0.barButtonItem(target: self, action: #selector(actionButtonDidTap)) }
         
         switch traitCollection.verticalSizeClass {
