@@ -39,9 +39,9 @@ class IFCollectionViewController: UIViewController {
     }
     
     // MARK: - View
-    private lazy var collectionView: UICollectionView = {
+    private lazy var collectionView: IFCollectionView = {
         let layout = IFCollectionViewFlowLayout(centerIndexPath: IndexPath(item: imageManager.dysplaingImageIndex, section: 0))
-        let view = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        let view = IFCollectionView(frame: .zero, collectionViewLayout: layout)
         view.backgroundColor = .clear
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -212,7 +212,7 @@ extension IFCollectionViewController: UICollectionViewDataSourcePrefetching {
     }
 }
 
-extension IFCollectionViewController: UICollectionViewDelegate {
+extension IFCollectionViewController: IFCollectionViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView.isDragging else { return }
         let centerIndexPath = flowLayout.indexPath(forContentOffset: collectionView.contentOffset)
@@ -254,6 +254,10 @@ extension IFCollectionViewController: UICollectionViewDelegate {
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         guard flowLayout.style == .normal else { return }
         invalidateLayout(style: .preview)
+    }
+    
+    func collectionViewDidTouch(_ collectionView: UICollectionView) {
+        print(#function)
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {

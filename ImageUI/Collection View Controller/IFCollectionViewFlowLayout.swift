@@ -64,8 +64,6 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     
     // MARK: - Accessory properties
     private var transition: Transition
-//    private var itemPositionCache: [IndexPath: CGFloat] = [:]
-//    private var layoutAttributesCache: [IndexPath: UICollectionViewLayoutAttributes] = [:]
     private var animatedLayoutAttributes: [IndexPath: UICollectionViewLayoutAttributes] = [:]
     private var preferredItemSizes: [IndexPath: CGSize] = [:]
     private lazy var maximumLineSpacing = minimumLineSpacing
@@ -94,18 +92,15 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     override func prepare() {
         update()
         setInitialContentOffsetIfNeeded()
-//        itemPositionCache = [:]
-//        layoutAttributesCache = [:]
         super.prepare()
     }
     
-    #warning("This should be unnecessary. It should be called after prepare()")
     override func prepare(forAnimatedBoundsChange oldBounds: CGRect) {
-        if oldBounds.size != collectionView?.bounds.size {
-            update()
-            animatedLayoutAttributes = layoutAttributesForElements(in: oldBounds)?.reduce(into: [:]) { $0[$1.indexPath] = $1 } ?? [:]
-        }
-        super.prepare(forAnimatedBoundsChange: oldBounds)
+        defer { super.prepare(forAnimatedBoundsChange: oldBounds) }
+        guard let collectionView = collectionView, oldBounds.size != collectionView.bounds.size else { return }
+        update()
+        let rect = collectionView.bounds.union(oldBounds)
+        animatedLayoutAttributes = layoutAttributesForElements(in: rect)?.reduce(into: [:]) { $0[$1.indexPath] = $1 } ?? [:]
     }
     
     override func layoutAttributesForElements(in rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
@@ -124,7 +119,6 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
   
     override func layoutAttributesForItem(at indexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
-//        guard layoutAttributesCache[indexPath] == nil else { return layoutAttributesCache[indexPath]! }
         guard let superAttributes = super.layoutAttributesForItem(at: indexPath) else { return nil }
         guard let layoutAttributes = superAttributes.copy() as? UICollectionViewLayoutAttributes else { return superAttributes }
         layoutAttributes.size = size(forItemAt: layoutAttributes.indexPath)
@@ -177,8 +171,8 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     override func finalizeAnimatedBoundsChange() {
-        super.finalizeAnimatedBoundsChange()
         animatedLayoutAttributes = [:]
+        super.finalizeAnimatedBoundsChange()
     }
     
     override func shouldInvalidateLayout(forBoundsChange newBounds: CGRect) -> Bool {
@@ -261,7 +255,6 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     /// - Parameter indexPath:
     /// - Returns:
     private func originX(forItemAt indexPath: IndexPath) -> CGFloat {
-//        guard itemPositionCache[indexPath] == nil else { return itemPositionCache[indexPath]! }
         let minimumPreviewingIndexPath = min(centerIndexPath, transition.indexPath)
         let maximumPreviewingIndexPath = max(centerIndexPath, transition.indexPath)
 
