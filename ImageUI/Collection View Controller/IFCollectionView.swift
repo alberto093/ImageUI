@@ -8,13 +8,17 @@
 import Foundation
 
 protocol IFCollectionViewDelegate: UICollectionViewDelegate {
-    func collectionViewDidTouch(_ collectionView: UICollectionView)
+    func collectionView(_ collectionView: UICollectionView, touchBegan itemIndexPath: IndexPath?)
 }
 
 class IFCollectionView: UICollectionView {
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        (delegate as? IFCollectionViewDelegate)?.collectionViewDidTouch(self)
+        if let touch = touches.first, let indexPath = indexPathForItem(at: touch.location(in: self)) {
+            (delegate as? IFCollectionViewDelegate)?.collectionView(self, touchBegan: indexPath)
+        } else {
+            (delegate as? IFCollectionViewDelegate)?.collectionView(self, touchBegan: nil)
+        }
         super.touchesBegan(touches, with: event)
     }
 }
