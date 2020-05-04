@@ -73,8 +73,13 @@ class IFPageViewController: UIPageViewController {
         visibleViewController.displayingImageIndex = index
     }
     
+    func invalidateDataSourceIfNeeded() {
+        guard let scrollView = scrollView, scrollView.isDragging || scrollView.isDecelerating else { return }
+        invalidateDataSource()
+    }
+    
     /// Disable the gesture-based navigation.
-    func invalidateDataSource() {
+    private func invalidateDataSource() {
         dataSource = nil
         dataSource = self
     }

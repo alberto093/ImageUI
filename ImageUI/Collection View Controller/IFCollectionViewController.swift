@@ -126,6 +126,7 @@ class IFCollectionViewController: UIViewController {
     }
     
     func scroll(toItemAt index: Int, animated: Bool) {
+        guard flowLayout.isTransitioning || flowLayout.centerIndexPath.item != index else { return }
         invalidateLayout(style: .preview)
     }
     
