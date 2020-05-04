@@ -24,8 +24,8 @@
 
 class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     enum Style {
-        case preview
-        case normal
+        case carousel
+        case flow
     }
     
     struct Transition {
@@ -39,8 +39,8 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     // MARK: - Public properties
-    var style: Style = .preview
-    var centerIndexPath: IndexPath
+    var style: Style = .carousel
+    private(set) var centerIndexPath: IndexPath
     var verticalPadding: CGFloat = 1
     var minimumItemWidthMultiplier: CGFloat = 0.5
     var maximumItemWidthMultiplier: CGFloat = 34 / 9
@@ -63,15 +63,16 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     // MARK: - Accessory properties
-    var transition: Transition
+    private var transition: Transition
     private var animatedLayoutAttributes: [IndexPath: UICollectionViewLayoutAttributes] = [:]
     private var preferredItemSizes: [IndexPath: CGSize] = [:]
     private lazy var maximumLineSpacing = minimumLineSpacing
-    var needsInitialContentOffset = true
+    private var needsInitialContentOffset: Bool
     
     // MARK: - Overrides
-    init(centerIndexPath: IndexPath) {
+    init(centerIndexPath: IndexPath, needsInitialContentOffset: Bool = false) {
         self.centerIndexPath = centerIndexPath
+        self.needsInitialContentOffset = needsInitialContentOffset
         transition = Transition(indexPath: centerIndexPath)
         super.init()
         setup()
@@ -79,6 +80,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     
     required init?(coder: NSCoder) {
         centerIndexPath = IndexPath(item: 0, section: 0)
+        needsInitialContentOffset = false
         transition = Transition(indexPath: centerIndexPath)
         super.init(coder: coder)
         setup()
@@ -112,7 +114,6 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
             layoutAttribute.size = size(forItemAt: layoutAttribute.indexPath)
             layoutAttribute.frame.origin = CGPoint(x: originX(forItemAt: layoutAttribute.indexPath), y: verticalPadding)
             layoutAttributes.append(layoutAttribute)
-//            layoutAttributesCache[layoutAttribute.indexPath] = layoutAttribute
         }
         
         return layoutAttributes
@@ -185,8 +186,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     override func prepareForTransition(to newLayout: UICollectionViewLayout) {
         defer { super.prepareForTransition(to: newLayout) }
         guard let flowLayout = newLayout as? IFCollectionViewFlowLayout else { return }
-        flowLayout.needsInitialContentOffset = false
-        updatePreferredItemSize(forItemIndexPaths: [centerIndexPath, flowLayout.centerIndexPath])
+        updatePreferredItemSize(forItemIndexPaths: [centerIndexPath, transition.indexPath, flowLayout.centerIndexPath, flowLayout.transition.indexPath])
         flowLayout.preferredItemSizes = preferredItemSizes
     }
     
@@ -197,46 +197,24 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         let normalizedIndex = min(max(Int(itemIndex), itemsRange.lowerBound), itemsRange.upperBound)
         return IndexPath(item: normalizedIndex, section: 0)
     }
-
-    func invalidateLayoutIfNeeded(forTransitionIndexPath indexPath: IndexPath, progress: CGFloat) {
+    
+    func update(centerIndexPath: IndexPath) {
+        self.centerIndexPath = centerIndexPath
+        self.transition = Transition(indexPath: centerIndexPath)
+    }
+    
+    func setupTransition(to indexPath: IndexPath, progress: CGFloat) {
         let progress = min(max(progress, 0), 1)
         transition = Transition(indexPath: indexPath, progress: progress)
         updatePreferredItemSize()
+
         if progress == 1 {
             centerIndexPath = indexPath
-        }
-        
-        guard let collectionView = collectionView else { return }
-        
-        let context = UICollectionViewFlowLayoutInvalidationContext()
-        let initialOffsetX = contentOffsetX(forItemAt: centerIndexPath)
-        let finalOffsetX = contentOffsetX(forItemAt: indexPath)
-        
-        switch progress {
-        case 0, 1:
-            context.contentOffsetAdjustment.x = contentOffsetX(forItemAt: centerIndexPath) - collectionView.contentOffset.x
-        default:
-            let targetOffsetX = initialOffsetX - progress * (initialOffsetX - finalOffsetX)
-            context.contentOffsetAdjustment.x = targetOffsetX - collectionView.contentOffset.x
-        }
-        
-        invalidateLayout(with: context)
+        }        
     }
-    
-    func invalidateLayout(with style: Style, centerIndexPath: IndexPath) {
-        guard let collectionView = collectionView else { return }
-        self.style = style
-        self.centerIndexPath = centerIndexPath
-        self.transition = Transition(indexPath: centerIndexPath)
-        updatePreferredItemSize()
-        
-        let context = UICollectionViewFlowLayoutInvalidationContext()
-        context.contentOffsetAdjustment.x = contentOffsetX(forItemAt: centerIndexPath) - collectionView.contentOffset.x
-        invalidateLayout(with: context)
-    }
-    
+
     private func size(forItemAt indexPath: IndexPath) -> CGSize {
-        guard style == .preview, indexPath == centerIndexPath || indexPath == transition.indexPath else { return itemSize }
+        guard style == .carousel, indexPath == centerIndexPath || indexPath == transition.indexPath else { return itemSize }
 
         let preferredWidth = preferredSize(forItemAt: indexPath).width
         let sizeMultiplier = indexPath == transition.indexPath ? transition.progress : (1 - transition.progress)
@@ -245,7 +223,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     private func preferredSize(forItemAt indexPath: IndexPath) -> CGSize {
-        guard style == .preview, let preferredItemSize = preferredItemSizes[indexPath] else { return itemSize }
+        guard style == .carousel, let preferredItemSize = preferredItemSizes[indexPath] else { return itemSize }
         let widthRange = itemSize.width...maximumItemWidth
         let preferredWidth = min(max(preferredItemSize.width, widthRange.lowerBound), widthRange.upperBound)
         return CGSize(width: preferredWidth, height: itemSize.height)
@@ -260,7 +238,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         let minimumPreviewingIndexPath = min(centerIndexPath, transition.indexPath)
         let maximumPreviewingIndexPath = max(centerIndexPath, transition.indexPath)
 
-        guard style == .preview, indexPath >= minimumPreviewingIndexPath else { // before
+        guard style == .carousel, indexPath >= minimumPreviewingIndexPath else { // before
             return CGFloat(indexPath.item) * minimumLineSpacing + CGFloat(indexPath.item) * itemSize.width + sectionInset.left
         }
 
@@ -298,7 +276,6 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
             itemPositionX = minimumPreviewingOffset + middleItemsOffset + maximumPreviewingOffset + overItemsMultiplier * itemSize.width + overItemsMultiplier * minimumLineSpacing
         }
         
-//        itemPositionCache[indexPath] = itemPositionX
         return itemPositionX
     }
     
@@ -306,9 +283,9 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         let previousItemOffset = CGFloat(indexPath.item) * itemSize.width + CGFloat(indexPath.item - 1) * minimumLineSpacing
 
         switch style {
-        case .normal:
+        case .flow:
             return previousItemOffset + minimumLineSpacing + itemSize.width / 2
-        case .preview:
+        case .carousel:
             return previousItemOffset + maximumLineSpacing + preferredSize(forItemAt: indexPath).width / 2
         }
     }
@@ -329,21 +306,19 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     private func updatePreferredItemSize(forItemIndexPaths indexPaths: [IndexPath]? = nil) {
-        let preferredIndexPaths: [IndexPath]
-        if let indexPaths = indexPaths {
-            preferredIndexPaths = indexPaths
-        } else {
-            preferredIndexPaths = centerIndexPath == transition.indexPath ? [centerIndexPath] : [centerIndexPath, transition.indexPath]
-        }
+        guard let collectionView = collectionView else { return }
+        let preferredIndexPaths = indexPaths ?? [centerIndexPath, transition.indexPath]
+        var processedIndices: Set<IndexPath> = []
         
-        preferredIndexPaths.forEach {
+        for preferredIndexPath in preferredIndexPaths where !processedIndices.contains(preferredIndexPath) {
+            defer { processedIndices.insert(preferredIndexPath) }
+            
             guard
-                let collectionView = collectionView,
-                let layoutAttribute = layoutAttributesForItem(at: $0),
-                let cell = collectionView.cellForItem(at: $0) else { return }
+                let layoutAttribute = layoutAttributesForItem(at: preferredIndexPath),
+                let cell = collectionView.cellForItem(at: preferredIndexPath) else { continue }
             
             let preferredAttribute = cell.preferredLayoutAttributesFitting(layoutAttribute)
-            preferredItemSizes[$0] = preferredAttribute.size
+            preferredItemSizes[preferredIndexPath] = preferredAttribute.size
         }
     }
 }

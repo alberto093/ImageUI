@@ -27,10 +27,10 @@ class IFCollectionViewAnimator {
         let curvePoints: (CGPoint, CGPoint)
         
         switch flowLayout.style {
-        case .normal:
+        case .flow:
             duration = Constants.normalizingDuration
             curvePoints = Constants.normalizingBezierCurvePoints
-        case .preview:
+        case .carousel:
             duration = Constants.previewingDuration
             curvePoints = Constants.previewingBezierCurvePoints
         }
