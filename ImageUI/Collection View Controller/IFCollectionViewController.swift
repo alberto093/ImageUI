@@ -168,16 +168,13 @@ class IFCollectionViewController: UIViewController {
     }
     
     private func invalidateLayout(forPreferredImageAt index: Int) {
-        #warning("Think better, pendingInvalidation == nil????")
-        //                guard
-        //                    case .success = result,
-        //                    self?.imageManager.displayingImageIndex == indexPath.item,
-        //                    self?.flowLayout.style == .preview,
-        //                    self?.collectionView.isDragging == false,
-        //                    self?.collectionView.isDecelerating == false,
-        //                    self?.flowLayout.isTransitioning == false else { return }
-        //                self?.invalidateLayout(style: .preview)
-        //                print("cellForItemAt invalidation")
+        guard
+            pendingInvalidation == nil,
+            imageManager.displayingImageIndex == index,
+            collectionViewLayout.style == .carousel,
+            collectionViewLayout.isTransitioning == false else { return }
+        invalidateLayout(style: .carousel)
+        print("cellForItemAt invalidation")
     }
     
     @objc private func pangestureDidChange(_ sender: UIPanGestureRecognizer) {
