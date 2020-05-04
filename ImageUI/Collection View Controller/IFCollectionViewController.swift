@@ -106,6 +106,12 @@ class IFCollectionViewController: UIViewController {
         super.viewWillTransition(to: size, with: coordinator)
     }
     
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        collectionView.prefetchDataSource = nil
+        prefetcher.stopPreheating()
+    }
+    
     // MARK: - Public methods
     func scroll(toItemAt index: Int, progress: CGFloat = 1) {
         guard isViewLoaded else { return }
