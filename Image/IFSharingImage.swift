@@ -24,9 +24,16 @@
 
 import MobileCoreServices
 
+#if canImport(LinkPresentation)
+import LinkPresentation
+#endif
+
 class IFSharingImage: NSObject, UIActivityItemSource {
     let container: IFImage
     let image: UIImage
+    
+    @available(iOS 13.0, *)
+    private lazy var metadata: LPLinkMetadata? = nil
     
     init(container: IFImage, image: UIImage) {
         self.container = container
@@ -51,21 +58,24 @@ class IFSharingImage: NSObject, UIActivityItemSource {
     }
 }
 
-#if canImport(LinkPresentation)
-
-import LinkPresentation
-
 @available(iOS 13.0, *)
 extension IFSharingImage {
+    convenience init(container: IFImage, image: UIImage, metadata: LPLinkMetadata? = nil) {
+        self.init(container: container, image: image)
+        self.metadata = metadata
+    }
+    
     func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
-        let metadata = LPLinkMetadata()
-        metadata.title = container.title
-        metadata.originalURL = container.url
-        let provider = NSItemProvider(object: image)
-        metadata.imageProvider = provider
-        metadata.iconProvider = provider
-        return metadata
+        if let metadata = metadata {
+            return metadata
+        } else {
+            let metadata = LPLinkMetadata()
+            metadata.title = container.title
+            metadata.originalURL = container.url
+            let provider = NSItemProvider(object: image)
+            metadata.imageProvider = provider
+            metadata.iconProvider = provider
+            return metadata
+        }
     }
 }
-
-#endif

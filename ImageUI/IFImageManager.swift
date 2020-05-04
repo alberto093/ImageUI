@@ -34,9 +34,9 @@ class IFImageManager {
     
     var prefersAspectFillZoom = false
     var placeholderImage: UIImage?
-    var dysplaingImageIndex = 0
+    private(set) var displayingImageIndex = 0
     @available(iOS 13.0, *)
-    private(set) lazy var dysplaingLinkMetadata = LPLinkMetadata()
+    private(set) lazy var displayingLinkMetadata: LPLinkMetadata? = nil
     
     private let dataCache: DataCache? = {
         let dataCache = try? DataCache(name: "org.cocoapods.ImageUI.dataCache")
@@ -47,24 +47,22 @@ class IFImageManager {
     
     init(images: [IFImage], initialImageIndex: Int = 0) {
         self.images = images
-        self.dysplaingImageIndex = min(max(initialImageIndex, 0), images.count - 1)
+        self.displayingImageIndex = min(max(initialImageIndex, 0), images.count - 1)
         var configuration = ImagePipeline.Configuration(dataLoader: IFImageLoader())
         configuration.dataCache = dataCache
         self.pipeline = ImagePipeline(configuration: configuration)
+        
+        if #available(iOS 13.0, *) {
+            prepareDisplayingMetadata()
+        }
     }
     
-    func updateDysplaingImage(index: Int) {
+    func updatedisplayingImage(index: Int) {
         guard images.indices.contains(index) else { return }
-        dysplaingImageIndex = index
-
+        displayingImageIndex = index
+        
         if #available(iOS 13.0, *) {
-            let metadata = LPLinkMetadata()
-            let image = images[index]
-            metadata.title = image.title
-            metadata.originalURL = image.url
-            let provider = NSItemProvider(contentsOf: image.url)
-            metadata.imageProvider = provider
-            metadata.iconProvider = provider
+            prepareDisplayingMetadata()
         }
     }
     
@@ -77,7 +75,7 @@ class IFImageManager {
         guard let image = images[safe: index] else { return }
         let priority: ImageRequest.Priority
         
-        if index == dysplaingImageIndex {
+        if index == displayingImageIndex {
             priority = preferredSize == nil ? .veryHigh : .high
         } else {
             priority = .normal
@@ -95,5 +93,17 @@ class IFImageManager {
         Nuke.loadImage(with: request, options: options, into: sender) { result in
             completion?(result.map { $0.image }.mapError { $0 })
         }
+    }
+    
+    @available(iOS 13.0, *)
+    private func prepareDisplayingMetadata() {
+        let metadata = LPLinkMetadata()
+        let image = images[displayingImageIndex]
+        metadata.title = image.title
+        metadata.originalURL = image.url
+        let provider = NSItemProvider(contentsOf: image.url)
+        metadata.imageProvider = provider
+        metadata.iconProvider = provider
+        self.displayingLinkMetadata = metadata
     }
 }
