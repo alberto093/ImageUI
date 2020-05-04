@@ -208,9 +208,13 @@ extension IFCollectionViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: IFCollectionViewCell.identifier, for: indexPath)
         if let cell = cell as? IFCollectionViewCell {
-            imageManager.loadImage(at: indexPath.item, preferredSize: collectionViewLayout.itemSize, sender: cell) { [weak self] result in
-                guard case .success = result else { return }
-                self?.invalidateLayout(forPreferredImageAt: indexPath.item)
+            imageManager.loadImage(
+                at: indexPath.item,
+                preferredSize: collectionViewLayout.itemSize,
+                kind: .thumbnail,
+                sender: cell) { [weak self] result in
+                    guard case .success = result else { return }
+                    self?.invalidateLayout(forPreferredImageAt: indexPath.item)
             }
         }
         return cell
@@ -219,12 +223,12 @@ extension IFCollectionViewController: UICollectionViewDataSource {
 
 extension IFCollectionViewController: UICollectionViewDataSourcePrefetching {
     func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
-        let urls = indexPaths.compactMap { imageManager.images[safe: $0.item]?.url }
+        let urls = indexPaths.compactMap { imageManager.images[safe: $0.item]?.thumbnail?.url }
         prefetcher.startPreheating(with: urls)
     }
     
     func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
-        let urls = indexPaths.compactMap { imageManager.images[safe: $0.item]?.url }
+        let urls = indexPaths.compactMap { imageManager.images[safe: $0.item]?.thumbnail?.url }
         prefetcher.stopPreheating(with: urls)
     }
 }

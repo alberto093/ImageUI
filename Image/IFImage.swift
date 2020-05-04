@@ -31,29 +31,51 @@ public struct IFImage {
     }
 
     public let title: String?
-    public let source: Source
+    public let original: Source
+    public let thumbnail: Source?
+    public var placeholder: UIImage?
     
-    internal var url: URL {
-        switch source {
+    public init(title: String? = nil, original: Source, thumbnail: Source? = nil, placeholder: UIImage? = nil) {
+        self.title = title
+        self.original = original
+        self.thumbnail = thumbnail
+        self.placeholder = placeholder
+    }
+}
+
+public extension IFImage {
+    init(title: String? = nil, url: URL, placeholder: UIImage? = nil) {
+        self.init(title: title, original: .remote(url: url), placeholder: placeholder)
+    }
+    
+    init(title: String? = nil, path: String, placeholder: UIImage? = nil) {
+        self.init(title: title, original: .local(path: path), placeholder: placeholder)
+    }
+}
+
+internal extension IFImage.Source {
+    var url: URL {
+        switch self {
         case .local(let path):
             return URL(fileURLWithPath: path)
         case .remote(let url):
             return url
         }
     }
-    
-    public init(title: String? = nil, source: Source) {
-        self.title = title
-        self.source = source
+}
+
+internal extension IFImage {
+    enum Kind {
+        case original
+        case thumbnail
     }
     
-    public init(title: String? = nil, url: URL) {
-        self.title = title
-        self.source = .remote(url: url)
-    }
-    
-    public init(title: String? = nil, path: String) {
-        self.title = title
-        self.source = .local(path: path)
+    subscript(kind: Kind) -> Source {
+        switch kind {
+        case .original:
+            return original
+        case .thumbnail:
+            return thumbnail ?? original
+        }
     }
 }

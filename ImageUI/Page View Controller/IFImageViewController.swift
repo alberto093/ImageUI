@@ -137,7 +137,7 @@ class IFImageViewController: UIViewController {
         UIView.performWithoutAnimation {
             imageView.image = imageManager.placeholderImage
             updateScrollView()
-            imageManager.loadImage(at: displayingImageIndex, sender: imageView) { [weak self] _ in
+            imageManager.loadImage(at: displayingImageIndex, kind: .original, sender: imageView) { [weak self] _ in
                 self?.updateScrollView()
             }
         }

@@ -328,7 +328,6 @@ public class IFBrowserViewController: UIViewController {
         case .share:
             presentShareViewController(sender: sender)
         case .delete:
-            #warning("Add implementation")
             break
         case .custom(let identifier, _):
             delegate?.browserViewController(self, didSelectActionWith: identifier, forImageAt: imageManager.displayingImageIndex)

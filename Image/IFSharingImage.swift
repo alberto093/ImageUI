@@ -71,7 +71,7 @@ extension IFSharingImage {
         } else {
             let metadata = LPLinkMetadata()
             metadata.title = container.title
-            metadata.originalURL = container.url
+            metadata.originalURL = container.original.url
             let provider = NSItemProvider(object: image)
             metadata.imageProvider = provider
             metadata.iconProvider = provider

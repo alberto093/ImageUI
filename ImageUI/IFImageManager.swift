@@ -63,6 +63,7 @@ class IFImageManager {
     func loadImage(
         at index: Int,
         preferredSize: CGSize? = nil,
+        kind: IFImage.Kind,
         sender: ImageDisplayingView,
         completion: ((Result<UIImage, Error>) -> Void)? = nil) {
         
@@ -76,12 +77,12 @@ class IFImageManager {
         }
         
         let request = ImageRequest(
-            url: image.url,
+            url: image[kind].url,
             processors: preferredSize.map { [ImageProcessor.Resize(size: $0)] } ?? [],
             priority: priority)
 
         var options = ImageLoadingOptions(
-            placeholder: placeholderImage,
+            placeholder: image.placeholder ?? placeholderImage,
             transition: .fadeIn(duration: 0.1, options: .curveEaseOut))
         options.pipeline = pipeline
         Nuke.loadImage(with: request, options: options, into: sender) { result in
@@ -91,7 +92,7 @@ class IFImageManager {
     
     func sharingImage(forImageAt index: Int, completion: @escaping (Result<IFSharingImage, Error>) -> Void) {
         guard let image = images[safe: index] else { return }
-        pipeline.loadImage(with: image.url) { [weak self] result in
+        pipeline.loadImage(with: image.original.url) { [weak self] result in
             guard let self = self else { return }
             let sharingResult: Result<IFSharingImage, Error> = result
                 .map {
@@ -113,9 +114,9 @@ extension IFImageManager {
         guard let image = images[safe: displayingImageIndex] else { return }
         let metadata = LPLinkMetadata()
         metadata.title = image.title
-        metadata.originalURL = image.url
+        metadata.originalURL = image.original.url
         
-        let request = ImageRequest(url: image.url, priority: .low)
+        let request = ImageRequest(url: image.original.url, priority: .low)
         linkMetadataTask = pipeline.loadImage(with: request) { result in
             if case .success(let response) = result {
                 let provider = NSItemProvider(object: response.image)
