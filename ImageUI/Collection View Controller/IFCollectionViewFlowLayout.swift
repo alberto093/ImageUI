@@ -198,9 +198,20 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         return IndexPath(item: normalizedIndex, section: 0)
     }
     
-    func update(centerIndexPath: IndexPath) {
+    func update(centerIndexPath: IndexPath, shouldInvalidate: Bool = false) {
         self.centerIndexPath = centerIndexPath
         self.transition = Transition(indexPath: centerIndexPath)
+        updatePreferredItemSize()
+        
+        guard shouldInvalidate else { return }
+
+        if let collectionView = collectionView {
+            let context = UICollectionViewFlowLayoutInvalidationContext()
+            context.contentOffsetAdjustment.x = contentOffsetX(forItemAt: centerIndexPath) - collectionView.contentOffset.x
+            invalidateLayout(with: context)
+        } else {
+            invalidateLayout()
+        }
     }
     
     func setupTransition(to indexPath: IndexPath, progress: CGFloat) {

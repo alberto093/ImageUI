@@ -111,17 +111,17 @@ class IFCollectionViewController: UIViewController {
         guard isViewLoaded else { return }
         
         if collectionView.isDecelerating {
-            invalidateLayout(style: .carousel)
+            updateCollectionViewLayout(style: .carousel)
         } else {
             let transitionIndexPath = IndexPath(item: index, section: 0)
-            invalidateLayout(transitionIndexPath: transitionIndexPath, progress: progress)
+            updateCollectionViewLayout(transitionIndexPath: transitionIndexPath, progress: progress)
         }
         print("pageViewController invalidation")
     }
     
     func scroll(toItemAt index: Int, animated: Bool) {
         guard collectionViewLayout.isTransitioning || collectionViewLayout.centerIndexPath.item != index else { return }
-        invalidateLayout(style: .carousel)
+        updateCollectionViewLayout(style: .carousel)
     }
     
     // MARK: - Private methods
@@ -146,7 +146,7 @@ class IFCollectionViewController: UIViewController {
         return true
     }
 
-    private func invalidateLayout(style: IFCollectionViewFlowLayout.Style) {
+    private func updateCollectionViewLayout(style: IFCollectionViewFlowLayout.Style) {
         pendingInvalidation = nil
         let indexPath = IndexPath(item: imageManager.displayingImageIndex, section: 0)
         let layout = IFCollectionViewFlowLayout(centerIndexPath: indexPath)
@@ -159,22 +159,12 @@ class IFCollectionViewController: UIViewController {
             completion: nil)
     }
     
-    private func invalidateLayout(transitionIndexPath: IndexPath, progress: CGFloat) {
+    private func updateCollectionViewLayout(transitionIndexPath: IndexPath, progress: CGFloat) {
         let indexPath = IndexPath(item: imageManager.displayingImageIndex, section: 0)
         let layout = IFCollectionViewFlowLayout(centerIndexPath: indexPath)
         layout.style = collectionViewLayout.style
         layout.setupTransition(to: transitionIndexPath, progress: progress)
         collectionView.setCollectionViewLayout(layout, animated: false)
-    }
-    
-    private func invalidateLayout(forPreferredImageAt index: Int) {
-        guard
-            pendingInvalidation == nil,
-            imageManager.displayingImageIndex == index,
-            collectionViewLayout.style == .carousel,
-            collectionViewLayout.isTransitioning == false else { return }
-        invalidateLayout(style: .carousel)
-        print("cellForItemAt invalidation")
     }
     
     @objc private func pangestureDidChange(_ sender: UIPanGestureRecognizer) {
@@ -210,8 +200,14 @@ extension IFCollectionViewController: UICollectionViewDataSource {
                 preferredSize: collectionViewLayout.itemSize,
                 kind: .thumbnail,
                 sender: cell) { [weak self] result in
-                    guard case .success = result else { return }
-                    self?.invalidateLayout(forPreferredImageAt: indexPath.item)
+                    guard
+                        let self = self,
+                        case .success = result,
+                        self.imageManager.displayingImageIndex == indexPath.item,
+                        self.collectionViewLayout.style == .carousel,
+                        !self.collectionViewLayout.isTransitioning else { return }
+                    self.updateCollectionViewLayout(style: .carousel)
+                    print("cellForItemAt invalidation")
             }
         }
         return cell
@@ -238,7 +234,7 @@ extension IFCollectionViewController: IFCollectionViewDelegate {
             updatedisplayingImageIndexIfNeeded(with: centerIndexPath.item),
             case .dragging(let targetIndexPath) = pendingInvalidation,
             targetIndexPath == centerIndexPath else { return }
-        invalidateLayout(style: .carousel)
+        updateCollectionViewLayout(style: .carousel)
         print("scrollViewDidScroll invalidation")
     }
     
@@ -246,7 +242,7 @@ extension IFCollectionViewController: IFCollectionViewDelegate {
         pendingInvalidation = nil
         guard collectionViewLayout.style == .carousel else { return }
         let contentOffset = collectionView.contentOffset
-        invalidateLayout(style: .flow)
+        updateCollectionViewLayout(style: .flow)
         let updatedContentOffset = collectionView.contentOffset
         collectionView.panGestureRecognizer.setTranslation(CGPoint(x: contentOffset.x - updatedContentOffset.x, y: 0), in: collectionView)
         delegate?.collectionViewControllerWillBeginScrolling(self)
@@ -274,20 +270,28 @@ extension IFCollectionViewController: IFCollectionViewDelegate {
         guard pendingInvalidation != nil else { return }
         let centerIndexPath = collectionViewLayout.indexPath(forContentOffset: collectionView.contentOffset)
         updatedisplayingImageIndexIfNeeded(with: centerIndexPath.item)
-        invalidateLayout(style: .carousel)
+        updateCollectionViewLayout(style: .carousel)
         print("didEndDecelerating invalidation")
     }
     
     func collectionView(_ collectionView: UICollectionView, touchBegan itemIndexPath: IndexPath?) {
         guard collectionViewLayout.isTransitioning else { return }
-        invalidateLayout(style: .carousel)
+        updateCollectionViewLayout(style: .carousel)
         delegate?.collectionViewControllerWillBeginScrolling(self)
         print("touchBegan invalidation")
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard updatedisplayingImageIndexIfNeeded(with: indexPath.item) else { return }
-        invalidateLayout(style: .carousel)
+        
+        UIView.transition(
+            with: collectionView,
+            duration: Constants.layoutTransitionDuration,
+            options: .curveEaseOut,
+            animations: {
+                self.collectionViewLayout.update(centerIndexPath: indexPath, shouldInvalidate: true)
+            },
+            completion: nil)
         print("didSelectItemAt invalidation")
     }
 }
@@ -304,7 +308,7 @@ extension IFCollectionViewController: IFScrollViewBouncingDelegate {
             return
         }
         updatedisplayingImageIndexIfNeeded(with: indexPath.item)
-        invalidateLayout(style: .carousel)
+        updateCollectionViewLayout(style: .carousel)
         print("didReverseBouncing invalidation")
     }
 }
