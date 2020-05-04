@@ -171,6 +171,7 @@ class IFImageViewController: UIViewController {
     }
     
     private func updateContentOffset(previousOffsetRatio: CGPoint) {
+        guard scrollView.contentSize.width > 0, scrollView.contentSize.height > 0 else { return }
         let proposedContentOffsetX = (previousOffsetRatio.x * scrollView.contentSize.width) - (scrollView.frame.width / 2)
         let proposedContentOffsetY = (previousOffsetRatio.y * scrollView.contentSize.height) - (scrollView.frame.height / 2)
         

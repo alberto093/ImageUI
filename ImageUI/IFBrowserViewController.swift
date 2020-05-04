@@ -213,6 +213,9 @@ public class IFBrowserViewController: UIViewController {
         
     private func setupBars() {
         guard isViewLoaded else { return }
+        toolbar.invalidateIntrinsicContentSize()
+        updateBars(toggle: false)
+        
         let barButtonItems = actions.map { $0.barButtonItem(target: self, action: #selector(actionButtonDidTap)) }
         
         if navigationController?.isToolbarHidden == false {
@@ -225,9 +228,6 @@ public class IFBrowserViewController: UIViewController {
             navigationItem.setRightBarButtonItems(barButtonItems.reversed(), animated: true)
             setToolbarItems([], animated: true)
         }
-        
-        toolbar.invalidateIntrinsicContentSize()
-        updateBars(toggle: false)
     }
     
     private func updateBars(toggle: Bool) {
