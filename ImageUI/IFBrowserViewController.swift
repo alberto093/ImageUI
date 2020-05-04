@@ -53,7 +53,7 @@ public class IFBrowserViewController: UIViewController {
         return view
     }()
     
-    private let toolbar: UIToolbar = {
+    private let collectionToolbar: UIToolbar = {
         let toolbar = UIToolbar()
         toolbar.translatesAutoresizingMaskIntoConstraints = false
         return toolbar
@@ -118,11 +118,16 @@ public class IFBrowserViewController: UIViewController {
     }
     
     private var isToolbarEnabled: Bool {
-        traitCollection.verticalSizeClass != .compact && traitCollection.horizontalSizeClass != .regular
+        switch (traitCollection.verticalSizeClass, traitCollection.horizontalSizeClass) {
+        case (.regular, let horizontalClass) where horizontalClass != .regular:
+            return true
+        default:
+            return false
+        }
     }
     
     private var hidingViews: [UIView] {
-        (navigationController.map { [$0.navigationBar, $0.toolbar] } ?? []) + [toolbar, collectionContainerView]
+        (navigationController.map { [$0.navigationBar, $0.toolbar] } ?? []) + [collectionToolbar, collectionContainerView]
     }
     
     private var defaultBackgroundColor: UIColor {
@@ -149,20 +154,20 @@ public class IFBrowserViewController: UIViewController {
         view = UIView()
         view.backgroundColor = defaultBackgroundColor
         
-        [pageContainerView, toolbar, collectionContainerView].forEach(view.addSubview)
+        [pageContainerView, collectionToolbar, collectionContainerView].forEach(view.addSubview)
         
         NSLayoutConstraint.activate([
             pageContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             pageContainerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             pageContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             pageContainerView.topAnchor.constraint(equalTo: view.topAnchor),
-            toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionContainerView.centerXAnchor.constraint(equalTo: toolbar.centerXAnchor),
-            collectionContainerView.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
-            collectionContainerView.widthAnchor.constraint(equalTo: toolbar.widthAnchor),
-            collectionContainerView.heightAnchor.constraint(equalTo: toolbar.heightAnchor)])
+            collectionToolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            collectionToolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionToolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionContainerView.centerXAnchor.constraint(equalTo: collectionToolbar.centerXAnchor),
+            collectionContainerView.centerYAnchor.constraint(equalTo: collectionToolbar.centerYAnchor),
+            collectionContainerView.widthAnchor.constraint(equalTo: collectionToolbar.widthAnchor),
+            collectionContainerView.heightAnchor.constraint(equalTo: collectionToolbar.heightAnchor)])
     }
     
     public override func viewDidLoad() {
@@ -193,10 +198,10 @@ public class IFBrowserViewController: UIViewController {
         }
 
         if let customShadow = navigationController?.toolbar.shadowImage(forToolbarPosition: .bottom) {
-            toolbar.setShadowImage(customShadow, forToolbarPosition: .bottom)
+            collectionToolbar.setShadowImage(customShadow, forToolbarPosition: .bottom)
         }
         navigationController?.toolbar.setShadowImage(UIImage(), forToolbarPosition: .bottom)
-        toolbar.barTintColor = navigationController?.toolbar.barTintColor
+        collectionToolbar.barTintColor = navigationController?.toolbar.barTintColor
 
         addChild(pageViewController)
         pageViewController.progressDelegate = self
@@ -213,12 +218,10 @@ public class IFBrowserViewController: UIViewController {
         
     private func setupBars() {
         guard isViewLoaded else { return }
-        toolbar.invalidateIntrinsicContentSize()
-        updateBars(toggle: false)
         
         let barButtonItems = actions.map { $0.barButtonItem(target: self, action: #selector(actionButtonDidTap)) }
         
-        if navigationController?.isToolbarHidden == false {
+        if isToolbarEnabled {
             navigationItem.setRightBarButtonItems([], animated: true)
             let toolbarItems = barButtonItems.isEmpty ? [] : (0..<barButtonItems.count * 2 - 1).map {
                 $0.isMultiple(of: 2) ? barButtonItems[$0 / 2] : UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
@@ -228,6 +231,9 @@ public class IFBrowserViewController: UIViewController {
             navigationItem.setRightBarButtonItems(barButtonItems.reversed(), animated: true)
             setToolbarItems([], animated: true)
         }
+        
+        collectionToolbar.invalidateIntrinsicContentSize()
+        updateBars(toggle: false)
     }
     
     private func updateBars(toggle: Bool) {
@@ -241,7 +247,7 @@ public class IFBrowserViewController: UIViewController {
         if isHidden {
             navigationController?.setNavigationBarHidden(false, animated: false)
             navigationController?.setToolbarHidden(!isToolbarEnabled, animated: false)
-            [toolbar, collectionContainerView].forEach {
+            [collectionToolbar, collectionContainerView].forEach {
                 $0.isHidden = false
             }
             hidingViews.forEach { $0.alpha = 0 }
@@ -259,16 +265,16 @@ public class IFBrowserViewController: UIViewController {
                 let isToolbarHidden = self?.isToolbarEnabled == false || !isHidden
                 self?.navigationController?.setNavigationBarHidden(!isHidden, animated: false)
                 self?.navigationController?.setToolbarHidden(isToolbarHidden, animated: false)
-                [self?.toolbar, self?.collectionContainerView].forEach {
+                [self?.collectionToolbar, self?.collectionContainerView].forEach {
                     $0?.isHidden = !isHidden
                 }
-                self?.toolbar.layer.mask = nil
+                self?.collectionToolbar.layer.mask = nil
         })
     }
     
     private func update() {
         guard isViewLoaded else { return }
-        toolbar.isHidden = !shouldShowCollectionView
+        collectionToolbar.isHidden = !shouldShowCollectionView
         collectionContainerView.isHidden = !shouldShowCollectionView
     }
     
@@ -280,9 +286,9 @@ public class IFBrowserViewController: UIViewController {
         toolbarMaskLayer.frame = CGRect(
             x: Constants.toolbarContentInset.left,
             y: Constants.toolbarContentInset.top,
-            width: toolbar.frame.width - (Constants.toolbarContentInset.left + Constants.toolbarContentInset.right),
-            height: toolbar.frame.height - (Constants.toolbarContentInset.top + Constants.toolbarContentInset.bottom))
-        toolbar.layer.mask = navigationController?.isToolbarHidden == true ? nil : toolbarMaskLayer
+            width: collectionToolbar.frame.width - (Constants.toolbarContentInset.left + Constants.toolbarContentInset.right),
+            height: collectionToolbar.frame.height - (Constants.toolbarContentInset.top + Constants.toolbarContentInset.bottom))
+        collectionToolbar.layer.mask = navigationController?.isToolbarHidden == true ? nil : toolbarMaskLayer
     }
     
     private func presentShareViewController(sender: UIBarButtonItem) {
