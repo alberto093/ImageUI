@@ -113,7 +113,13 @@ class IFImageViewController: UIViewController {
     }
     
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
-        coordinator.animate(alongsideTransition: { _ in self.updateScrollView(resetZoom: false) })
+        let centerOffsetRatioX = (scrollView.contentOffset.x + scrollView.frame.width / 2) / scrollView.contentSize.width
+        let centerOffsetRatioY = (scrollView.contentOffset.y + scrollView.frame.height / 2) / scrollView.contentSize.height
+        
+        coordinator.animate(alongsideTransition: { _ in
+            self.updateScrollView(resetZoom: false)
+            self.updateContentOffset(previousOffsetRatio: CGPoint(x: centerOffsetRatioX, y: centerOffsetRatioY))
+        })
         super.viewWillTransition(to: size, with: coordinator)
     }
     
@@ -123,6 +129,7 @@ class IFImageViewController: UIViewController {
         imageView.addGestureRecognizer(tapGesture)
         scrollView.delegate = self
         scrollView.decelerationRate = .fast
+        scrollView.contentInsetAdjustmentBehavior = .never
     }
     
     private func update() {
@@ -151,14 +158,42 @@ class IFImageViewController: UIViewController {
 
         scrollView.minimumZoomScale = minimumZoomScale
         scrollView.maximumZoomScale = max(minimumZoomScale * Constants.minimumMaximumZoomFactor, aspectFillZoom)
-        if resetZoom {
-            scrollView.zoomScale = minimumZoomScale
+        
+        let zoomScale = resetZoom ? minimumZoomScale : (minimumZoomScale + (scrollView.maximumZoomScale - minimumZoomScale) * zoomMultiplier)
+        scrollView.zoomScale = zoomScale
+        updateContentInset()
+    }
+    
+    private func updateContentInset() {
+        guard let image = imageView.image else { return }
+        scrollView.contentInset.top = max((scrollView.frame.height - image.size.height * scrollView.zoomScale) / 2, 0)
+        scrollView.contentInset.left = max((scrollView.frame.width - image.size.width * scrollView.zoomScale) / 2, 0)
+    }
+    
+    private func updateContentOffset(previousOffsetRatio: CGPoint) {
+        let proposedContentOffsetX = (previousOffsetRatio.x * scrollView.contentSize.width) - (scrollView.frame.width / 2)
+        let proposedContentOffsetY = (previousOffsetRatio.y * scrollView.contentSize.height) - (scrollView.frame.height / 2)
+        
+        let minimumContentOffsetX = -scrollView.contentInset.left.rounded(.up)
+        let maximumContentOffsetX: CGFloat
+        if scrollView.contentSize.width <= scrollView.frame.width {
+            maximumContentOffsetX = minimumContentOffsetX
         } else {
-            scrollView.zoomScale = minimumZoomScale + (scrollView.maximumZoomScale - minimumZoomScale) * zoomMultiplier
+            maximumContentOffsetX = (scrollView.contentSize.width - scrollView.frame.width + scrollView.contentInset.right).rounded(.down)
         }
-
-        scrollView.contentInset.top = (view.frame.height - image.size.height * scrollView.zoomScale) / 2
-        scrollView.contentInset.left = (view.frame.width - image.size.width * scrollView.zoomScale) / 2
+        
+        let minimumContentOffsetY = -scrollView.contentInset.top.rounded(.up)
+        let maximumContentOffsetY: CGFloat
+        if scrollView.contentSize.height <= scrollView.frame.height {
+            maximumContentOffsetY = minimumContentOffsetY
+        } else {
+            maximumContentOffsetY = (scrollView.contentSize.height - scrollView.frame.height + scrollView.contentInset.bottom).rounded(.down)
+        }
+        
+        let targetContentOffsetX = min(max(proposedContentOffsetX, minimumContentOffsetX), maximumContentOffsetX)
+        let targetContentOffsetY = min(max(proposedContentOffsetY, minimumContentOffsetY), maximumContentOffsetY)
+        
+        scrollView.contentOffset = CGPoint(x: targetContentOffsetX, y: targetContentOffsetY)
     }
     
     // MARK: - UI Actions
@@ -183,7 +218,6 @@ extension IFImageViewController: UIScrollViewDelegate {
     }
     
     func scrollViewDidZoom(_ scrollView: UIScrollView) {
-        scrollView.contentInset.top = max((scrollView.frame.height - imageView.frame.height) / 2, 0)
-        scrollView.contentInset.left = max((scrollView.frame.width - imageView.frame.width) / 2, 0)
+        updateContentInset()
     }
 }

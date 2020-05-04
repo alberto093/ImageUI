@@ -76,9 +76,14 @@ class IFScrollViewBouncingManager {
     
     private func handleHorizontalContentOffsetIfNeeded(in scrollView: UIScrollView, previousOffset: CGFloat) {
         guard let observation = observation(of: scrollView) else { return }
-        
+                
         let minimumContentOffsetX = -scrollView.contentInset.left.rounded(.up)
-        let maximumContentOffsetX = (scrollView.contentSize.width - scrollView.bounds.width + scrollView.contentInset.right).rounded(.down)
+        let maximumContentOffsetX: CGFloat
+        if scrollView.contentSize.width <= scrollView.frame.width {
+            maximumContentOffsetX = minimumContentOffsetX
+        } else {
+            maximumContentOffsetX = (scrollView.contentSize.width - scrollView.frame.width + scrollView.contentInset.right).rounded(.down)
+        }
         
         let isMinimumBouncing = scrollView.contentOffset.x < minimumContentOffsetX && observation.directions.contains(.left)
         let isMaximumBouncing = scrollView.contentOffset.x > maximumContentOffsetX && observation.directions.contains(.right)
@@ -103,7 +108,12 @@ class IFScrollViewBouncingManager {
             observation.directions.contains(where: { $0 == .top || $0 == .bottom }) else { return }
         
         let minimumContentOffsetY = -scrollView.contentInset.top.rounded(.up)
-        let maximumContentOffsetY = (scrollView.contentSize.height - scrollView.bounds.height + scrollView.contentInset.bottom).rounded(.down)
+        let maximumContentOffsetY: CGFloat
+        if scrollView.contentSize.height <= scrollView.frame.height {
+            maximumContentOffsetY = minimumContentOffsetY
+        } else {
+            maximumContentOffsetY = (scrollView.contentSize.height - scrollView.frame.height + scrollView.contentInset.bottom).rounded(.down)
+        }
         
         let isMinimumBouncing = scrollView.contentOffset.y < minimumContentOffsetY && observation.directions.contains(.top)
         let isMaximumBouncing = scrollView.contentOffset.y > maximumContentOffsetY && observation.directions.contains(.bottom)
