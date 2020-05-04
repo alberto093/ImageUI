@@ -44,7 +44,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     var verticalPadding: CGFloat = 1
     var minimumItemWidthMultiplier: CGFloat = 0.5
     var maximumItemWidthMultiplier: CGFloat = 34 / 9
-    var maximumLineSpacingMultiplier: CGFloat = 0.28
+    var maximumLineSpacingMultiplier: CGFloat = 0.26
     
     var maximumItemWidth: CGFloat {
         itemSize.width * maximumItemWidthMultiplier
@@ -193,7 +193,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     // MARK: - Public methods
     func indexPath(forContentOffset contentOffset: CGPoint) -> IndexPath {
         let itemsRange = (0...(collectionView.map { $0.numberOfItems(inSection: 0) - 1 } ?? 0))
-        let itemIndex = (contentOffset.x - minimumLineSpacing / 2) / (itemSize.width + minimumLineSpacing)
+        let itemIndex = (contentOffset.x + minimumLineSpacing / 2) / (itemSize.width + minimumLineSpacing)
         let normalizedIndex = min(max(Int(itemIndex), itemsRange.lowerBound), itemsRange.upperBound)
         return IndexPath(item: normalizedIndex, section: 0)
     }

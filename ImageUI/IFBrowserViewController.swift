@@ -273,7 +273,7 @@ public class IFBrowserViewController: UIViewController {
     }
     
     private func updateTitle(imageIndex: Int? = nil) {
-        title = initialTitle ?? imageManager.images[safe: imageIndex ?? imageManager.dysplaingImageIndex]?.title
+        title = initialTitle ?? imageManager.images[safe: imageIndex ?? imageManager.displayingImageIndex]?.title
     }
     
     private func updateToolbarMask() {
@@ -313,21 +313,27 @@ public class IFBrowserViewController: UIViewController {
         }
         
         guard let actionIndex = senderIndex, let action = actions[safe: actionIndex] else { return }
-        collectionViewController.scroll(toItemAt: imageManager.dysplaingImageIndex)
+        collectionViewController.scroll(toItemAt: imageManager.displayingImageIndex)
         switch action {
         case .share:
-            guard let image = imageManager.images[safe: imageManager.dysplaingImageIndex] else { return }
+            guard let image = imageManager.images[safe: imageManager.displayingImageIndex] else { return }
             imageManager.pipeline.loadImage(with: image.url) { [weak self] result in
-                guard case .success(let response) = result else { return }
-                let item = IFSharingImage(container: image, image: response.image)
+                guard let self = self, case .success(let response) = result else { return }
+                let item: IFSharingImage
+                if #available(iOS 13.0, *) {
+                    item = IFSharingImage(container: image, image: response.image, metadata: self.imageManager.displayingLinkMetadata)
+                } else {
+                    item = IFSharingImage(container: image, image: response.image)
+                }
+
                 let viewController = UIActivityViewController(activityItems: [item], applicationActivities: nil)
-                self?.present(viewController, animated: true)
+                self.present(viewController, animated: true)
             }
         case .delete:
             #warning("Add implementation")
             break
         case .custom(let identifier, _):
-            delegate?.browserViewController(self, didSelectActionWith: identifier, forImageAt: imageManager.dysplaingImageIndex)
+            delegate?.browserViewController(self, didSelectActionWith: identifier, forImageAt: imageManager.displayingImageIndex)
         }
     }
 }
@@ -361,7 +367,8 @@ extension IFBrowserViewController: IFPageViewControllerDelegate {
     }
     
     func pageViewControllerDidResetScroll(_ pageViewController: IFPageViewController) {
-        collectionViewController.scroll(toItemAt: imageManager.dysplaingImageIndex, animated: true)
+        collectionViewController.scroll(toItemAt: imageManager.displayingImageIndex, animated: true)
+        updateTitle(imageIndex: imageManager.displayingImageIndex)
     }
 }
 
@@ -372,7 +379,7 @@ extension IFBrowserViewController: IFCollectionViewControllerDelegate {
     }
     
     func collectionViewControllerWillBeginScrolling(_ collectionViewController: IFCollectionViewController) {
-        pageViewController.prepareForUpdate()
+        pageViewController.invalidateDataSource()
     }
 }
 

@@ -66,7 +66,7 @@ class IFImageViewController: UIViewController {
     // MARK: - Initializer
     public init(imageManager: IFImageManager, displayingImageIndex: Int? = nil) {
         self.imageManager = imageManager
-        self.displayingImageIndex = displayingImageIndex ?? imageManager.dysplaingImageIndex
+        self.displayingImageIndex = displayingImageIndex ?? imageManager.displayingImageIndex
         super.init(nibName: nil, bundle: nil)
     }
     
