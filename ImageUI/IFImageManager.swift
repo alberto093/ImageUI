@@ -30,28 +30,22 @@ import LinkPresentation
 
 class IFImageManager {
     let images: [IFImage]
-    let pipeline: ImagePipeline
+    private let pipeline = ImagePipeline()
     
     var prefersAspectFillZoom = false
     var placeholderImage: UIImage?
     private(set) var displayingImageIndex = 0
-    @available(iOS 13.0, *)
-    private(set) lazy var displayingLinkMetadata: LPLinkMetadata? = nil
     
-    private let dataCache: DataCache? = {
-        let dataCache = try? DataCache(name: "org.cocoapods.ImageUI.dataCache")
-        dataCache?.countLimit = 3
-        dataCache?.sweepInterval = 5
-        return dataCache
-    }()
+    @available(iOS 13.0, *)
+    private lazy var displayingLinkMetadata: LPLinkMetadata? = nil
+    private var linkMetadataTask: ImageTask? {
+        didSet { oldValue?.cancel() }
+    }
     
     init(images: [IFImage], initialImageIndex: Int = 0) {
         self.images = images
         self.displayingImageIndex = min(max(initialImageIndex, 0), images.count - 1)
-        var configuration = ImagePipeline.Configuration(dataLoader: IFImageLoader())
-        configuration.dataCache = dataCache
-        self.pipeline = ImagePipeline(configuration: configuration)
-        
+
         if #available(iOS 13.0, *) {
             prepareDisplayingMetadata()
         }
@@ -95,15 +89,41 @@ class IFImageManager {
         }
     }
     
-    @available(iOS 13.0, *)
+    func sharingImage(forImageAt index: Int, completion: @escaping (Result<IFSharingImage, Error>) -> Void) {
+        guard let image = images[safe: index] else { return }
+        pipeline.loadImage(with: image.url) { [weak self] result in
+            guard let self = self else { return }
+            let sharingResult: Result<IFSharingImage, Error> = result
+                .map {
+                    if #available(iOS 13.0, *) {
+                        return IFSharingImage(container: image, image: $0.image, metadata: self.displayingLinkMetadata)
+                    } else {
+                        return IFSharingImage(container: image, image: $0.image)
+                    }
+                }.mapError { $0 }
+            
+            completion(sharingResult)
+        }
+    }
+}
+
+@available(iOS 13.0, *)
+extension IFImageManager {
     private func prepareDisplayingMetadata() {
+        guard let image = images[safe: displayingImageIndex] else { return }
         let metadata = LPLinkMetadata()
-        let image = images[displayingImageIndex]
         metadata.title = image.title
         metadata.originalURL = image.url
-        let provider = NSItemProvider(contentsOf: image.url)
-        metadata.imageProvider = provider
-        metadata.iconProvider = provider
+        
+        let request = ImageRequest(url: image.url, priority: .low)
+        linkMetadataTask = pipeline.loadImage(with: request) { result in
+            if case .success(let response) = result {
+                let provider = NSItemProvider(object: response.image)
+                metadata.imageProvider = provider
+                metadata.iconProvider = provider
+            }
+        }
+
         self.displayingLinkMetadata = metadata
     }
 }

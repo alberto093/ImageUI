@@ -315,21 +315,13 @@ public class IFBrowserViewController: UIViewController {
         guard let actionIndex = senderIndex, let action = actions[safe: actionIndex] else { return }
         collectionViewController.scroll(toItemAt: imageManager.displayingImageIndex)
         pageViewController.invalidateDataSourceIfNeeded()
+        
         switch action {
         case .share:
-            guard let image = imageManager.images[safe: imageManager.displayingImageIndex] else { return }
-            imageManager.pipeline.loadImage(with: image.url) { [weak self] result in
-                guard let self = self, case .success(let response) = result else { return }
-                let item: IFSharingImage
-                
-                if #available(iOS 13.0, *) {
-                    item = IFSharingImage(container: image, image: response.image, metadata: self.imageManager.displayingLinkMetadata)
-                } else {
-                    item = IFSharingImage(container: image, image: response.image)
-                }
-
-                let viewController = UIActivityViewController(activityItems: [item], applicationActivities: nil)
-                self.present(viewController, animated: true)
+            imageManager.sharingImage(forImageAt: imageManager.displayingImageIndex) { [weak self] result in
+                guard case .success(let sharingImage) = result else { return }
+                let viewController = UIActivityViewController(activityItems: [sharingImage], applicationActivities: nil)
+                self?.present(viewController, animated: true)
             }
         case .delete:
             #warning("Add implementation")
