@@ -118,7 +118,7 @@ public class IFBrowserViewController: UIViewController {
     }
     
     private var isToolbarEnabled: Bool {
-        traitCollection.verticalSizeClass != .compact
+        traitCollection.verticalSizeClass != .compact && traitCollection.horizontalSizeClass != .regular
     }
     
     private var hidingViews: [UIView] {
@@ -215,17 +215,17 @@ public class IFBrowserViewController: UIViewController {
         guard isViewLoaded else { return }
         let barButtonItems = actions.map { $0.barButtonItem(target: self, action: #selector(actionButtonDidTap)) }
         
-        switch traitCollection.verticalSizeClass {
-        case .compact:
-            navigationItem.setRightBarButtonItems(barButtonItems.reversed(), animated: true)
-            setToolbarItems([], animated: true)
-        default:
+        if navigationController?.isToolbarHidden == false {
             navigationItem.setRightBarButtonItems([], animated: true)
             let toolbarItems = barButtonItems.isEmpty ? [] : (0..<barButtonItems.count * 2 - 1).map {
                 $0.isMultiple(of: 2) ? barButtonItems[$0 / 2] : UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
             }
             setToolbarItems(toolbarItems, animated: true)
+        } else {
+            navigationItem.setRightBarButtonItems(barButtonItems.reversed(), animated: true)
+            setToolbarItems([], animated: true)
         }
+        
         toolbar.invalidateIntrinsicContentSize()
         updateBars(toggle: false)
     }
@@ -282,7 +282,17 @@ public class IFBrowserViewController: UIViewController {
             y: Constants.toolbarContentInset.top,
             width: toolbar.frame.width - (Constants.toolbarContentInset.left + Constants.toolbarContentInset.right),
             height: toolbar.frame.height - (Constants.toolbarContentInset.top + Constants.toolbarContentInset.bottom))
-        toolbar.layer.mask = traitCollection.verticalSizeClass == .compact ? nil : toolbarMaskLayer
+        toolbar.layer.mask = navigationController?.isToolbarHidden == true ? nil : toolbarMaskLayer
+    }
+    
+    private func presentShareViewController(sender: UIBarButtonItem) {
+        imageManager.sharingImage(forImageAt: imageManager.displayingImageIndex) { [weak self] result in
+            guard case .success(let sharingImage) = result else { return }
+            let viewController = UIActivityViewController(activityItems: [sharingImage], applicationActivities: nil)
+            viewController.modalPresentationStyle = .popover
+            viewController.popoverPresentationController?.barButtonItem = sender
+            self?.present(viewController, animated: true)
+        }
     }
     
     // MARK: - UI Actions
@@ -304,11 +314,9 @@ public class IFBrowserViewController: UIViewController {
     
     @objc private func actionButtonDidTap(_ sender: UIBarButtonItem) {
         let senderIndex: Int?
-        
-        switch traitCollection.verticalSizeClass {
-        case .compact:
+        if navigationController?.isToolbarHidden == true {
             senderIndex = navigationItem.rightBarButtonItems?.reversed().firstIndex(of: sender)
-        default:
+        } else {
             senderIndex = toolbarItems?.firstIndex(of: sender)
         }
         
@@ -318,11 +326,7 @@ public class IFBrowserViewController: UIViewController {
         
         switch action {
         case .share:
-            imageManager.sharingImage(forImageAt: imageManager.displayingImageIndex) { [weak self] result in
-                guard case .success(let sharingImage) = result else { return }
-                let viewController = UIActivityViewController(activityItems: [sharingImage], applicationActivities: nil)
-                self?.present(viewController, animated: true)
-            }
+            presentShareViewController(sender: sender)
         case .delete:
             #warning("Add implementation")
             break
