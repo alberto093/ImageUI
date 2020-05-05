@@ -31,7 +31,8 @@ protocol IFCollectionViewControllerDelegate: class {
 
 class IFCollectionViewController: UIViewController {
     private struct Constants {
-        static let carouselTransitionDuration: TimeInterval = 0.18
+        static let carouselTransitionDuration: TimeInterval = 0.16
+        static let carouselSelectionDuration: TimeInterval = 0.22
         static let flowTransitionDuration: TimeInterval = 0.24
     }
     
@@ -294,11 +295,16 @@ extension IFCollectionViewController: IFCollectionViewDelegate {
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard updatedisplayingImageIndexIfNeeded(with: indexPath.item) else { return }
-        collectionViewLayout.setupTransition(to: indexPath)
-        collectionView.performBatchUpdates({
-            self.collectionViewLayout.invalidateLayout()
-            collectionView.setCollectionViewLayout(self.collectionViewLayout, animated: true)
-        })
+
+        UIView.transition(
+            with: collectionView,
+            duration: Constants.carouselSelectionDuration,
+            options: .curveEaseOut,
+            animations: {
+                self.collectionViewLayout.setupTransition(to: indexPath)
+                self.collectionViewLayout.invalidateLayout()
+                self.collectionView.layoutIfNeeded()
+            })
         print("didSelectItemAt invalidation")
     }
 }
