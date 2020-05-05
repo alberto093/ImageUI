@@ -76,6 +76,10 @@ class IFCollectionViewController: UIViewController {
         super.init(coder: coder)
     }
     
+    deinit {
+        prefetcher.stopPreheating()
+    }
+    
     // MARK: - Lifecycle
     override func loadView() {
         view = UIView()
@@ -173,6 +177,16 @@ class IFCollectionViewController: UIViewController {
         collectionView.setCollectionViewLayout(layout, animated: false)
     }
     
+    private func updateCollectionViewLayout(forPreferredSizeAt indexPath: IndexPath) {
+        guard
+            imageManager.displayingImageIndex == indexPath.item,
+            collectionViewLayout.style == .carousel,
+            !collectionViewLayout.isTransitioning,
+            !collectionView.isDragging,
+            !collectionView.isDecelerating else { return }
+        self.updateCollectionViewLayout(style: .carousel)
+    }
+    
     @objc private func pangestureDidChange(_ sender: UIPanGestureRecognizer) {
         switch sender.state {
         case .cancelled,
@@ -198,13 +212,8 @@ extension IFCollectionViewController: UICollectionViewDataSource {
                 preferredSize: collectionViewLayout.itemSize,
                 kind: .thumbnail,
                 sender: cell) { [weak self] result in
-                    guard
-                        let self = self,
-                        case .success = result,
-                        self.imageManager.displayingImageIndex == indexPath.item,
-                        self.collectionViewLayout.style == .carousel,
-                        !self.collectionViewLayout.isTransitioning else { return }
-                    self.updateCollectionViewLayout(style: .carousel)
+                    guard let self = self, case .success = result else { return }
+                    self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
                     print("cellForItemAt invalidation")
             }
         }
