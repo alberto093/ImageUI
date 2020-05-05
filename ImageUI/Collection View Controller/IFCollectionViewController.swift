@@ -29,10 +29,10 @@ protocol IFCollectionViewControllerDelegate: class {
     func collectionViewControllerWillBeginScrolling(_ collectionViewController: IFCollectionViewController)
 }
 
-#warning("Add constants to allow property animator timing and duration")
 class IFCollectionViewController: UIViewController {
     private struct Constants {
-        static let layoutTransitionDuration = 0.28
+        static let carouselTransitionDuration: TimeInterval = 0.18
+        static let flowTransitionDuration: TimeInterval = 0.24
     }
     
     enum PendingInvalidation {
@@ -157,12 +157,12 @@ class IFCollectionViewController: UIViewController {
         let indexPath = IndexPath(item: imageManager.displayingImageIndex, section: 0)
         let layout = IFCollectionViewFlowLayout(centerIndexPath: indexPath)
         layout.style = style
+
         UIView.transition(
             with: collectionView,
-            duration: Constants.layoutTransitionDuration,
+            duration: style == .carousel ? Constants.carouselTransitionDuration : Constants.flowTransitionDuration,
             options: .curveEaseOut,
-            animations: { self.collectionView.setCollectionViewLayout(layout, animated: true) },
-            completion: nil)
+            animations: { self.collectionView.setCollectionViewLayout(layout, animated: true) })
     }
     
     private func updateCollectionViewLayout(transitionIndexPath: IndexPath, progress: CGFloat) {
@@ -177,15 +177,7 @@ class IFCollectionViewController: UIViewController {
         switch sender.state {
         case .cancelled,
              .ended where pendingInvalidation == nil:
-            let indexPath = IndexPath(item: imageManager.displayingImageIndex, section: 0)
-            let flowLayout = IFCollectionViewFlowLayout(centerIndexPath: indexPath)
-            flowLayout.style = .carousel
-            UIView.transition(
-                with: collectionView,
-                duration: Constants.layoutTransitionDuration,
-                options: .curveEaseOut,
-                animations: { self.collectionView.setCollectionViewLayout(flowLayout, animated: true) },
-                completion: nil)
+            updateCollectionViewLayout(style: .carousel)
             print("pangestureDidChange invalidation")
         default:
             break
@@ -265,11 +257,6 @@ extension IFCollectionViewController: IFCollectionViewDelegate {
         } else {
             pendingInvalidation = .bouncing
         }
-        print("velocity: \(velocity)")
-        #warning("Setting threshold to avoid flow layout backpressure")
-//        if velocity.x > 123 {
-//            animator.finishRunningAnimation(at: .end)
-//        }
     }
     
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
@@ -289,15 +276,11 @@ extension IFCollectionViewController: IFCollectionViewDelegate {
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard updatedisplayingImageIndexIfNeeded(with: indexPath.item) else { return }
-        
-        UIView.transition(
-            with: collectionView,
-            duration: Constants.layoutTransitionDuration,
-            options: .curveEaseOut,
-            animations: {
-                self.collectionViewLayout.update(centerIndexPath: indexPath, shouldInvalidate: true)
-            },
-            completion: nil)
+        collectionViewLayout.setupTransition(to: indexPath)
+        collectionView.performBatchUpdates({
+            self.collectionViewLayout.invalidateLayout()
+            collectionView.setCollectionViewLayout(self.collectionViewLayout, animated: true)
+        })
         print("didSelectItemAt invalidation")
     }
 }

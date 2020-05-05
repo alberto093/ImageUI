@@ -214,7 +214,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         }
     }
     
-    func setupTransition(to indexPath: IndexPath, progress: CGFloat) {
+    func setupTransition(to indexPath: IndexPath, progress: CGFloat = 1) {
         let progress = min(max(progress, 0), 1)
         transition = Transition(indexPath: indexPath, progress: progress)
         updatePreferredItemSize()
