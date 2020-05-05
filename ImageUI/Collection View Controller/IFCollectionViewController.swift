@@ -125,7 +125,6 @@ class IFCollectionViewController: UIViewController {
             let transitionIndexPath = IndexPath(item: index, section: 0)
             updateCollectionViewLayout(transitionIndexPath: transitionIndexPath, progress: progress)
         }
-        print("pageViewController invalidation")
     }
     
     func scroll(toItemAt index: Int, animated: Bool) {
@@ -174,8 +173,8 @@ class IFCollectionViewController: UIViewController {
             duration: style == .carousel ? Constants.carouselTransitionDuration : Constants.flowTransitionDuration,
             options: .curveEaseOut,
             animations: {
-                self.collectionViewLayout.invalidateLayout()
                 self.collectionView.setCollectionViewLayout(layout, animated: true)
+                self.collectionView.layoutIfNeeded()
         })
     }
     
@@ -195,7 +194,6 @@ class IFCollectionViewController: UIViewController {
             !collectionView.isDragging,
             !collectionView.isDecelerating else { return }
         updateCollectionViewLayout(style: .carousel)
-        print("cellForItemAt invalidation")
     }
     
     @objc private func pangestureDidChange(_ sender: UIPanGestureRecognizer) {
@@ -203,7 +201,6 @@ class IFCollectionViewController: UIViewController {
         case .cancelled,
              .ended where pendingInvalidation == nil:
             updateCollectionViewLayout(style: .carousel)
-            print("pangestureDidChange invalidation")
         default:
             break
         }
@@ -252,7 +249,6 @@ extension IFCollectionViewController: IFCollectionViewDelegate {
             case .dragging(let targetIndexPath) = pendingInvalidation,
             targetIndexPath == centerIndexPath else { return }
         updateCollectionViewLayout(style: .carousel)
-        print("scrollViewDidScroll invalidation")
     }
     
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
@@ -263,7 +259,6 @@ extension IFCollectionViewController: IFCollectionViewDelegate {
         let updatedContentOffset = collectionView.contentOffset
         collectionView.panGestureRecognizer.setTranslation(CGPoint(x: contentOffset.x - updatedContentOffset.x, y: 0), in: collectionView)
         delegate?.collectionViewControllerWillBeginScrolling(self)
-        print("scrollViewWillBeginDragging invalidation")
     }
     
     func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
@@ -283,14 +278,12 @@ extension IFCollectionViewController: IFCollectionViewDelegate {
         let centerIndexPath = collectionViewLayout.indexPath(forContentOffset: collectionView.contentOffset)
         updatedisplayingImageIndexIfNeeded(with: centerIndexPath.item)
         updateCollectionViewLayout(style: .carousel)
-        print("didEndDecelerating invalidation")
     }
     
     func collectionView(_ collectionView: UICollectionView, touchBegan itemIndexPath: IndexPath?) {
         guard collectionViewLayout.isTransitioning else { return }
         updateCollectionViewLayout(style: .carousel)
         delegate?.collectionViewControllerWillBeginScrolling(self)
-        print("touchBegan invalidation")
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
@@ -305,7 +298,6 @@ extension IFCollectionViewController: IFCollectionViewDelegate {
                 self.collectionViewLayout.invalidateLayout()
                 self.collectionView.layoutIfNeeded()
             })
-        print("didSelectItemAt invalidation")
     }
 }
 
@@ -322,6 +314,5 @@ extension IFCollectionViewController: IFScrollViewBouncingDelegate {
         }
         updatedisplayingImageIndexIfNeeded(with: indexPath.item)
         updateCollectionViewLayout(style: .carousel)
-        print("didReverseBouncing invalidation")
     }
 }

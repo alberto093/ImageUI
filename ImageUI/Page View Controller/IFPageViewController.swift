@@ -124,7 +124,6 @@ class IFPageViewController: UIPageViewController {
             let progress = (scrollView.contentOffset.x - scrollView.bounds.width) / scrollView.bounds.width
             let direction: NavigationDirection = progress < 0 ? .reverse : .forward
             let normalizedProgress = min(max(abs(progress), 0), 1)
-            print("progress: \(normalizedProgress)")
             progressDelegate?.pageViewController(self, didScrollFrom: imageManager.displayingImageIndex, direction: direction, progress: normalizedProgress)
         }
     }
