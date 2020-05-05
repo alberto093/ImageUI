@@ -100,9 +100,7 @@ class IFCollectionViewController: UIViewController {
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        horizontalConstraints.forEach {
-            $0.constant = -collectionViewLayout.preferredOffBoundsPadding
-        }
+        update()
     }
     
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -148,6 +146,14 @@ class IFCollectionViewController: UIViewController {
         bouncer.delegate = self
     }
     
+    private func update() {
+        guard collectionView.bounds.width < view.bounds.width + collectionViewLayout.preferredOffBoundsPadding else { return }
+        horizontalConstraints.forEach {
+            $0.constant = -collectionViewLayout.preferredOffBoundsPadding
+        }
+        collectionViewLayout.invalidateLayout()
+    }
+    
     @discardableResult private func updatedisplayingImageIndexIfNeeded(with index: Int) -> Bool {
         guard imageManager.displayingImageIndex != index else { return false }
         imageManager.updatedisplayingImage(index: index)
@@ -166,7 +172,10 @@ class IFCollectionViewController: UIViewController {
             with: collectionView,
             duration: style == .carousel ? Constants.carouselTransitionDuration : Constants.flowTransitionDuration,
             options: .curveEaseOut,
-            animations: { self.collectionView.setCollectionViewLayout(layout, animated: true) })
+            animations: {
+                self.collectionViewLayout.invalidateLayout()
+                self.collectionView.setCollectionViewLayout(layout, animated: true)
+        })
     }
     
     private func updateCollectionViewLayout(transitionIndexPath: IndexPath, progress: CGFloat) {
@@ -184,7 +193,8 @@ class IFCollectionViewController: UIViewController {
             !collectionViewLayout.isTransitioning,
             !collectionView.isDragging,
             !collectionView.isDecelerating else { return }
-        self.updateCollectionViewLayout(style: .carousel)
+        updateCollectionViewLayout(style: .carousel)
+        print("cellForItemAt invalidation")
     }
     
     @objc private func pangestureDidChange(_ sender: UIPanGestureRecognizer) {
@@ -214,7 +224,6 @@ extension IFCollectionViewController: UICollectionViewDataSource {
                 sender: cell) { [weak self] result in
                     guard let self = self, case .success = result else { return }
                     self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
-                    print("cellForItemAt invalidation")
             }
         }
         return cell
