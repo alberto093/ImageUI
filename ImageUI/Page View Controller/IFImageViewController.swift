@@ -22,12 +22,11 @@
 //  THE SOFTWARE.
 //
 
-import Nuke
-
 class IFImageViewController: UIViewController {
     private struct Constants {
         static let minimumMaximumZoomFactor: CGFloat = 3
         static let doubleTapZoomMultiplier: CGFloat = 0.85
+        static let preferredAspectFillRatio: CGFloat = 0.9
         static let maxImageSize: CGSize = {
             let maxSize = max(UIScreen.main.nativeBounds.width, UIScreen.main.nativeBounds.height)
             return CGSize(width: maxSize, height: maxSize)
@@ -54,7 +53,10 @@ class IFImageViewController: UIViewController {
     // MARK: - Public properties
     let imageManager: IFImageManager
     var displayingImageIndex: Int {
-        didSet { update() }
+        didSet {
+            guard displayingImageIndex != oldValue else { return }
+            update()
+        }
     }
     
     // MARK: - Accessory properties
@@ -64,7 +66,7 @@ class IFImageViewController: UIViewController {
     // MARK: - Initializer
     public init(imageManager: IFImageManager, displayingImageIndex: Int? = nil) {
         self.imageManager = imageManager
-        self.displayingImageIndex = displayingImageIndex ?? imageManager.dysplaingImageIndex
+        self.displayingImageIndex = displayingImageIndex ?? imageManager.displayingImageIndex
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -110,9 +112,15 @@ class IFImageViewController: UIViewController {
         }
     }
     
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        updateScrollView(resetZoom: false)
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        let centerOffsetRatioX = (scrollView.contentOffset.x + scrollView.frame.width / 2) / scrollView.contentSize.width
+        let centerOffsetRatioY = (scrollView.contentOffset.y + scrollView.frame.height / 2) / scrollView.contentSize.height
+        
+        coordinator.animate(alongsideTransition: { _ in
+            self.updateScrollView(resetZoom: false)
+            self.updateContentOffset(previousOffsetRatio: CGPoint(x: centerOffsetRatioX, y: centerOffsetRatioY))
+        })
+        super.viewWillTransition(to: size, with: coordinator)
     }
     
     private func setup() {
@@ -121,35 +129,72 @@ class IFImageViewController: UIViewController {
         imageView.addGestureRecognizer(tapGesture)
         scrollView.delegate = self
         scrollView.decelerationRate = .fast
+        scrollView.contentInsetAdjustmentBehavior = .never
     }
     
     private func update() {
-        guard isViewLoaded, let url = imageManager.images[safe: displayingImageIndex]?.url else { return }
-        let request = ImageRequest(url: url, processors: [], priority: .veryHigh)
-        var options = ImageLoadingOptions(transition: .fadeIn(duration: 0.1))
-        options.pipeline = imageManager.pipeline
-        loadImage(with: request, options: options, into: imageView) { [weak self] result in
-            UIView.performWithoutAnimation {
+        guard isViewLoaded else { return }
+        UIView.performWithoutAnimation {
+            imageView.image = imageManager.placeholderImage
+            updateScrollView()
+            imageManager.loadImage(at: displayingImageIndex, kind: .original, sender: imageView) { [weak self] _ in
                 self?.updateScrollView()
             }
         }
     }
     
     private func updateScrollView(resetZoom: Bool = true) {
-        guard let image = imageView.image else { return }
+        guard let image = imageView.image, image.size.width > 0, image.size.height > 0 else { return }
         let aspectFitZoom = min(view.frame.width / image.size.width, view.frame.height / image.size.height)
         aspectFillZoom = max(view.frame.width / image.size.width, view.frame.height / image.size.height)
         let zoomMultiplier = (scrollView.zoomScale - scrollView.minimumZoomScale) / (scrollView.maximumZoomScale - scrollView.minimumZoomScale)
-        scrollView.minimumZoomScale = aspectFitZoom
-        scrollView.maximumZoomScale = max(aspectFitZoom * Constants.minimumMaximumZoomFactor, aspectFillZoom, 1 / UIScreen.main.scale)
-        if resetZoom {
-            scrollView.zoomScale = aspectFitZoom
+
+        let minimumZoomScale: CGFloat
+        if imageManager.prefersAspectFillZoom, aspectFitZoom / aspectFillZoom >= Constants.preferredAspectFillRatio {
+            minimumZoomScale = aspectFillZoom
         } else {
-            scrollView.zoomScale = aspectFitZoom + (scrollView.maximumZoomScale - aspectFitZoom) * zoomMultiplier
+            minimumZoomScale = aspectFitZoom
         }
 
-        scrollView.contentInset.top = (view.frame.height - image.size.height * scrollView.zoomScale) / 2
-        scrollView.contentInset.left = (view.frame.width - image.size.width * scrollView.zoomScale) / 2
+        scrollView.minimumZoomScale = minimumZoomScale
+        scrollView.maximumZoomScale = max(minimumZoomScale * Constants.minimumMaximumZoomFactor, aspectFillZoom)
+        
+        let zoomScale = resetZoom ? minimumZoomScale : (minimumZoomScale + (scrollView.maximumZoomScale - minimumZoomScale) * zoomMultiplier)
+        scrollView.zoomScale = zoomScale
+        updateContentInset()
+    }
+    
+    private func updateContentInset() {
+        guard let image = imageView.image else { return }
+        scrollView.contentInset.top = max((scrollView.frame.height - image.size.height * scrollView.zoomScale) / 2, 0)
+        scrollView.contentInset.left = max((scrollView.frame.width - image.size.width * scrollView.zoomScale) / 2, 0)
+    }
+    
+    private func updateContentOffset(previousOffsetRatio: CGPoint) {
+        guard scrollView.contentSize.width > 0, scrollView.contentSize.height > 0 else { return }
+        let proposedContentOffsetX = (previousOffsetRatio.x * scrollView.contentSize.width) - (scrollView.frame.width / 2)
+        let proposedContentOffsetY = (previousOffsetRatio.y * scrollView.contentSize.height) - (scrollView.frame.height / 2)
+        
+        let minimumContentOffsetX = -scrollView.contentInset.left.rounded(.up)
+        let maximumContentOffsetX: CGFloat
+        if scrollView.contentSize.width <= scrollView.frame.width {
+            maximumContentOffsetX = minimumContentOffsetX
+        } else {
+            maximumContentOffsetX = (scrollView.contentSize.width - scrollView.frame.width + scrollView.contentInset.right).rounded(.down)
+        }
+        
+        let minimumContentOffsetY = -scrollView.contentInset.top.rounded(.up)
+        let maximumContentOffsetY: CGFloat
+        if scrollView.contentSize.height <= scrollView.frame.height {
+            maximumContentOffsetY = minimumContentOffsetY
+        } else {
+            maximumContentOffsetY = (scrollView.contentSize.height - scrollView.frame.height + scrollView.contentInset.bottom).rounded(.down)
+        }
+        
+        let targetContentOffsetX = min(max(proposedContentOffsetX, minimumContentOffsetX), maximumContentOffsetX)
+        let targetContentOffsetY = min(max(proposedContentOffsetY, minimumContentOffsetY), maximumContentOffsetY)
+        
+        scrollView.contentOffset = CGPoint(x: targetContentOffsetX, y: targetContentOffsetY)
     }
     
     // MARK: - UI Actions
@@ -174,7 +219,6 @@ extension IFImageViewController: UIScrollViewDelegate {
     }
     
     func scrollViewDidZoom(_ scrollView: UIScrollView) {
-        scrollView.contentInset.top = max((scrollView.frame.height - imageView.frame.height) / 2, 0)
-        scrollView.contentInset.left = max((scrollView.frame.width - imageView.frame.width) / 2, 0)
+        updateContentInset()
     }
 }
