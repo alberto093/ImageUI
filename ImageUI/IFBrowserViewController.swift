@@ -88,11 +88,11 @@ public class IFBrowserViewController: UIViewController {
     }
     
     public override var prefersStatusBarHidden: Bool {
-        collectionContainerView.alpha == 0 || collectionContainerView.isHidden
+        isFullScreenMode
     }
     
     public override var prefersHomeIndicatorAutoHidden: Bool {
-        collectionContainerView.alpha == 0 || collectionContainerView.isHidden
+        isFullScreenMode
     }
     
     // MARK: - Accessory properties
@@ -108,12 +108,13 @@ public class IFBrowserViewController: UIViewController {
     private lazy var pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(gestureRecognizerDidChange))
     private lazy var pageViewController = IFPageViewController(imageManager: imageManager)
     private lazy var collectionViewController = IFCollectionViewController(imageManager: imageManager)
+    private var isFullScreenMode = false
     
     private var shouldShowCancelButton: Bool {
         navigationController.map { $0.presentingViewController != nil && $0.viewControllers.first === self } ?? false
     }
     
-    private var shouldShowCollectionView: Bool {
+    private var isCollectionViewEnabled: Bool {
         imageManager.images.count > 1
     }
     
@@ -124,10 +125,6 @@ public class IFBrowserViewController: UIViewController {
         default:
             return false
         }
-    }
-    
-    private var hidingViews: [UIView] {
-        (navigationController.map { [$0.navigationBar, $0.toolbar] } ?? []) + [collectionToolbar, collectionContainerView]
     }
     
     private var defaultBackgroundColor: UIColor {
@@ -173,8 +170,8 @@ public class IFBrowserViewController: UIViewController {
     public override func viewDidLoad() {
         super.viewDidLoad()
         setup()
-        update()
         updateTitle()
+        navigationController?.setToolbarHidden(false, animated: false)
         setupBars()
     }
         
@@ -237,45 +234,77 @@ public class IFBrowserViewController: UIViewController {
     }
     
     private func updateBars(toggle: Bool) {
-        let isHidden = collectionContainerView.isHidden
-        let isToolbarHidden = !isToolbarEnabled || isHidden
-        guard toggle else {
-            navigationController?.setToolbarHidden(isToolbarHidden, animated: true)
-            return
-        }
-        
-        if isHidden {
-            navigationController?.setNavigationBarHidden(false, animated: false)
-            navigationController?.setToolbarHidden(!isToolbarEnabled, animated: false)
-            [collectionToolbar, collectionContainerView].forEach {
-                $0.isHidden = false
+        if toggle {
+            animateBarsToggling()
+        } else {
+            let shouldHideToolbar = !isToolbarEnabled || isFullScreenMode
+            navigationController?.setToolbarHidden(shouldHideToolbar, animated: false)
+
+            if !isCollectionViewEnabled, !collectionContainerView.isHidden {
+                updateToolbarMask()
+                UIView.animate(
+                    withDuration: TimeInterval(UINavigationController.hideShowBarDuration),
+                    animations: { [weak self] in [self?.collectionToolbar, self?.collectionContainerView].forEach { $0?.alpha = 0 } },
+                    completion: { [weak self] _ in
+                        [self?.collectionToolbar, self?.collectionContainerView].forEach { $0?.isHidden = true }
+                        self?.collectionToolbar.layer.mask = nil
+                })
             }
-            hidingViews.forEach { $0.alpha = 0 }
         }
-        updateToolbarMask()
-        UIView.animate(
-            withDuration: TimeInterval(UINavigationController.hideShowBarDuration),
-            animations: { [weak self] in
-                self?.view.backgroundColor = isHidden ? self?.defaultBackgroundColor : .black
-                self?.hidingViews.forEach { $0.alpha = isHidden ? 1 : 0 }
-                self?.setNeedsStatusBarAppearanceUpdate()
-                self?.setNeedsUpdateOfHomeIndicatorAutoHidden()
-            },
-            completion: { [weak self] _ in
-                let isToolbarHidden = self?.isToolbarEnabled == false || !isHidden
-                self?.navigationController?.setNavigationBarHidden(!isHidden, animated: false)
-                self?.navigationController?.setToolbarHidden(isToolbarHidden, animated: false)
-                [self?.collectionToolbar, self?.collectionContainerView].forEach {
-                    $0?.isHidden = !isHidden
-                }
-                self?.collectionToolbar.layer.mask = nil
-        })
     }
     
-    private func update() {
-        guard isViewLoaded else { return }
-        collectionToolbar.isHidden = !shouldShowCollectionView
-        collectionContainerView.isHidden = !shouldShowCollectionView
+    private func animateBarsToggling() {
+        let isToolbarHidden = navigationController?.isToolbarHidden == true
+        let isCollectionViewHidden = collectionContainerView.isHidden
+
+        if isFullScreenMode {
+            navigationController?.setNavigationBarHidden(false, animated: false)
+            navigationController?.navigationBar.alpha = 0
+        }
+        
+        if isToolbarEnabled, isToolbarHidden {
+            navigationController?.setToolbarHidden(false, animated: false)
+            navigationController?.toolbar.alpha = 0
+        }
+        
+        if isCollectionViewEnabled, isCollectionViewHidden {
+            [collectionToolbar, collectionContainerView].forEach {
+                $0.isHidden = false
+                $0.alpha = 0
+            }
+        }
+        
+        updateToolbarMask()
+        isFullScreenMode.toggle()
+        UIView.animate(
+            withDuration: TimeInterval(UINavigationController.hideShowBarDuration),
+            animations: {
+                self.view.backgroundColor = self.isFullScreenMode ? .black : self.defaultBackgroundColor
+                self.navigationController?.navigationBar.alpha = self.isFullScreenMode ? 0 : 1
+                if self.isToolbarEnabled {
+                    self.navigationController?.toolbar.alpha = isToolbarHidden ? 1 : 0
+                }
+                
+                if self.isCollectionViewEnabled {
+                    [self.collectionToolbar, self.collectionContainerView].forEach { $0.alpha = isCollectionViewHidden ? 1 : 0 }
+                }
+                
+                self.setNeedsStatusBarAppearanceUpdate()
+                self.setNeedsUpdateOfHomeIndicatorAutoHidden()
+            }, completion: { _ in
+                if self.isFullScreenMode {
+                    self.navigationController?.setNavigationBarHidden(true, animated: false)
+                }
+                
+                if self.isToolbarEnabled, !isToolbarHidden {
+                    self.navigationController?.setToolbarHidden(true, animated: false)
+                }
+                
+                if self.isCollectionViewEnabled {
+                    [self.collectionToolbar, self.collectionContainerView].forEach { $0.isHidden = !isCollectionViewHidden }
+                    self.collectionToolbar.layer.mask = nil
+                }
+            })
     }
     
     private func updateTitle(imageIndex: Int? = nil) {
@@ -305,8 +334,8 @@ public class IFBrowserViewController: UIViewController {
     @objc private func gestureRecognizerDidChange(_ sender: UIGestureRecognizer) {
         switch sender {
         case tapGesture,
-             doubleTapGesture where !collectionContainerView.isHidden,
-             pinchGesture where sender.state == .began && !collectionContainerView.isHidden:
+             doubleTapGesture where !isFullScreenMode,
+             pinchGesture where sender.state == .began && !isFullScreenMode:
             
             updateBars(toggle: true)
         default:
@@ -334,6 +363,7 @@ public class IFBrowserViewController: UIViewController {
         case .share:
             presentShareViewController(sender: sender)
         case .delete:
+            // (updateBars(toggle: false) to avoid display unavailable toolbar
             break
         case .custom(let identifier, _):
             delegate?.browserViewController(self, didSelectActionWith: identifier, forImageAt: imageManager.displayingImageIndex)
