@@ -68,60 +68,93 @@ class IFImageManager {
         completion: ((Result<UIImage, Error>) -> Void)? = nil) {
         
         guard let image = images[safe: index] else { return }
-        let priority: ImageRequest.Priority
-        
-        if index == displayingImageIndex {
-            priority = preferredSize == nil ? .veryHigh : .high
-        } else {
-            priority = .normal
-        }
-        
-        let request = ImageRequest(
-            url: image[kind].url,
-            processors: preferredSize.map { [ImageProcessor.Resize(size: $0)] } ?? [],
-            priority: priority)
-
-        var options = ImageLoadingOptions(
-            placeholder: image.placeholder ?? placeholderImage,
-            transition: .fadeIn(duration: 0.1, options: .curveEaseOut))
-        options.pipeline = pipeline
-        Nuke.loadImage(with: request, options: options, into: sender) { result in
-            completion?(result.map { $0.image }.mapError { $0 })
+        switch image[kind] {
+        case .image(let image):
+            sender.nuke_display(image: image)
+            completion?(.success(image))
+        default:
+            guard let url = image[kind].url else { return }
+            let priority: ImageRequest.Priority
+            
+            if index == displayingImageIndex {
+                priority = preferredSize == nil ? .veryHigh : .high
+            } else {
+                priority = .normal
+            }
+            
+            let request = ImageRequest(
+                url: url,
+                processors: preferredSize.map { [ImageProcessor.Resize(size: $0)] } ?? [],
+                priority: priority)
+            
+            var options = ImageLoadingOptions(
+                placeholder: image.placeholder ?? placeholderImage,
+                transition: .fadeIn(duration: 0.1, options: .curveEaseOut))
+            options.pipeline = pipeline
+            
+            Nuke.loadImage(with: request, options: options, into: sender) { result in
+                completion?(result.map { $0.image }.mapError { $0 })
+            }
         }
     }
     
     func sharingImage(forImageAt index: Int, completion: @escaping (Result<IFSharingImage, Error>) -> Void) {
         guard let image = images[safe: index] else { return }
-        pipeline.loadImage(with: image.original.url) { [weak self] result in
-            guard let self = self else { return }
+
+        let prepareSharingImage = { [weak self] (result: Result<UIImage, Error>) in
             let sharingResult: Result<IFSharingImage, Error> = result
                 .map {
                     if #available(iOS 13.0, *) {
-                        return IFSharingImage(container: image, image: $0.image, metadata: self.displayingLinkMetadata)
+                        self?.prepareDisplayingMetadataIfNeeded()
+                        return IFSharingImage(container: image, image: $0, metadata: self?.displayingLinkMetadata)
                     } else {
-                        return IFSharingImage(container: image, image: $0.image)
+                        return IFSharingImage(container: image, image: $0)
                     }
                 }.mapError { $0 }
-            
+
             completion(sharingResult)
+        }
+        
+        switch image[.original] {
+        case .image(let image):
+            prepareSharingImage(.success(image))
+        case let source:
+            guard let url = source.url else { return }
+            pipeline.loadImage(with: url) { result in
+                prepareSharingImage(result.map { $0.image }.mapError { $0 })
+            }
         }
     }
 }
 
 @available(iOS 13.0, *)
 extension IFImageManager {
+    private func prepareDisplayingMetadataIfNeeded() {
+        guard displayingLinkMetadata?.imageProvider == nil else { return }
+        prepareDisplayingMetadata()
+    }
+    
     private func prepareDisplayingMetadata() {
         guard let image = images[safe: displayingImageIndex] else { return }
         let metadata = LPLinkMetadata()
         metadata.title = image.title
         metadata.originalURL = image.original.url
         
-        let request = ImageRequest(url: image.original.url, priority: .low)
-        linkMetadataTask = pipeline.loadImage(with: request) { result in
-            if case .success(let response) = result {
-                let provider = NSItemProvider(object: response.image)
-                metadata.imageProvider = provider
-                metadata.iconProvider = provider
+        switch image[.original] {
+        case .image(let image):
+            linkMetadataTask = nil
+            let provider = NSItemProvider(object: image)
+            metadata.imageProvider = provider
+            metadata.iconProvider = provider
+        case let source:
+            guard let url = source.url else { return }
+            let request = ImageRequest(url: url, priority: .low)
+            linkMetadataTask = pipeline.loadImage(with: request) { result in
+                if case .success(let response) = result {
+                    let provider = NSItemProvider(object: response.image)
+                    metadata.imageProvider = provider
+                    metadata.iconProvider = provider
+                }
             }
         }
 

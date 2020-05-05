@@ -28,6 +28,7 @@ public struct IFImage {
     public enum Source {
         case local(path: String)
         case remote(url: URL)
+        case image(UIImage)
     }
 
     public let title: String?
@@ -54,12 +55,14 @@ public extension IFImage {
 }
 
 internal extension IFImage.Source {
-    var url: URL {
+    var url: URL? {
         switch self {
         case .local(let path):
             return URL(fileURLWithPath: path)
         case .remote(let url):
             return url
+        case .image:
+            return nil
         }
     }
 }
