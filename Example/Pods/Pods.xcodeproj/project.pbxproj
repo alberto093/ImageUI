@@ -43,9 +43,9 @@
 		D321590E245C25CD001AFFA8 /* IFCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D321590D245C25CD001AFFA8 /* IFCollectionView.swift */; };
 		D34D3BD724589A2E00FBA7D6 /* IFScrollViewBouncingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D34D3BD624589A2E00FBA7D6 /* IFScrollViewBouncingManager.swift */; };
 		D36F022724598ACF0028CE3E /* IFCollectionViewAnimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D36F022624598ACF0028CE3E /* IFCollectionViewAnimator.swift */; };
-		D3CC74C1244B6D4B00E6517D /* IFSharingImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3CC74C0244B6D4B00E6517D /* IFSharingImage.swift */; };
+		D38CC22C24618E6C00B31079 /* IFImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D38CC22A24618E6C00B31079 /* IFImage.swift */; };
+		D38CC22D24618E6C00B31079 /* IFSharingImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D38CC22B24618E6C00B31079 /* IFSharingImage.swift */; };
 		D3CC74C3244B79F900E6517D /* UIImage+.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3CC74C2244B79F900E6517D /* UIImage+.swift */; };
-		D3CC74C6244B7DA500E6517D /* IFImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3CC74C5244B7DA500E6517D /* IFImage.swift */; };
 		D3FEBC4724438A0500A1BD16 /* IFBrowserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3FEBC3724438A0400A1BD16 /* IFBrowserViewController.swift */; };
 		D3FEBC4824438A0500A1BD16 /* IFCollectionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3FEBC3924438A0400A1BD16 /* IFCollectionViewController.swift */; };
 		D3FEBC4924438A0500A1BD16 /* IFCollectionViewFlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3FEBC3A24438A0400A1BD16 /* IFCollectionViewFlowLayout.swift */; };
@@ -134,9 +134,9 @@
 		D321590D245C25CD001AFFA8 /* IFCollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFCollectionView.swift; sourceTree = "<group>"; };
 		D34D3BD624589A2E00FBA7D6 /* IFScrollViewBouncingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFScrollViewBouncingManager.swift; sourceTree = "<group>"; };
 		D36F022624598ACF0028CE3E /* IFCollectionViewAnimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFCollectionViewAnimator.swift; sourceTree = "<group>"; };
-		D3CC74C0244B6D4B00E6517D /* IFSharingImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFSharingImage.swift; sourceTree = "<group>"; };
+		D38CC22A24618E6C00B31079 /* IFImage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IFImage.swift; sourceTree = "<group>"; };
+		D38CC22B24618E6C00B31079 /* IFSharingImage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IFSharingImage.swift; sourceTree = "<group>"; };
 		D3CC74C2244B79F900E6517D /* UIImage+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+.swift"; sourceTree = "<group>"; };
-		D3CC74C5244B7DA500E6517D /* IFImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFImage.swift; sourceTree = "<group>"; };
 		D3FEBC3724438A0400A1BD16 /* IFBrowserViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = IFBrowserViewController.swift; path = ImageUI/IFBrowserViewController.swift; sourceTree = "<group>"; };
 		D3FEBC3924438A0400A1BD16 /* IFCollectionViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IFCollectionViewController.swift; sourceTree = "<group>"; };
 		D3FEBC3A24438A0400A1BD16 /* IFCollectionViewFlowLayout.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IFCollectionViewFlowLayout.swift; sourceTree = "<group>"; };
@@ -189,11 +189,11 @@
 		05AEDCC2C748DC39084B559E8FD9550A /* ImageUI */ = {
 			isa = PBXGroup;
 			children = (
+				D38CC22924618E6C00B31079 /* Image */,
 				D3FEBC3724438A0400A1BD16 /* IFBrowserViewController.swift */,
 				D3FEBC4524438A0500A1BD16 /* IFImageManager.swift */,
 				D3FEBC3824438A0400A1BD16 /* Collection View Controller */,
 				D3FEBC3C24438A0400A1BD16 /* Extensions */,
-				D3CC74C4244B7D9D00E6517D /* Image */,
 				D3FEBC4124438A0400A1BD16 /* Page View Controller */,
 				56C0E44896FD0ADF924D7A7DAA34E4AA /* Support Files */,
 			);
@@ -330,13 +330,14 @@
 			);
 			sourceTree = "<group>";
 		};
-		D3CC74C4244B7D9D00E6517D /* Image */ = {
+		D38CC22924618E6C00B31079 /* Image */ = {
 			isa = PBXGroup;
 			children = (
-				D3CC74C0244B6D4B00E6517D /* IFSharingImage.swift */,
-				D3CC74C5244B7DA500E6517D /* IFImage.swift */,
+				D38CC22A24618E6C00B31079 /* IFImage.swift */,
+				D38CC22B24618E6C00B31079 /* IFSharingImage.swift */,
 			);
-			path = Image;
+			name = Image;
+			path = ImageUI/Image;
 			sourceTree = "<group>";
 		};
 		D3FEBC3824438A0400A1BD16 /* Collection View Controller */ = {
@@ -581,11 +582,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				D3FEBC4724438A0500A1BD16 /* IFBrowserViewController.swift in Sources */,
-				D3CC74C1244B6D4B00E6517D /* IFSharingImage.swift in Sources */,
 				D3FEBC5024438A0500A1BD16 /* IFImageViewController.swift in Sources */,
 				D3FEBC4824438A0500A1BD16 /* IFCollectionViewController.swift in Sources */,
+				D38CC22C24618E6C00B31079 /* IFImage.swift in Sources */,
 				D3FEBC4C24438A0500A1BD16 /* UIView+.swift in Sources */,
-				D3CC74C6244B7DA500E6517D /* IFImage.swift in Sources */,
 				D3FEBC4F24438A0500A1BD16 /* IFPageViewController.swift in Sources */,
 				D321590E245C25CD001AFFA8 /* IFCollectionView.swift in Sources */,
 				D3FEBC5224438A0500A1BD16 /* IFImageManager.swift in Sources */,
@@ -594,6 +594,7 @@
 				408EBC9F4AD133A479A3969E61236C7C /* ImageUI-dummy.m in Sources */,
 				D3FEBC4A24438A0500A1BD16 /* IFCollectionViewCell.swift in Sources */,
 				D36F022724598ACF0028CE3E /* IFCollectionViewAnimator.swift in Sources */,
+				D38CC22D24618E6C00B31079 /* IFSharingImage.swift in Sources */,
 				D3FEBC4B24438A0500A1BD16 /* Collection+.swift in Sources */,
 				D34D3BD724589A2E00FBA7D6 /* IFScrollViewBouncingManager.swift in Sources */,
 			);

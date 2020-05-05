@@ -399,7 +399,7 @@
 				INFOPLIST_FILE = ImageUI/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MODULE_NAME = ExampleApp;
-				PRODUCT_BUNDLE_IDENTIFIER = com.saltarelli.test;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.demo.ImageUI-Example";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
 				SWIFT_VERSION = 5.0;
@@ -416,7 +416,7 @@
 				INFOPLIST_FILE = ImageUI/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MODULE_NAME = ExampleApp;
-				PRODUCT_BUNDLE_IDENTIFIER = com.saltarelli.test;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.demo.ImageUI-Example";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
 				SWIFT_VERSION = 5.0;

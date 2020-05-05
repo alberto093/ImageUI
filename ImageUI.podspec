@@ -6,7 +6,6 @@ Pod::Spec.new do |s|
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
   s.author           = { 'Alberto Saltarelli' => 'a.saltarelli93@gmail.com' }
   s.source           = { :git => 'https://github.com/alberto093/ImageUI.git', :tag => s.version.to_s }
-  s.social_media_url   = 'https://www.linkedin.com/in/alberto-saltarelli'
   s.ios.deployment_target = '11.0'
   s.swift_versions = ['5.1', '5.2']
   s.source_files = 'ImageUI/**/*'
