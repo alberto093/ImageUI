@@ -1,11 +1,7 @@
+platform :ios, '11.0'
 use_frameworks!
 
 target 'ImageUI_Example' do
   pod 'ImageUI', :path => '../'
-
-  target 'ImageUI_Tests' do
-    inherit! :search_paths
-
-    
-  end
+  pod 'SwiftLint'
 end

@@ -7,18 +7,23 @@
 //
 
 import UIKit
+import ImageUI
 
 class ViewController: UIViewController {
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+    var browserViewController: IFBrowserViewController {
+        let images = IFImage.mock
+        let viewController = IFBrowserViewController(images: images, initialImageIndex: .random(in: images.indices))
+        viewController.actions = [.share, .delete]
+        return viewController
     }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+    
+    @IBAction private func showImagesButtonDidTap() {
+        navigationController?.pushViewController(browserViewController, animated: true)
     }
-
+    
+    @IBAction private func presentImagesButtonDidTap() {
+        let navigationController = UINavigationController(rootViewController: browserViewController)
+        navigationController.modalPresentationStyle = .fullScreen
+        present(navigationController, animated: true)
+    }
 }
-
