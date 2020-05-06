@@ -163,23 +163,19 @@ class IFCollectionViewController: UIViewController {
         return true
     }
 
-    private func updateCollectionViewLayout(style: IFCollectionViewFlowLayout.Style, animated: Bool = true) {
+    private func updateCollectionViewLayout(style: IFCollectionViewFlowLayout.Style) {
         pendingInvalidation = nil
         let indexPath = IndexPath(item: imageManager.displayingImageIndex, section: 0)
         let layout = IFCollectionViewFlowLayout(style: style, centerIndexPath: indexPath)
         
-        if animated {
-            UIView.transition(
-                with: collectionView,
-                duration: style == .carousel ? Constants.carouselTransitionDuration : Constants.flowTransitionDuration,
-                options: .curveEaseOut,
-                animations: {
-                    self.collectionView.setCollectionViewLayout(layout, animated: true)
-                    self.collectionView.layoutIfNeeded()
-            })
-        } else {
-            collectionView.setCollectionViewLayout(layout, animated: false)
-        }
+        UIView.transition(
+            with: collectionView,
+            duration: style == .carousel ? Constants.carouselTransitionDuration : Constants.flowTransitionDuration,
+            options: .curveEaseOut,
+            animations: {
+                self.collectionView.setCollectionViewLayout(layout, animated: true)
+                self.collectionView.layoutIfNeeded()
+        })
     }
     
     private func updateCollectionViewLayout(transitionIndexPath: IndexPath, progress: CGFloat) {
@@ -195,7 +191,7 @@ class IFCollectionViewController: UIViewController {
             collectionViewLayout.shouldInvalidateLayout(forPreferredItemSizeAt: indexPath),
             !collectionView.isDragging,
             !collectionView.isDecelerating else { return }
-        updateCollectionViewLayout(style: .carousel, animated: false)
+        updateCollectionViewLayout(style: .carousel)
     }
     
     @objc private func pangestureDidChange(_ sender: UIPanGestureRecognizer) {
