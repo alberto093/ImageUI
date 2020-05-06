@@ -39,7 +39,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     // MARK: - Public properties
-    var style: Style = .carousel
+    var style: Style
     private(set) var centerIndexPath: IndexPath
     var verticalPadding: CGFloat = 1
     var minimumItemWidthMultiplier: CGFloat = 0.5
@@ -65,12 +65,13 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     // MARK: - Accessory properties
     private var transition: Transition
     private var animatedLayoutAttributes: [IndexPath: UICollectionViewLayoutAttributes] = [:]
-    private var preferredItemRatio: [IndexPath: CGFloat] = [:]
+    private var preferredItemsRatio: [IndexPath: CGFloat] = [:]
     private lazy var maximumLineSpacing = minimumLineSpacing
     private var needsInitialContentOffset: Bool
     
     // MARK: - Overrides
-    init(centerIndexPath: IndexPath, needsInitialContentOffset: Bool = false) {
+    init(style: Style = .carousel, centerIndexPath: IndexPath, needsInitialContentOffset: Bool = false) {
+        self.style = style
         self.centerIndexPath = centerIndexPath
         self.needsInitialContentOffset = needsInitialContentOffset
         transition = Transition(indexPath: centerIndexPath)
@@ -79,6 +80,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     required init?(coder: NSCoder) {
+        style = .carousel
         centerIndexPath = IndexPath(item: 0, section: 0)
         needsInitialContentOffset = false
         transition = Transition(indexPath: centerIndexPath)
@@ -149,8 +151,24 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     override func shouldInvalidateLayout(
         forPreferredLayoutAttributes preferredAttributes: UICollectionViewLayoutAttributes,
         withOriginalAttributes originalAttributes: UICollectionViewLayoutAttributes) -> Bool {
-        preferredItemRatio[preferredAttributes.indexPath] = preferredAttributes.size.width / preferredAttributes.size.height
-        return false
+        let oldRatio = preferredItemsRatio[preferredAttributes.indexPath]
+        let newRatio = preferredAttributes.size.width / preferredAttributes.size.height
+        preferredItemsRatio[preferredAttributes.indexPath] = newRatio
+        return oldRatio != newRatio
+    }
+    
+    override func invalidationContext(forPreferredLayoutAttributes preferredAttributes: UICollectionViewLayoutAttributes, withOriginalAttributes originalAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutInvalidationContext {
+        let context = UICollectionViewFlowLayoutInvalidationContext()
+        switch originalAttributes.indexPath {
+        case centerIndexPath, transition.indexPath:
+            if let collectionView = collectionView, style == .carousel, !isTransitioning {
+                context.contentOffsetAdjustment.x = contentOffsetX(forItemAt: centerIndexPath) - collectionView.contentOffset.x
+            }
+        default:
+            break
+        }
+        
+        return context
     }
     
     override func initialLayoutAttributesForAppearingItem(at itemIndexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
@@ -183,7 +201,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         defer { super.prepareForTransition(to: newLayout) }
         guard let flowLayout = newLayout as? IFCollectionViewFlowLayout else { return }
         updatePreferredItemSize(forItemIndexPaths: [centerIndexPath, transition.indexPath, flowLayout.centerIndexPath, flowLayout.transition.indexPath])
-        flowLayout.preferredItemRatio = preferredItemRatio
+        flowLayout.preferredItemsRatio = preferredItemsRatio
     }
     
     // MARK: - Public methods
@@ -192,6 +210,13 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
         let itemIndex = (contentOffset.x + minimumLineSpacing / 2) / (itemSize.width + minimumLineSpacing)
         let normalizedIndex = min(max(Int(itemIndex), itemsRange.lowerBound), itemsRange.upperBound)
         return IndexPath(item: normalizedIndex, section: 0)
+    }
+    
+    func shouldInvalidateLayout(forPreferredItemSizeAt indexPath: IndexPath) -> Bool {
+        guard indexPath == centerIndexPath, style == .carousel, !isTransitioning else { return false }
+        let previousRatio = preferredItemsRatio[indexPath]
+        updatePreferredItemSize()
+        return previousRatio != preferredItemsRatio[indexPath]
     }
     
     func update(centerIndexPath: IndexPath, shouldInvalidate: Bool = false) {
@@ -230,7 +255,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     private func preferredSize(forItemAt indexPath: IndexPath) -> CGSize {
-        guard style == .carousel, let preferredItemRatio = preferredItemRatio[indexPath] else { return itemSize }
+        guard style == .carousel, let preferredItemRatio = preferredItemsRatio[indexPath] else { return itemSize }
         let widthRange = itemSize.width...maximumItemWidth
         let preferredWidth = min(max(itemSize.height * preferredItemRatio, widthRange.lowerBound), widthRange.upperBound)
         return CGSize(width: preferredWidth, height: itemSize.height)
@@ -327,7 +352,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
                 let cell = collectionView.cellForItem(at: preferredIndexPath) else { continue }
             
             let preferredAttribute = cell.preferredLayoutAttributesFitting(layoutAttribute)
-            preferredItemRatio[preferredIndexPath] = preferredAttribute.size.width / preferredAttribute.size.height
+            preferredItemsRatio[preferredIndexPath] = preferredAttribute.size.width / preferredAttribute.size.height
         }
     }
 }

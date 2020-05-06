@@ -147,11 +147,12 @@ class IFCollectionViewController: UIViewController {
     }
     
     private func update() {
-        guard collectionView.bounds.width < view.bounds.width + collectionViewLayout.preferredOffBoundsPadding else { return }
-        horizontalConstraints.forEach {
-            $0.constant = -collectionViewLayout.preferredOffBoundsPadding
+        if collectionView.bounds.width < view.bounds.width + collectionViewLayout.preferredOffBoundsPadding {
+            horizontalConstraints.forEach {
+                $0.constant = -collectionViewLayout.preferredOffBoundsPadding
+            }
+            collectionViewLayout.invalidateLayout()
         }
-        collectionViewLayout.invalidateLayout()
     }
     
     @discardableResult private func updatedisplayingImageIndexIfNeeded(with index: Int) -> Bool {
@@ -162,20 +163,23 @@ class IFCollectionViewController: UIViewController {
         return true
     }
 
-    private func updateCollectionViewLayout(style: IFCollectionViewFlowLayout.Style) {
+    private func updateCollectionViewLayout(style: IFCollectionViewFlowLayout.Style, animated: Bool = true) {
         pendingInvalidation = nil
         let indexPath = IndexPath(item: imageManager.displayingImageIndex, section: 0)
-        let layout = IFCollectionViewFlowLayout(centerIndexPath: indexPath)
-        layout.style = style
-
-        UIView.transition(
-            with: collectionView,
-            duration: style == .carousel ? Constants.carouselTransitionDuration : Constants.flowTransitionDuration,
-            options: .curveEaseOut,
-            animations: {
-                self.collectionView.setCollectionViewLayout(layout, animated: true)
-                self.collectionView.layoutIfNeeded()
-        })
+        let layout = IFCollectionViewFlowLayout(style: style, centerIndexPath: indexPath)
+        
+        if animated {
+            UIView.transition(
+                with: collectionView,
+                duration: style == .carousel ? Constants.carouselTransitionDuration : Constants.flowTransitionDuration,
+                options: .curveEaseOut,
+                animations: {
+                    self.collectionView.setCollectionViewLayout(layout, animated: true)
+                    self.collectionView.layoutIfNeeded()
+            })
+        } else {
+            collectionView.setCollectionViewLayout(layout, animated: false)
+        }
     }
     
     private func updateCollectionViewLayout(transitionIndexPath: IndexPath, progress: CGFloat) {
@@ -188,12 +192,10 @@ class IFCollectionViewController: UIViewController {
     
     private func updateCollectionViewLayout(forPreferredSizeAt indexPath: IndexPath) {
         guard
-            imageManager.displayingImageIndex == indexPath.item,
-            collectionViewLayout.style == .carousel,
-            !collectionViewLayout.isTransitioning,
+            collectionViewLayout.shouldInvalidateLayout(forPreferredItemSizeAt: indexPath),
             !collectionView.isDragging,
             !collectionView.isDecelerating else { return }
-        updateCollectionViewLayout(style: .carousel)
+        updateCollectionViewLayout(style: .carousel, animated: false)
     }
     
     @objc private func pangestureDidChange(_ sender: UIPanGestureRecognizer) {
@@ -230,6 +232,7 @@ extension IFCollectionViewController: UICollectionViewDataSource {
 
 extension IFCollectionViewController: UICollectionViewDataSourcePrefetching {
     func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
+        guard collectionView.isDragging || collectionView.isDecelerating else { return }
         let urls = indexPaths.compactMap { imageManager.images[safe: $0.item]?.thumbnail?.url }
         prefetcher.startPreheating(with: urls)
     }
