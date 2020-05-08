@@ -32,7 +32,7 @@ public extension IFBrowserViewControllerDelegate {
     func browserViewController(_ browserViewController: IFBrowserViewController, willDisplayImageAt index: Int) { }
 }
 
-public class IFBrowserViewController: UIViewController {
+open class IFBrowserViewController: UIViewController {
     private struct Constants {
         static let toolbarContentInset = UIEdgeInsets(top: -1, left: 0, bottom: 0, right: 0)
     }
@@ -93,11 +93,11 @@ public class IFBrowserViewController: UIViewController {
         set { imageManager.prefersAspectFillZoom = newValue }
     }
     
-    public override var prefersStatusBarHidden: Bool {
+    open override var prefersStatusBarHidden: Bool {
         isFullScreenMode
     }
     
-    public override var prefersHomeIndicatorAutoHidden: Bool {
+    open override var prefersHomeIndicatorAutoHidden: Bool {
         isFullScreenMode
     }
     
@@ -173,7 +173,7 @@ public class IFBrowserViewController: UIViewController {
             collectionContainerView.heightAnchor.constraint(equalTo: collectionToolbar.heightAnchor)])
     }
     
-    public override func viewDidLoad() {
+    open override func viewDidLoad() {
         super.viewDidLoad()
         setup()
         updateTitle()
@@ -181,7 +181,7 @@ public class IFBrowserViewController: UIViewController {
         setupBars()
     }
         
-    public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+    open override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         if traitCollection.verticalSizeClass != previousTraitCollection?.verticalSizeClass {
             setupBars()
@@ -403,6 +403,7 @@ extension IFBrowserViewController: IFPageViewControllerDelegate {
         collectionViewController.scroll(toItemAt: endIndex, progress: progress)
         let imageIndex = min(max(endIndex, 0), imageManager.images.count - 1)
         updateTitle(imageIndex: progress >= 0.5 ? imageIndex : startIndex)
+        delegate?.browserViewController(self, willDisplayImageAt: imageIndex)
     }
     
     func pageViewControllerDidResetScroll(_ pageViewController: IFPageViewController) {
@@ -415,6 +416,7 @@ extension IFBrowserViewController: IFCollectionViewControllerDelegate {
     func collectionViewController(_ collectionViewController: IFCollectionViewController, didSelectItemAt index: Int) {
         pageViewController.updateVisibleImage(index: index)
         updateTitle(imageIndex: index)
+        delegate?.browserViewController(self, willDisplayImageAt: index)
     }
     
     func collectionViewControllerWillBeginScrolling(_ collectionViewController: IFCollectionViewController) {
@@ -422,7 +424,7 @@ extension IFBrowserViewController: IFCollectionViewControllerDelegate {
     }
 }
 
-extension IFBrowserViewController.Action {
+private extension IFBrowserViewController.Action {
     func barButtonItem(target: Any?, action: Selector?) -> UIBarButtonItem {
         switch self {
         case .share:
