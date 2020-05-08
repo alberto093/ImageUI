@@ -103,7 +103,7 @@ open class IFBrowserViewController: UIViewController {
     
     // MARK: - Accessory properties
     private let imageManager: IFImageManager
-    private var initialTitle: String?
+    private var shouldUpdateTitle = true
     
     private lazy var tapGesture = UITapGestureRecognizer(target: self, action: #selector(gestureRecognizerDidChange))
     private lazy var doubleTapGesture: UITapGestureRecognizer = {
@@ -176,7 +176,7 @@ open class IFBrowserViewController: UIViewController {
     open override func viewDidLoad() {
         super.viewDidLoad()
         setup()
-        updateTitle()
+        updateTitleIfNeeded()
         navigationController?.setToolbarHidden(false, animated: false)
         setupBars()
     }
@@ -193,7 +193,8 @@ open class IFBrowserViewController: UIViewController {
         if shouldShowCancelButton, navigationItem.leftBarButtonItem == nil {
             navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelButtonDidTap))
         }
-        initialTitle = title
+        
+        shouldUpdateTitle = title == nil && navigationItem.title == nil && navigationItem.titleView == nil
         
         [tapGesture, doubleTapGesture, pinchGesture].forEach {
             $0.delegate = self
@@ -313,8 +314,9 @@ open class IFBrowserViewController: UIViewController {
             })
     }
     
-    private func updateTitle(imageIndex: Int? = nil) {
-        title = initialTitle ?? imageManager.images[safe: imageIndex ?? imageManager.displayingImageIndex]?.title
+    private func updateTitleIfNeeded(imageIndex: Int? = nil) {
+        guard shouldUpdateTitle else { return }
+        title = imageManager.images[safe: imageIndex ?? imageManager.displayingImageIndex]?.title
     }
     
     private func updateToolbarMask() {
@@ -402,20 +404,20 @@ extension IFBrowserViewController: IFPageViewControllerDelegate {
         let endIndex = direction == .forward ? startIndex + 1 : startIndex - 1
         collectionViewController.scroll(toItemAt: endIndex, progress: progress)
         let imageIndex = min(max(endIndex, 0), imageManager.images.count - 1)
-        updateTitle(imageIndex: progress >= 0.5 ? imageIndex : startIndex)
+        updateTitleIfNeeded(imageIndex: progress >= 0.5 ? imageIndex : startIndex)
         delegate?.browserViewController(self, willDisplayImageAt: imageIndex)
     }
     
     func pageViewControllerDidResetScroll(_ pageViewController: IFPageViewController) {
         collectionViewController.scroll(toItemAt: imageManager.displayingImageIndex, animated: true)
-        updateTitle(imageIndex: imageManager.displayingImageIndex)
+        updateTitleIfNeeded(imageIndex: imageManager.displayingImageIndex)
     }
 }
 
 extension IFBrowserViewController: IFCollectionViewControllerDelegate {
     func collectionViewController(_ collectionViewController: IFCollectionViewController, didSelectItemAt index: Int) {
         pageViewController.updateVisibleImage(index: index)
-        updateTitle(imageIndex: index)
+        updateTitleIfNeeded(imageIndex: index)
         delegate?.browserViewController(self, willDisplayImageAt: index)
     }
     
