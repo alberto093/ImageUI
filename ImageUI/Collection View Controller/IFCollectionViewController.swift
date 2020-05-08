@@ -31,6 +31,7 @@ protocol IFCollectionViewControllerDelegate: class {
 
 class IFCollectionViewController: UIViewController {
     private struct Constants {
+        static let carouselScrollingTransitionDuration: TimeInterval = 0.34
         static let carouselTransitionDuration: TimeInterval = 0.16
         static let carouselSelectionDuration: TimeInterval = 0.22
         static let flowTransitionDuration: TimeInterval = 0.24
@@ -164,13 +165,21 @@ class IFCollectionViewController: UIViewController {
     }
 
     private func updateCollectionViewLayout(style: IFCollectionViewFlowLayout.Style) {
-        pendingInvalidation = nil
         let indexPath = IndexPath(item: imageManager.displayingImageIndex, section: 0)
         let layout = IFCollectionViewFlowLayout(style: style, centerIndexPath: indexPath)
+        let duration: TimeInterval
         
+        switch pendingInvalidation {
+        case .dragging:
+            duration = Constants.carouselScrollingTransitionDuration
+        default:
+            duration = style == .carousel ? Constants.flowTransitionDuration : Constants.flowTransitionDuration
+        }
+        
+        pendingInvalidation = nil
         UIView.transition(
             with: collectionView,
-            duration: style == .carousel ? Constants.carouselTransitionDuration : Constants.flowTransitionDuration,
+            duration: duration,
             options: .curveEaseOut,
             animations: {
                 self.collectionView.setCollectionViewLayout(layout, animated: true)
