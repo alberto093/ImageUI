@@ -24,6 +24,12 @@
 
 public protocol IFBrowserViewControllerDelegate: class {
     func browserViewController(_ browserViewController: IFBrowserViewController, didSelectActionWith identifier: String, forImageAt index: Int)
+    func browserViewController(_ browserViewController: IFBrowserViewController, willDisplayImageAt index: Int)
+}
+
+public extension IFBrowserViewControllerDelegate {
+    func browserViewController(_ browserViewController: IFBrowserViewController, didSelectActionWith identifier: String, forImageAt index: Int) { }
+    func browserViewController(_ browserViewController: IFBrowserViewController, willDisplayImageAt index: Int) { }
 }
 
 public class IFBrowserViewController: UIViewController {

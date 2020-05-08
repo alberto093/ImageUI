@@ -52,6 +52,10 @@ public extension IFImage {
     init(title: String? = nil, path: String, placeholder: UIImage? = nil) {
         self.init(title: title, original: .local(path: path), placeholder: placeholder)
     }
+    
+    init(title: String? = nil, image: UIImage, placeholder: UIImage? = nil) {
+        self.init(title: title, original: .image(image), placeholder: placeholder)
+    }
 }
 
 internal extension IFImage.Source {
