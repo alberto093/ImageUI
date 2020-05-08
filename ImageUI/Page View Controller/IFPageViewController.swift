@@ -68,10 +68,10 @@ class IFPageViewController: UIPageViewController {
     // MARK: - Public methods
     func updateVisibleImage(index: Int) {
         guard isViewLoaded, let visibleViewController = visibleViewController else { return }
+        reloadDataSourceIfNeeded(forImageAt: index)
         beforeViewController?.displayingImageIndex = index - 1
         afterViewController?.displayingImageIndex = index + 1
         visibleViewController.displayingImageIndex = index
-        reloadDataSourceIfNeeded()
     }
     
     func invalidateDataSourceIfNeeded() {
@@ -82,14 +82,15 @@ class IFPageViewController: UIPageViewController {
     /// Disable the gesture-based navigation.
     private func invalidateDataSource() {
         dataSource = nil
-        beforeViewController?.removeFromParent()
-        afterViewController?.removeFromParent()
+        [beforeViewController, afterViewController].forEach { $0?.removeFromParent() }
+        beforeViewController = nil
+        afterViewController = nil
         dataSource = self
     }
     
-    private func reloadDataSourceIfNeeded() {
-        switch visibleViewController?.displayingImageIndex {
-        case 0, imageManager.images.count - 1:
+    private func reloadDataSourceIfNeeded(forImageAt index: Int) {
+        switch (visibleViewController?.displayingImageIndex, index) {
+        case (0, _), (imageManager.images.count - 1, _), (_, 0), (_, imageManager.images.count - 1):
             invalidateDataSource()
         default:
             break
