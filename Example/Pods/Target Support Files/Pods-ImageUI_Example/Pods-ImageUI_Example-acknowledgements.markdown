@@ -3,7 +3,7 @@ This application makes use of the following third party libraries:
 
 ## ImageUI
 
-Copyright (c) 2020 alberto093 <a.saltarelli@reply.it>
+Copyright (c) 2020 alberto093 <a.saltarelli93@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
