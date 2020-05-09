@@ -64,13 +64,12 @@ dependencies: [
 ## Usage
 
 ### Creating the data source
-**IFImage** is the data structure that represents the image metadata entities.
+**IFImage** is the data structure that represents the image metadata.
 You can instantiate an IFImage in a three different ways:
 ```swift
-let urlImage = IFImage(url: imageURL)
-let fileImage = IFImage(path: filePath)
-let memoryImage = IFImage(image: myUIImage)
-let dysplayingImages = [urlImage, fileImage, memoryImage]
+let urlImage = IFImage(url: imageURL) // network URL
+let fileImage = IFImage(path: filePath) // file URL (path)
+let memoryImage = IFImage(image: myUIImage) // in-memory image
 ```
 To get the best performances you should provide both the thumbnail and full-size images especially if you are using network URLs.
 Optionally you can provide a title that represents the navigation bar title (and the sharing metadata title available on iOS 13.0+) and a loading placeholder image.
@@ -112,7 +111,7 @@ let viewController = IFBrowserViewController(images: images, initialImageIndex: 
 >The `IFBrowserViewController` clamps the provided value to avoid unexpected crash.
 
 ###  Aspect fill images
-The `IFBrowserViewController` allows you to decide whether the full-size image to be displayed using the aspect fill zoom if the aspect ratio is similar to its container view one. 
+The `IFBrowserViewController` allows you to decide whether the full-size image should be displayed using the aspect fill zoom if the aspect ratio is similar to its container view. 
 
 <p align="center">
 <img align="left" height="136" src="https://user-images.githubusercontent.com/9810726/81415560-e5f60580-9148-11ea-99db-b939e3a0e57c.png">

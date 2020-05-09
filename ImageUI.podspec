@@ -8,6 +8,6 @@ Pod::Spec.new do |s|
   s.source           = { :git => 'https://github.com/alberto093/ImageUI.git', :tag => s.version.to_s }
   s.ios.deployment_target = '11.0'
   s.swift_version = '5.2.2'
-  s.source_files = 'ImageUI/**/*'
+  s.source_files = 'Sources/**/*.swift'
   s.dependency 'Nuke'
 end
