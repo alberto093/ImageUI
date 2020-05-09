@@ -175,7 +175,7 @@ class IFCollectionViewController: UIViewController {
         case .dragging:
             duration = Constants.carouselScrollingTransitionDuration
         default:
-            duration = style == .carousel ? Constants.flowTransitionDuration : Constants.flowTransitionDuration
+            duration = style == .carousel ? Constants.carouselTransitionDuration : Constants.flowTransitionDuration
         }
         
         pendingInvalidation = nil

@@ -391,7 +391,6 @@ extension IFBrowserViewController: UIGestureRecognizerDelegate {
         }
     }
     
-    
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         collectionContainerView.isHidden || !collectionContainerView.frame.contains(touch.location(in: view))
     }

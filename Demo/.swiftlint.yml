@@ -23,10 +23,11 @@ nesting:
 
 included:
     - Sources/
+    - ../Sources
     
 line_length:
-    warning: 150
-    error: 200
+    warning: 190
+    error: 220
     ignores_function_declarations: true
     ignores_comments: true
     ignores_urls: true

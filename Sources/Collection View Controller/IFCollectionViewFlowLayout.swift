@@ -300,8 +300,9 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
                 itemPositionX = previousItemsMaxX + minimumPreviewingWidth + middleItemsMultiplier * itemSize.width + middleItemsMultiplier * minimumLineSpacing
             }
         case maximumPreviewingIndexPath: // max
-            let previousItemsMaxX = beforeItemsMaxX + minimumPreviewingLineSpacing * 2 + minimumPreviewingWidth + numberOfMiddleItems * itemSize.width + numberOfMiddleSpaces * minimumLineSpacing
-            itemPositionX = previousItemsMaxX + maximumPreviewingLineSpacing
+            let minimumPreviewingOffset = beforeItemsMaxX + minimumPreviewingLineSpacing * 2 + minimumPreviewingWidth
+            let middleItemsOffset = numberOfMiddleItems * itemSize.width + numberOfMiddleSpaces * minimumLineSpacing
+            itemPositionX = minimumPreviewingOffset + middleItemsOffset + maximumPreviewingLineSpacing
         default: // over
             let minimumPreviewingOffset = beforeItemsMaxX + minimumPreviewingLineSpacing * 2 + minimumPreviewingWidth
             let middleItemsOffset = numberOfMiddleItems * itemSize.width + numberOfMiddleSpaces * minimumLineSpacing
