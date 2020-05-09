@@ -10,7 +10,7 @@
 		D32C4A20246717A30039D1EF /* .swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = D32C4A1F246717A30039D1EF /* .swiftlint.yml */; };
 		D386ACE72466CB2100FA77DF /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D386ACDE2466CB2100FA77DF /* ViewController.swift */; };
 		D386ACEB2466CB2100FA77DF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D386ACE42466CB2100FA77DF /* AppDelegate.swift */; };
-		D3A6016D2466F70C00EBA796 /* ImageUI in Frameworks */ = {isa = PBXBuildFile; productRef = D3A6016C2466F70C00EBA796 /* ImageUI */; };
+		D3BE095F246764300026297A /* ImageUI in Frameworks */ = {isa = PBXBuildFile; productRef = D3BE095E246764300026297A /* ImageUI */; };
 		D3C3975D2466D63F00CE8527 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D3C397522466D5E500CE8527 /* Assets.xcassets */; };
 		D3C3975E2466D64100CE8527 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D3C397532466D5E500CE8527 /* LaunchScreen.storyboard */; };
 		D3C3975F2466D64300CE8527 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D3C397552466D5E500CE8527 /* Main.storyboard */; };
@@ -40,7 +40,7 @@
 		D386ACC62466C9F500FA77DF /* ImageUIDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImageUIDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D386ACDE2466CB2100FA77DF /* ViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		D386ACE42466CB2100FA77DF /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		D3A6016A2466F6E600EBA796 /* ImageUI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ImageUI; path = ..; sourceTree = "<group>"; };
+		D3BE0960246764780026297A /* ImageUI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ImageUI; path = ..; sourceTree = "<group>"; };
 		D3C397522466D5E500CE8527 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D3C397542466D5E500CE8527 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		D3C397562466D5E500CE8527 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -58,7 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D3A6016D2466F70C00EBA796 /* ImageUI in Frameworks */,
+				D3BE095F246764300026297A /* ImageUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -68,10 +68,10 @@
 		D386ACBD2466C9F500FA77DF = {
 			isa = PBXGroup;
 			children = (
-				D386ACC72466C9F500FA77DF /* Products */,
-				D3C397622466D7DA00CE8527 /* Resources */,
 				D386ACDD2466CB2100FA77DF /* Sources */,
-				D3A6016A2466F6E600EBA796 /* ImageUI */,
+				D3C397622466D7DA00CE8527 /* Resources */,
+				D3BE0960246764780026297A /* ImageUI */,
+				D386ACC72466C9F500FA77DF /* Products */,
 			);
 			sourceTree = "<group>";
 		};
@@ -137,7 +137,7 @@
 			);
 			name = ImageUIDemo;
 			packageProductDependencies = (
-				D3A6016C2466F70C00EBA796 /* ImageUI */,
+				D3BE095E246764300026297A /* ImageUI */,
 			);
 			productName = ImageUIDemo;
 			productReference = D386ACC62466C9F500FA77DF /* ImageUIDemo.app */;
@@ -168,6 +168,7 @@
 			);
 			mainGroup = D386ACBD2466C9F500FA77DF;
 			packageReferences = (
+				D3BE095D246764300026297A /* XCRemoteSwiftPackageReference "ImageUI" */,
 			);
 			productRefGroup = D386ACC72466C9F500FA77DF /* Products */;
 			projectDirPath = "";
@@ -426,9 +427,21 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		D3BE095D246764300026297A /* XCRemoteSwiftPackageReference "ImageUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/alberto093/ImageUI.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.2.3;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
-		D3A6016C2466F70C00EBA796 /* ImageUI */ = {
+		D3BE095E246764300026297A /* ImageUI */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = D3BE095D246764300026297A /* XCRemoteSwiftPackageReference "ImageUI" */;
 			productName = ImageUI;
 		};
 /* End XCSwiftPackageProductDependency section */
