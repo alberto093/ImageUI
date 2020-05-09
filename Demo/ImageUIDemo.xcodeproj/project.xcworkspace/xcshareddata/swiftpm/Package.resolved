@@ -1,0 +1,25 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "ImageUI",
+        "repositoryURL": "https://github.com/alberto093/ImageUI.git",
+        "state": {
+          "branch": "feature/swift-package-manager",
+          "revision": "0c4237a24a5ff653b26972cc27b073bdd12bf932",
+          "version": null
+        }
+      },
+      {
+        "package": "Nuke",
+        "repositoryURL": "https://github.com/kean/Nuke.git",
+        "state": {
+          "branch": null,
+          "revision": "6001489d22e5f41a4956c1b6cd4cf7cbe8f44dff",
+          "version": "8.4.1"
+        }
+      }
+    ]
+  },
+  "version": 1
+}

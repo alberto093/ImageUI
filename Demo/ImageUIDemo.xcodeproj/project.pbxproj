@@ -3,10 +3,11 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D30A61062466DEAC007EE16E /* ImageUI in Frameworks */ = {isa = PBXBuildFile; productRef = D30A61052466DEAC007EE16E /* ImageUI */; };
 		D386ACE72466CB2100FA77DF /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D386ACDE2466CB2100FA77DF /* ViewController.swift */; };
 		D386ACEB2466CB2100FA77DF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D386ACE42466CB2100FA77DF /* AppDelegate.swift */; };
 		D386ACED2466CB2100FA77DF /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D386ACE62466CB2100FA77DF /* SceneDelegate.swift */; };
@@ -43,6 +44,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D30A61062466DEAC007EE16E /* ImageUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,6 +119,9 @@
 			dependencies = (
 			);
 			name = ImageUIDemo;
+			packageProductDependencies = (
+				D30A61052466DEAC007EE16E /* ImageUI */,
+			);
 			productName = ImageUIDemo;
 			productReference = D386ACC62466C9F500FA77DF /* ImageUIDemo.app */;
 			productType = "com.apple.product-type.application";
@@ -145,6 +150,9 @@
 				Base,
 			);
 			mainGroup = D386ACBD2466C9F500FA77DF;
+			packageReferences = (
+				D30A61042466DEAC007EE16E /* XCRemoteSwiftPackageReference "ImageUI" */,
+			);
 			productRefGroup = D386ACC72466C9F500FA77DF /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -380,6 +388,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D30A61042466DEAC007EE16E /* XCRemoteSwiftPackageReference "ImageUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/alberto093/ImageUI.git";
+			requirement = {
+				branch = "feature/swift-package-manager";
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D30A61052466DEAC007EE16E /* ImageUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D30A61042466DEAC007EE16E /* XCRemoteSwiftPackageReference "ImageUI" */;
+			productName = ImageUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D386ACBE2466C9F500FA77DF /* Project object */;
 }
