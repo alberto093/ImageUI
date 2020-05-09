@@ -1,6 +1,6 @@
 ![ImageUI](https://user-images.githubusercontent.com/9810726/81400704-08c6f080-912e-11ea-8833-114e0cc0c773.png)  
 
-[![Platform](https://img.shields.io/cocoapods/p/ImageUI.svg?style=flat)](https://developer.apple.com/iphone/index.action)    [![Version](https://img.shields.io/cocoapods/v/ImageUI.svg?style=flat)](https://cocoapods.org/pods/ImageUI)    [![Carthage Compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
+<img src="https://img.shields.io/cocoapods/v/ImageUI.svg?label=version"> [![Platform](https://img.shields.io/cocoapods/p/ImageUI.svg?style=flat)](https://developer.apple.com/iphone/index.action)   <img src="https://img.shields.io/badge/supports-Swift%20Package%20Manager%2C%20CocoaPods%2C%20Carthage-green.svg">
 
 ## Welcome to ImageUI!
 **ImageUI** is an open source project for displaying images and videos (not yet implemented) in a similar way to Apple’s Photos app.
@@ -23,6 +23,7 @@ In this version there is the photo browser that allows to display thumbnail and 
 - [x] Dark mode
 - [x] Multiple gestures (tap, double tap, pan, swipe, pinch)
 - [x] LPLinkMetadata (iOS 13.0+)
+- [x] SwiftUI compatible
 
 ## Requirements
 - iOS 11.0+
