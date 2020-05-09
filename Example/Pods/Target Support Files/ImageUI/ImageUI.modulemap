@@ -1,6 +1,0 @@
-framework module ImageUI {
-  umbrella header "ImageUI-umbrella.h"
-
-  export *
-  module * { export * }
-}
