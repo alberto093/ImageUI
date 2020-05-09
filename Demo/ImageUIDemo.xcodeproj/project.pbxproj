@@ -3,11 +3,10 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 52;
+	objectVersion = 50;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D30A61062466DEAC007EE16E /* ImageUI in Frameworks */ = {isa = PBXBuildFile; productRef = D30A61052466DEAC007EE16E /* ImageUI */; };
 		D386ACE72466CB2100FA77DF /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D386ACDE2466CB2100FA77DF /* ViewController.swift */; };
 		D386ACEB2466CB2100FA77DF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D386ACE42466CB2100FA77DF /* AppDelegate.swift */; };
 		D386ACED2466CB2100FA77DF /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D386ACE62466CB2100FA77DF /* SceneDelegate.swift */; };
@@ -21,6 +20,19 @@
 		D3C3976B2466D7DA00CE8527 /* Image2.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = D3C397662466D7DA00CE8527 /* Image2.jpeg */; };
 		D3C3976C2466D7DA00CE8527 /* Image3.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = D3C397672466D7DA00CE8527 /* Image3.jpeg */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D3D587882466E84A00E7A786 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		D386ACC62466C9F500FA77DF /* ImageUIDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImageUIDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -37,6 +49,20 @@
 		D3C397652466D7DA00CE8527 /* Image5.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Image5.jpeg; sourceTree = "<group>"; };
 		D3C397662466D7DA00CE8527 /* Image2.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Image2.jpeg; sourceTree = "<group>"; };
 		D3C397672466D7DA00CE8527 /* Image3.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Image3.jpeg; sourceTree = "<group>"; };
+		D3D5876A2466E83E00E7A786 /* IFCollectionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFCollectionViewController.swift; sourceTree = "<group>"; };
+		D3D5876B2466E83E00E7A786 /* IFCollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFCollectionView.swift; sourceTree = "<group>"; };
+		D3D5876C2466E83E00E7A786 /* IFCollectionViewFlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFCollectionViewFlowLayout.swift; sourceTree = "<group>"; };
+		D3D5876D2466E83E00E7A786 /* IFScrollViewBouncingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFScrollViewBouncingManager.swift; sourceTree = "<group>"; };
+		D3D5876E2466E83E00E7A786 /* IFCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFCollectionViewCell.swift; sourceTree = "<group>"; };
+		D3D5876F2466E83E00E7A786 /* IFBrowserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFBrowserViewController.swift; sourceTree = "<group>"; };
+		D3D587712466E83E00E7A786 /* IFImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFImage.swift; sourceTree = "<group>"; };
+		D3D587722466E83E00E7A786 /* IFSharingImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFSharingImage.swift; sourceTree = "<group>"; };
+		D3D587742466E83E00E7A786 /* Collection+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Collection+.swift"; sourceTree = "<group>"; };
+		D3D587752466E83E00E7A786 /* UIView+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIView+.swift"; sourceTree = "<group>"; };
+		D3D587762466E83E00E7A786 /* UIImage+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+.swift"; sourceTree = "<group>"; };
+		D3D587772466E83E00E7A786 /* IFImageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFImageManager.swift; sourceTree = "<group>"; };
+		D3D587792466E83E00E7A786 /* IFPageViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFPageViewController.swift; sourceTree = "<group>"; };
+		D3D5877A2466E83E00E7A786 /* IFImageViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IFImageViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -44,7 +70,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D30A61062466DEAC007EE16E /* ImageUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -57,6 +82,7 @@
 				D386ACC72466C9F500FA77DF /* Products */,
 				D3C397622466D7DA00CE8527 /* Resources */,
 				D386ACDD2466CB2100FA77DF /* Sources */,
+				D3D5873F2466E83E00E7A786 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -103,6 +129,76 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		D3D5873F2466E83E00E7A786 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D3D587402466E83E00E7A786 /* ImageUI */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		D3D587402466E83E00E7A786 /* ImageUI */ = {
+			isa = PBXGroup;
+			children = (
+				D3D587682466E83E00E7A786 /* Sources */,
+			);
+			name = ImageUI;
+			path = ..;
+			sourceTree = "<group>";
+		};
+		D3D587682466E83E00E7A786 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				D3D5876F2466E83E00E7A786 /* IFBrowserViewController.swift */,
+				D3D587772466E83E00E7A786 /* IFImageManager.swift */,
+				D3D587692466E83E00E7A786 /* Collection View Controller */,
+				D3D587732466E83E00E7A786 /* Extensions */,
+				D3D587702466E83E00E7A786 /* Image */,
+				D3D587782466E83E00E7A786 /* Page View Controller */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		D3D587692466E83E00E7A786 /* Collection View Controller */ = {
+			isa = PBXGroup;
+			children = (
+				D3D5876A2466E83E00E7A786 /* IFCollectionViewController.swift */,
+				D3D5876B2466E83E00E7A786 /* IFCollectionView.swift */,
+				D3D5876C2466E83E00E7A786 /* IFCollectionViewFlowLayout.swift */,
+				D3D5876D2466E83E00E7A786 /* IFScrollViewBouncingManager.swift */,
+				D3D5876E2466E83E00E7A786 /* IFCollectionViewCell.swift */,
+			);
+			path = "Collection View Controller";
+			sourceTree = "<group>";
+		};
+		D3D587702466E83E00E7A786 /* Image */ = {
+			isa = PBXGroup;
+			children = (
+				D3D587712466E83E00E7A786 /* IFImage.swift */,
+				D3D587722466E83E00E7A786 /* IFSharingImage.swift */,
+			);
+			path = Image;
+			sourceTree = "<group>";
+		};
+		D3D587732466E83E00E7A786 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				D3D587742466E83E00E7A786 /* Collection+.swift */,
+				D3D587752466E83E00E7A786 /* UIView+.swift */,
+				D3D587762466E83E00E7A786 /* UIImage+.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		D3D587782466E83E00E7A786 /* Page View Controller */ = {
+			isa = PBXGroup;
+			children = (
+				D3D587792466E83E00E7A786 /* IFPageViewController.swift */,
+				D3D5877A2466E83E00E7A786 /* IFImageViewController.swift */,
+			);
+			path = "Page View Controller";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -113,6 +209,7 @@
 				D386ACC22466C9F500FA77DF /* Sources */,
 				D386ACC32466C9F500FA77DF /* Frameworks */,
 				D386ACC42466C9F500FA77DF /* Resources */,
+				D3D587882466E84A00E7A786 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -120,7 +217,6 @@
 			);
 			name = ImageUIDemo;
 			packageProductDependencies = (
-				D30A61052466DEAC007EE16E /* ImageUI */,
 			);
 			productName = ImageUIDemo;
 			productReference = D386ACC62466C9F500FA77DF /* ImageUIDemo.app */;
@@ -151,7 +247,6 @@
 			);
 			mainGroup = D386ACBD2466C9F500FA77DF;
 			packageReferences = (
-				D30A61042466DEAC007EE16E /* XCRemoteSwiftPackageReference "ImageUI" */,
 			);
 			productRefGroup = D386ACC72466C9F500FA77DF /* Products */;
 			projectDirPath = "";
@@ -388,25 +483,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		D30A61042466DEAC007EE16E /* XCRemoteSwiftPackageReference "ImageUI" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/alberto093/ImageUI.git";
-			requirement = {
-				branch = "feature/swift-package-manager";
-				kind = branch;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		D30A61052466DEAC007EE16E /* ImageUI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = D30A61042466DEAC007EE16E /* XCRemoteSwiftPackageReference "ImageUI" */;
-			productName = ImageUI;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D386ACBE2466C9F500FA77DF /* Project object */;
 }
