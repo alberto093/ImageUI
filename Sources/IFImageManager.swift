@@ -75,16 +75,8 @@ class IFImageManager {
         default:
             guard let url = image[options.kind].url else { return }
             
-            if options.allowsThumbnail, let thumbnail = image.thumbnail, pipeline.cachedResponse(for: ImageRequest(url: url)) == nil {
-                switch thumbnail {
-                case .image(let image):
-                    sender.nuke_display(image: image)
-                    completion?(.success((.thumbnail, image)))
-                default:
-                    guard let url = image[.thumbnail].url, let thumbnailCache = pipeline.cachedResponse(for: ImageRequest(url: url)) else { break }
-                    sender.nuke_display(image: thumbnailCache.image)
-                    completion?(.success((.thumbnail, thumbnailCache.image)))
-                }
+            if options.allowsThumbnail, let thumbnailImage = thumbnailImage(at: index) {
+                completion?(.success((.thumbnail, thumbnailImage)))
             }
             
             let priority: ImageRequest.Priority
@@ -108,6 +100,17 @@ class IFImageManager {
             Nuke.loadImage(with: request, options: loadingOptions, into: sender) { result in
                 completion?(result.map { (options.kind, $0.image) }.mapError { $0 })
             }
+        }
+    }
+    
+    private func thumbnailImage(at index: Int) -> UIImage? {
+        guard let thumbnail = images[safe: index]?.thumbnail else { return nil }
+        switch thumbnail {
+        case .image(let image):
+            return image
+        default:
+            guard let url = thumbnail.url else { return nil }
+            return pipeline.cachedResponse(for: ImageRequest(url: url))?.image
         }
     }
     
