@@ -40,21 +40,6 @@ open class IFBrowserViewController: UIViewController {
     }
     
     // MARK: - View
-    public enum Action: Hashable {
-        case share
-        case delete
-        case custom(identifier: String, image: UIImage)
-        
-        public func hash(into hasher: inout Hasher) {
-            switch self {
-            case .share, .delete:
-                hasher.combine(String(describing: self))
-            case .custom(let identifier, _):
-                hasher.combine(identifier)
-            }
-        }
-    }
-    
     private let pageContainerView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -81,20 +66,14 @@ open class IFBrowserViewController: UIViewController {
     
     // MARK: - Public properties
     public weak var delegate: IFBrowserViewControllerDelegate?
-    public var actions: [Action] = [] {
-        didSet { setupBars() }
+    public var configuration = Configuration() {
+        didSet {
+            imageManager.prefersAspectFillZoom = configuration.prefersAspectFillZoom
+            setupBars()
+            updateBars(toggle: false)
+        }
     }
-    
-    /// A Boolean value specifying whether the image should be zoomed to fill the entire container
-    ///
-    /// When this property is set to `true`, the browser allows the image to be displayed using the aspect fill zoom if the aspect ratio is similar to its container view one.
-    ///
-    /// When the property is set to `false` (the default), the browser use the aspect fit zoom as its minimum zoom value.
-    public var prefersAspectFillZoom: Bool {
-        get { imageManager.prefersAspectFillZoom }
-        set { imageManager.prefersAspectFillZoom = newValue }
-    }
-    
+
     open override var prefersStatusBarHidden: Bool {
         isFullScreenMode
     }
@@ -116,6 +95,8 @@ open class IFBrowserViewController: UIViewController {
     private lazy var pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(gestureRecognizerDidChange))
     private lazy var pageViewController = IFPageViewController(imageManager: imageManager)
     private lazy var collectionViewController = IFCollectionViewController(imageManager: imageManager)
+    
+    private var shouldResetBarStatus = false
     private var isFullScreenMode = false
     
     private var shouldShowCancelButton: Bool {
@@ -126,10 +107,14 @@ open class IFBrowserViewController: UIViewController {
         imageManager.images.count > 1
     }
     
+    private var isNavigationBarEnabled: Bool {
+        configuration.alwaysShowToolbar || !configuration.isNavigationBarHidden
+    }
+    
     private var isToolbarEnabled: Bool {
         switch (traitCollection.verticalSizeClass, traitCollection.horizontalSizeClass) {
         case (.regular, let horizontalClass) where horizontalClass != .regular:
-            return true
+            return configuration.alwaysShowToolbar || !configuration.actions.isEmpty
         default:
             return false
         }
@@ -179,8 +164,31 @@ open class IFBrowserViewController: UIViewController {
         super.viewDidLoad()
         setup()
         updateTitleIfNeeded()
-        navigationController?.setToolbarHidden(false, animated: false)
         setupBars()
+    }
+    
+    open override func willMove(toParent parent: UIViewController?) {
+        super.willMove(toParent: parent)
+        shouldResetBarStatus = true
+    }
+    
+    open override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if shouldResetBarStatus {
+            shouldResetBarStatus = false
+            configuration.isNavigationBarHidden = navigationController?.isNavigationBarHidden == true
+            configuration.isToolbarHidden = navigationController?.isToolbarHidden == true
+        }
+        updateBars(toggle: false)
+    }
+    
+    open override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        if shouldResetBarStatus {
+            shouldResetBarStatus = false
+            navigationController?.isNavigationBarHidden = configuration.isNavigationBarHidden
+            navigationController?.isToolbarHidden = configuration.isToolbarHidden
+        }
     }
         
     open override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -225,7 +233,7 @@ open class IFBrowserViewController: UIViewController {
     private func setupBars() {
         guard isViewLoaded else { return }
         
-        let barButtonItems = actions.map { $0.barButtonItem(target: self, action: #selector(actionButtonDidTap)) }
+        let barButtonItems = configuration.actions.map { $0.barButtonItem(target: self, action: #selector(actionButtonDidTap)) }
         
         if isToolbarEnabled {
             navigationItem.setRightBarButtonItems([], animated: true)
@@ -239,26 +247,27 @@ open class IFBrowserViewController: UIViewController {
         }
         
         collectionToolbar.invalidateIntrinsicContentSize()
-        updateBars(toggle: false)
     }
     
     private func updateBars(toggle: Bool) {
-        if toggle {
+        guard isViewLoaded else { return }
+        guard !toggle else {
             animateBarsToggling()
-        } else {
-            let shouldHideToolbar = !isToolbarEnabled || isFullScreenMode
-            navigationController?.setToolbarHidden(shouldHideToolbar, animated: false)
-
-            if !isCollectionViewEnabled, !collectionContainerView.isHidden {
-                updateToolbarMask()
-                UIView.animate(
-                    withDuration: TimeInterval(UINavigationController.hideShowBarDuration),
-                    animations: { [weak self] in [self?.collectionToolbar, self?.collectionContainerView].forEach { $0?.alpha = 0 } },
-                    completion: { [weak self] _ in
-                        [self?.collectionToolbar, self?.collectionContainerView].forEach { $0?.isHidden = true }
-                        self?.collectionToolbar.layer.mask = nil
-                })
-            }
+            return
+        }
+        
+        let shouldHideToolbar = !isToolbarEnabled || isFullScreenMode
+        navigationController?.setToolbarHidden(shouldHideToolbar, animated: false)
+        
+        if !isCollectionViewEnabled, !collectionContainerView.isHidden {
+            updateToolbarMask()
+            UIView.animate(
+                withDuration: TimeInterval(UINavigationController.hideShowBarDuration),
+                animations: { [weak self] in [self?.collectionToolbar, self?.collectionContainerView].forEach { $0?.alpha = 0 } },
+                completion: { [weak self] _ in
+                    [self?.collectionToolbar, self?.collectionContainerView].forEach { $0?.isHidden = true }
+                    self?.collectionToolbar.layer.mask = nil
+            })
         }
     }
     
@@ -365,7 +374,7 @@ open class IFBrowserViewController: UIViewController {
             senderIndex = toolbarItems?.firstIndex(of: sender)
         }
         
-        guard let actionIndex = senderIndex, let action = actions[safe: actionIndex] else { return }
+        guard let actionIndex = senderIndex, let action = configuration.actions[safe: actionIndex] else { return }
         collectionViewController.scroll(toItemAt: imageManager.displayingImageIndex)
         pageViewController.invalidateDataSourceIfNeeded()
         
