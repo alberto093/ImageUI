@@ -18,7 +18,7 @@
 		D32A8394246B05B600118BE7 /* Image1.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = D32A838F246B05B600118BE7 /* Image1.jpeg */; };
 		D32A8395246B05B600118BE7 /* Image4.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = D32A8390246B05B600118BE7 /* Image4.jpeg */; };
 		D32A8397246B05C700118BE7 /* IFImage+Mock.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32A8396246B05C700118BE7 /* IFImage+Mock.swift */; };
-		D39E9C4D246B0A7000A0616B /* ImageUI in Frameworks */ = {isa = PBXBuildFile; productRef = D39E9C4C246B0A7000A0616B /* ImageUI */; };
+		D3CA5F9B246B498C000217ED /* ImageUI in Frameworks */ = {isa = PBXBuildFile; productRef = D3CA5F9A246B498C000217ED /* ImageUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,7 +35,7 @@
 		D32A838F246B05B600118BE7 /* Image1.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Image1.jpeg; sourceTree = "<group>"; };
 		D32A8390246B05B600118BE7 /* Image4.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Image4.jpeg; sourceTree = "<group>"; };
 		D32A8396246B05C700118BE7 /* IFImage+Mock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IFImage+Mock.swift"; sourceTree = "<group>"; };
-		D39E9C49246B0A6100A0616B /* ImageUI */ = {isa = PBXFileReference; lastKnownFileType = folder; path = ImageUI; sourceTree = "<group>"; };
+		D3CA5F99246B4984000217ED /* ImageUI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ImageUI; path = ..; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -43,7 +43,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D39E9C4D246B0A7000A0616B /* ImageUI in Frameworks */,
+				D3CA5F9B246B498C000217ED /* ImageUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,7 +53,7 @@
 		D3122624246B025500FD2B69 = {
 			isa = PBXGroup;
 			children = (
-				D39E9C49246B0A6100A0616B /* ImageUI */,
+				D3CA5F99246B4984000217ED /* ImageUI */,
 				D312262F246B025500FD2B69 /* ImageUI-Demo */,
 				D312262E246B025500FD2B69 /* Products */,
 				D32A8388246B030A00118BE7 /* Frameworks */,
@@ -128,7 +128,7 @@
 			);
 			name = "ImageUI-Demo";
 			packageProductDependencies = (
-				D39E9C4C246B0A7000A0616B /* ImageUI */,
+				D3CA5F9A246B498C000217ED /* ImageUI */,
 			);
 			productName = "ImageUI-Demo";
 			productReference = D312262D246B025500FD2B69 /* ImageUI-Demo.app */;
@@ -411,7 +411,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		D39E9C4C246B0A7000A0616B /* ImageUI */ = {
+		D3CA5F9A246B498C000217ED /* ImageUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ImageUI;
 		};
