@@ -154,6 +154,7 @@ class IFCollectionViewController: UIViewController {
             horizontalConstraints.forEach {
                 $0.constant = -collectionViewLayout.preferredOffBoundsPadding
             }
+            collectionView.layoutIfNeeded()
             collectionViewLayout.invalidateLayout()
         }
     }
@@ -184,8 +185,12 @@ class IFCollectionViewController: UIViewController {
             duration: duration,
             options: .curveEaseOut,
             animations: {
-                self.collectionView.setCollectionViewLayout(layout, animated: true)
-                self.collectionView.layoutIfNeeded()
+                if #available(iOS 13.0, *) {
+                    self.collectionView.setCollectionViewLayout(layout, animated: true)
+                } else {
+                    self.collectionView.setCollectionViewLayout(layout, animated: true)
+                    self.collectionView.layoutIfNeeded()
+                }
         })
     }
     

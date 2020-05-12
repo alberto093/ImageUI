@@ -337,9 +337,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     private func setInitialContentOffsetIfNeeded() {
         guard needsInitialContentOffset, let collectionView = collectionView else { return }
         needsInitialContentOffset = false
-        let context = UICollectionViewFlowLayoutInvalidationContext()
-        context.contentOffsetAdjustment.x = contentOffsetX(forItemAt: centerIndexPath) - collectionView.contentOffset.x
-        invalidateLayout(with: context)
+        collectionView.contentOffset.x = contentOffsetX(forItemAt: centerIndexPath)
     }
     
     private func updatePreferredItemSize(forItemIndexPaths indexPaths: [IndexPath]? = nil) {
