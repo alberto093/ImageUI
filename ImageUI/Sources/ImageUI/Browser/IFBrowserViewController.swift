@@ -108,7 +108,7 @@ open class IFBrowserViewController: UIViewController {
     }
     
     private var isNavigationBarEnabled: Bool {
-        configuration.alwaysShowToolbar || !configuration.isNavigationBarHidden
+        configuration.alwaysShowNavigationBar || !configuration.isNavigationBarHidden
     }
     
     private var isToolbarEnabled: Bool {
@@ -176,10 +176,11 @@ open class IFBrowserViewController: UIViewController {
         super.viewWillAppear(animated)
         if shouldResetBarStatus {
             shouldResetBarStatus = false
+            var configuration = self.configuration
             configuration.isNavigationBarHidden = navigationController?.isNavigationBarHidden == true
             configuration.isToolbarHidden = navigationController?.isToolbarHidden == true
+            self.configuration = configuration
         }
-        updateBars(toggle: false)
     }
     
     open override func viewWillDisappear(_ animated: Bool) {
@@ -195,6 +196,7 @@ open class IFBrowserViewController: UIViewController {
         super.traitCollectionDidChange(previousTraitCollection)
         if traitCollection.verticalSizeClass != previousTraitCollection?.verticalSizeClass {
             setupBars()
+            updateBars(toggle: false)
         }
     }
     
@@ -275,7 +277,7 @@ open class IFBrowserViewController: UIViewController {
         let isToolbarHidden = navigationController?.isToolbarHidden == true
         let isCollectionViewHidden = collectionContainerView.isHidden
 
-        if isFullScreenMode {
+        if isNavigationBarEnabled, isFullScreenMode {
             navigationController?.setNavigationBarHidden(false, animated: false)
             navigationController?.navigationBar.alpha = 0
         }
@@ -297,8 +299,11 @@ open class IFBrowserViewController: UIViewController {
         UIView.animate(
             withDuration: TimeInterval(UINavigationController.hideShowBarDuration),
             animations: {
+                self.setNeedsStatusBarAppearanceUpdate()
+                self.setNeedsUpdateOfHomeIndicatorAutoHidden()
+                
                 self.view.backgroundColor = self.isFullScreenMode ? .black : self.defaultBackgroundColor
-                self.navigationController?.navigationBar.alpha = self.isFullScreenMode ? 0 : 1
+                self.navigationController?.navigationBar.alpha = self.isFullScreenMode && self.isNavigationBarEnabled ? 0 : 1
                 if self.isToolbarEnabled {
                     self.navigationController?.toolbar.alpha = isToolbarHidden ? 1 : 0
                 }
@@ -306,11 +311,8 @@ open class IFBrowserViewController: UIViewController {
                 if self.isCollectionViewEnabled {
                     [self.collectionToolbar, self.collectionContainerView].forEach { $0.alpha = isCollectionViewHidden ? 1 : 0 }
                 }
-                
-                self.setNeedsStatusBarAppearanceUpdate()
-                self.setNeedsUpdateOfHomeIndicatorAutoHidden()
             }, completion: { _ in
-                if self.isFullScreenMode {
+                if self.isFullScreenMode && self.isNavigationBarEnabled {
                     self.navigationController?.setNavigationBarHidden(true, animated: false)
                 }
                 
@@ -382,7 +384,6 @@ open class IFBrowserViewController: UIViewController {
         case .share:
             presentShareViewController(sender: sender)
         case .delete:
-            // (updateBars(toggle: false) to avoid display unavailable toolbar
             break
         case .custom(let identifier, _):
             delegate?.browserViewController(self, didSelectActionWith: identifier, forImageAt: imageManager.displayingImageIndex)

@@ -13,7 +13,7 @@ class ViewController: UIViewController {
     var browserViewController: IFBrowserViewController {
         let images = IFImage.mock
         let viewController = IFBrowserViewController(images: images, initialImageIndex: .random(in: images.indices))
-        viewController.actions = [.share]
+        viewController.configuration.actions = [.share]
         return viewController
     }
 
