@@ -133,8 +133,6 @@ class IFImageViewController: UIViewController {
     private func update() {
         guard isViewLoaded else { return }
         UIView.performWithoutAnimation {
-            imageView.image = imageManager.placeholderImage
-            updateScrollView()
             imageManager.loadImage(at: displayingImageIndex, options: IFImage.LoadOptions(kind: .original), sender: imageView) { [weak self] _ in
                 self?.updateScrollView()
             }

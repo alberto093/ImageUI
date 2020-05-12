@@ -8,12 +8,12 @@ let package = Package(
         .iOS(.v11)
     ],
     products: [
-        .library(name: "ImageUI", targets: ["ImageUI"]),
+        .library(name: "ImageUI", targets: ["ImageUI"])
     ],
     dependencies: [
         .package(url: "https://github.com/kean/Nuke.git", from: "8.4.1")
     ],
     targets: [
-        .target(name: "ImageUI", dependencies: ["Nuke"], path: "Sources"),
+        .target(name: "ImageUI", dependencies: ["Nuke"])
     ]
 )

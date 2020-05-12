@@ -82,7 +82,7 @@ class IFImageManager {
             let priority: ImageRequest.Priority
             
             if index == displayingImageIndex {
-                priority = options.preferredSize == nil ? .veryHigh : .high
+                priority = options.kind == .original ? .veryHigh : .high
             } else {
                 priority = .normal
             }

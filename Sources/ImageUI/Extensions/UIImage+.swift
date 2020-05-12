@@ -24,6 +24,18 @@
 
 import UIKit
 
+public extension UIImage {
+    convenience init?(color: UIColor, size: CGSize = CGSize(width: 1, height: 1)) {
+        let image = UIGraphicsImageRenderer(size: size).image { context in
+            color.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+        }
+        
+        guard let cgImage = image.cgImage else { return nil }
+        self.init(cgImage: cgImage)
+    }
+}
+
 extension UIImage {
     func resizedToFill(size newSize: CGSize) -> UIImage {
         guard size.width > newSize.width || size.height > newSize.height else { return self }

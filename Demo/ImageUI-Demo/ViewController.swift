@@ -1,8 +1,8 @@
 //
 //  ViewController.swift
-//  ImageUIDemo
+//  ImageUI-Demo
 //
-//  Created by Alberto Saltarelli on 09/05/2020.
+//  Created by Alberto Saltarelli on 12/05/2020.
 //  Copyright © 2020 Alberto Saltarelli. All rights reserved.
 //
 
@@ -13,7 +13,7 @@ class ViewController: UIViewController {
     var browserViewController: IFBrowserViewController {
         let images = IFImage.mock
         let viewController = IFBrowserViewController(images: images, initialImageIndex: .random(in: images.indices))
-        viewController.actions = [.share]
+        viewController.configuration.actions = [.share]
         return viewController
     }
 
@@ -27,3 +27,4 @@ class ViewController: UIViewController {
         present(navigationController, animated: true)
     }
 }
+
