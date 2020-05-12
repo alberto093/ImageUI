@@ -1,8 +1,9 @@
 //
-//  IFImage+mock.swift
-//  ImageUIDemo
+//  IFImage+Mock.swift
+//  ImageUI-Demo
 //
-//  Copyright © 2020 Alberto Saltarelli (github.com/alberto093).
+//  Created by Alberto Saltarelli on 12/05/2020.
+//  Copyright © 2020 Alberto Saltarelli. All rights reserved.
 //
 
 import UIKit
@@ -116,7 +117,7 @@ extension IFImage {
         "https://i.imgur.com/3xDRjrW.jpeg"
         ].enumerated().map {
             var image = IFImage(title: "Remote image \($0.offset + 1)", url: URL(string: $0.element)!)
-            image.placeholder = UIImage(color: UIColor(white: 0.75, alpha: 0.8))
+            image.placeholder = UIImage(color: UIColor(white: 0.9, alpha: 1))
             return image
     }
 
