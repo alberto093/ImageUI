@@ -1,8 +1,9 @@
 //
-//  IFImage+mock.swift
-//  ImageUIDemo
+//  IFImage+Mock.swift
+//  ImageUI-Demo
 //
-//  Copyright © 2020 Alberto Saltarelli (github.com/alberto093).
+//  Created by Alberto Saltarelli on 12/05/2020.
+//  Copyright © 2020 Alberto Saltarelli. All rights reserved.
 //
 
 import UIKit

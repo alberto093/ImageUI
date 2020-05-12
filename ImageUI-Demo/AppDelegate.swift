@@ -1,8 +1,8 @@
 //
 //  AppDelegate.swift
-//  ImageUIDemo
+//  ImageUI-Demo
 //
-//  Created by Alberto Saltarelli on 09/05/2020.
+//  Created by Alberto Saltarelli on 12/05/2020.
 //  Copyright © 2020 Alberto Saltarelli. All rights reserved.
 //
 
