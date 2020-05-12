@@ -26,6 +26,7 @@ import UIKit
 
 protocol IFPageViewControllerDelegate: class {
     func pageViewController(_ pageViewController: IFPageViewController, didScrollFrom startIndex: Int, direction: UIPageViewController.NavigationDirection, progress: CGFloat)
+    func pageViewController(_ pageViewController: IFPageViewController, didUpdatePage index: Int)
     func pageViewControllerDidResetScroll(_ pageViewController: IFPageViewController)
 }
 
@@ -104,17 +105,15 @@ class IFPageViewController: UIPageViewController {
         dataSource = self
         delegate = self
         contentOffsetObservation = scrollView?.observe(\.contentOffset, options: .old) { [weak self] scrollView, change in
-            guard change.oldValue != scrollView.contentOffset else { return }
-            self?.handleContentOffset()
+            guard let oldValue = change.oldValue, oldValue != scrollView.contentOffset else { return }
+            self?.handleContentOffset(in: scrollView, oldValue: oldValue)
         }
         
         let initialViewController = IFImageViewController(imageManager: imageManager)
         setViewControllers([initialViewController], direction: .forward, animated: false)
     }
     
-    private func handleContentOffset() {
-        guard let scrollView = scrollView else { return }
-        
+    private func handleContentOffset(in scrollView: UIScrollView, oldValue: CGPoint) {
         switch scrollView.panGestureRecognizer.state {
         case .cancelled:
             DispatchQueue.main.async {
@@ -124,10 +123,23 @@ class IFPageViewController: UIPageViewController {
         default:
             guard scrollView.isDragging || scrollView.isDecelerating else { break }
             
+            let oldProgress = (oldValue.x - scrollView.bounds.width) / scrollView.bounds.width
+            let oldNormalizedProgress = min(max(abs(oldProgress), 0), 1)
             let progress = (scrollView.contentOffset.x - scrollView.bounds.width) / scrollView.bounds.width
-            let direction: NavigationDirection = progress < 0 ? .reverse : .forward
             let normalizedProgress = min(max(abs(progress), 0), 1)
+            
+            let direction: NavigationDirection = progress < 0 ? .reverse : .forward
             progressDelegate?.pageViewController(self, didScrollFrom: imageManager.displayingImageIndex, direction: direction, progress: normalizedProgress)
+                        
+            switch (oldNormalizedProgress, normalizedProgress) {
+            case (CGFloat(0.nextUp)..<0.5, 0.5..<1):
+                let index = direction == .forward ? imageManager.displayingImageIndex + 1 : imageManager.displayingImageIndex - 1
+                progressDelegate?.pageViewController(self, didUpdatePage: index)
+            case (CGFloat(0.5.nextUp)..<1, CGFloat(0.nextUp)...0.5):
+                progressDelegate?.pageViewController(self, didUpdatePage: imageManager.displayingImageIndex)
+            default:
+                break
+            }
         }
     }
 }

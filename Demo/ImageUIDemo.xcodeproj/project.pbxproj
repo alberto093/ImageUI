@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D32C4A20246717A30039D1EF /* .swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = D32C4A1F246717A30039D1EF /* .swiftlint.yml */; };
 		D386ACE72466CB2100FA77DF /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D386ACDE2466CB2100FA77DF /* ViewController.swift */; };
 		D386ACEB2466CB2100FA77DF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D386ACE42466CB2100FA77DF /* AppDelegate.swift */; };
-		D386ACED2466CB2100FA77DF /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D386ACE62466CB2100FA77DF /* SceneDelegate.swift */; };
-		D3A6016D2466F70C00EBA796 /* ImageUI in Frameworks */ = {isa = PBXBuildFile; productRef = D3A6016C2466F70C00EBA796 /* ImageUI */; };
+		D3BE095F246764300026297A /* ImageUI in Frameworks */ = {isa = PBXBuildFile; productRef = D3BE095E246764300026297A /* ImageUI */; };
 		D3C3975D2466D63F00CE8527 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D3C397522466D5E500CE8527 /* Assets.xcassets */; };
 		D3C3975E2466D64100CE8527 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D3C397532466D5E500CE8527 /* LaunchScreen.storyboard */; };
 		D3C3975F2466D64300CE8527 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D3C397552466D5E500CE8527 /* Main.storyboard */; };
@@ -36,11 +36,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D32C4A1F246717A30039D1EF /* .swiftlint.yml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = SOURCE_ROOT; };
 		D386ACC62466C9F500FA77DF /* ImageUIDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImageUIDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D386ACDE2466CB2100FA77DF /* ViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		D386ACE42466CB2100FA77DF /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		D386ACE62466CB2100FA77DF /* SceneDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		D3A6016A2466F6E600EBA796 /* ImageUI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ImageUI; path = ..; sourceTree = "<group>"; };
+		D3BE0960246764780026297A /* ImageUI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ImageUI; path = ..; sourceTree = "<group>"; };
 		D3C397522466D5E500CE8527 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D3C397542466D5E500CE8527 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		D3C397562466D5E500CE8527 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -58,7 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D3A6016D2466F70C00EBA796 /* ImageUI in Frameworks */,
+				D3BE095F246764300026297A /* ImageUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -68,10 +68,10 @@
 		D386ACBD2466C9F500FA77DF = {
 			isa = PBXGroup;
 			children = (
-				D386ACC72466C9F500FA77DF /* Products */,
-				D3C397622466D7DA00CE8527 /* Resources */,
 				D386ACDD2466CB2100FA77DF /* Sources */,
-				D3A6016A2466F6E600EBA796 /* ImageUI */,
+				D3C397622466D7DA00CE8527 /* Resources */,
+				D3BE0960246764780026297A /* ImageUI */,
+				D386ACC72466C9F500FA77DF /* Products */,
 			);
 			sourceTree = "<group>";
 		};
@@ -87,7 +87,6 @@
 			isa = PBXGroup;
 			children = (
 				D386ACE42466CB2100FA77DF /* AppDelegate.swift */,
-				D386ACE62466CB2100FA77DF /* SceneDelegate.swift */,
 				D386ACDE2466CB2100FA77DF /* ViewController.swift */,
 				D3C397602466D72800CE8527 /* IFImage+Mock.swift */,
 				D3C397512466D5E500CE8527 /* Supporting Files */,
@@ -98,10 +97,11 @@
 		D3C397512466D5E500CE8527 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				D3C397572466D5E500CE8527 /* Info.plist */,
 				D3C397522466D5E500CE8527 /* Assets.xcassets */,
+				D32C4A1F246717A30039D1EF /* .swiftlint.yml */,
 				D3C397532466D5E500CE8527 /* LaunchScreen.storyboard */,
 				D3C397552466D5E500CE8527 /* Main.storyboard */,
-				D3C397572466D5E500CE8527 /* Info.plist */,
 			);
 			path = "Supporting Files";
 			sourceTree = "<group>";
@@ -129,6 +129,7 @@
 				D386ACC32466C9F500FA77DF /* Frameworks */,
 				D386ACC42466C9F500FA77DF /* Resources */,
 				D3D587882466E84A00E7A786 /* Embed Frameworks */,
+				D32C4A1E246716D80039D1EF /* SwiftLint */,
 			);
 			buildRules = (
 			);
@@ -136,7 +137,7 @@
 			);
 			name = ImageUIDemo;
 			packageProductDependencies = (
-				D3A6016C2466F70C00EBA796 /* ImageUI */,
+				D3BE095E246764300026297A /* ImageUI */,
 			);
 			productName = ImageUIDemo;
 			productReference = D386ACC62466C9F500FA77DF /* ImageUIDemo.app */;
@@ -167,6 +168,7 @@
 			);
 			mainGroup = D386ACBD2466C9F500FA77DF;
 			packageReferences = (
+				D3BE095D246764300026297A /* XCRemoteSwiftPackageReference "ImageUI" */,
 			);
 			productRefGroup = D386ACC72466C9F500FA77DF /* Products */;
 			projectDirPath = "";
@@ -182,6 +184,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D32C4A20246717A30039D1EF /* .swiftlint.yml in Resources */,
 				D3C3975F2466D64300CE8527 /* Main.storyboard in Resources */,
 				D3C3976A2466D7DA00CE8527 /* Image5.jpeg in Resources */,
 				D3C3975D2466D63F00CE8527 /* Assets.xcassets in Resources */,
@@ -195,6 +198,27 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		D32C4A1E246716D80039D1EF /* SwiftLint */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = SwiftLint;
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if which swiftlint >/dev/null; then\n  swiftlint\nelse\n  echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		D386ACC22466C9F500FA77DF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -203,7 +227,6 @@
 				D3C397612466D72800CE8527 /* IFImage+Mock.swift in Sources */,
 				D386ACEB2466CB2100FA77DF /* AppDelegate.swift in Sources */,
 				D386ACE72466CB2100FA77DF /* ViewController.swift in Sources */,
-				D386ACED2466CB2100FA77DF /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -404,9 +427,21 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		D3BE095D246764300026297A /* XCRemoteSwiftPackageReference "ImageUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/alberto093/ImageUI.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.2.3;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
-		D3A6016C2466F70C00EBA796 /* ImageUI */ = {
+		D3BE095E246764300026297A /* ImageUI */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = D3BE095D246764300026297A /* XCRemoteSwiftPackageReference "ImageUI" */;
 			productName = ImageUI;
 		};
 /* End XCSwiftPackageProductDependency section */

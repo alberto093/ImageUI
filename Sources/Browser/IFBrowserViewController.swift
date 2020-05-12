@@ -391,7 +391,6 @@ extension IFBrowserViewController: UIGestureRecognizerDelegate {
         }
     }
     
-    
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         collectionContainerView.isHidden || !collectionContainerView.frame.contains(touch.location(in: view))
     }
@@ -405,14 +404,17 @@ extension IFBrowserViewController: IFPageViewControllerDelegate {
     func pageViewController(_ pageViewController: IFPageViewController, didScrollFrom startIndex: Int, direction: UIPageViewController.NavigationDirection, progress: CGFloat) {
         let endIndex = direction == .forward ? startIndex + 1 : startIndex - 1
         collectionViewController.scroll(toItemAt: endIndex, progress: progress)
-        let imageIndex = min(max(endIndex, 0), imageManager.images.count - 1)
-        updateTitleIfNeeded(imageIndex: progress >= 0.5 ? imageIndex : startIndex)
-        delegate?.browserViewController(self, willDisplayImageAt: imageIndex)
+    }
+    
+    func pageViewController(_ pageViewController: IFPageViewController, didUpdatePage index: Int) {
+        updateTitleIfNeeded(imageIndex: index)
+        delegate?.browserViewController(self, willDisplayImageAt: index)
     }
     
     func pageViewControllerDidResetScroll(_ pageViewController: IFPageViewController) {
         collectionViewController.scroll(toItemAt: imageManager.displayingImageIndex, animated: true)
         updateTitleIfNeeded(imageIndex: imageManager.displayingImageIndex)
+        delegate?.browserViewController(self, willDisplayImageAt: imageManager.displayingImageIndex)
     }
 }
 

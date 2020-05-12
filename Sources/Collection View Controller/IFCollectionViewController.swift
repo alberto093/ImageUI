@@ -154,6 +154,7 @@ class IFCollectionViewController: UIViewController {
             horizontalConstraints.forEach {
                 $0.constant = -collectionViewLayout.preferredOffBoundsPadding
             }
+            collectionView.layoutIfNeeded()
             collectionViewLayout.invalidateLayout()
         }
     }
@@ -175,7 +176,7 @@ class IFCollectionViewController: UIViewController {
         case .dragging:
             duration = Constants.carouselScrollingTransitionDuration
         default:
-            duration = style == .carousel ? Constants.flowTransitionDuration : Constants.flowTransitionDuration
+            duration = style == .carousel ? Constants.carouselTransitionDuration : Constants.flowTransitionDuration
         }
         
         pendingInvalidation = nil
@@ -184,8 +185,12 @@ class IFCollectionViewController: UIViewController {
             duration: duration,
             options: .curveEaseOut,
             animations: {
-                self.collectionView.setCollectionViewLayout(layout, animated: true)
-                self.collectionView.layoutIfNeeded()
+                if #available(iOS 13.0, *) {
+                    self.collectionView.setCollectionViewLayout(layout, animated: true)
+                } else {
+                    self.collectionView.setCollectionViewLayout(layout, animated: true)
+                    self.collectionView.layoutIfNeeded()
+                }
         })
     }
     
@@ -226,8 +231,7 @@ extension IFCollectionViewController: UICollectionViewDataSource {
         if let cell = cell as? IFCollectionViewCell {
             imageManager.loadImage(
                 at: indexPath.item,
-                preferredSize: collectionViewLayout.itemSize,
-                kind: .thumbnail,
+                options: IFImage.LoadOptions(preferredSize: collectionViewLayout.itemSize, kind: .thumbnail),
                 sender: cell) { [weak self] result in
                     guard let self = self, case .success = result else { return }
                     self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)

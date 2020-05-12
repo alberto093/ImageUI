@@ -57,32 +57,3 @@ public extension IFImage {
         self.init(title: title, original: .image(image), placeholder: placeholder)
     }
 }
-
-internal extension IFImage.Source {
-    var url: URL? {
-        switch self {
-        case .local(let path):
-            return URL(fileURLWithPath: path)
-        case .remote(let url):
-            return url
-        case .image:
-            return nil
-        }
-    }
-}
-
-internal extension IFImage {
-    enum Kind {
-        case original
-        case thumbnail
-    }
-    
-    subscript(kind: Kind) -> Source {
-        switch kind {
-        case .original:
-            return original
-        case .thumbnail:
-            return thumbnail ?? original
-        }
-    }
-}

@@ -62,39 +62,55 @@ class IFImageManager {
     
     func loadImage(
         at index: Int,
-        preferredSize: CGSize? = nil,
-        kind: IFImage.Kind,
+        options: IFImage.LoadOptions,
         sender: ImageDisplayingView,
-        completion: ((Result<UIImage, Error>) -> Void)? = nil) {
+        completion: ((IFImage.Result) -> Void)? = nil) {
         
         guard let image = images[safe: index] else { return }
-        switch image[kind] {
+        
+        switch image[options.kind] {
         case .image(let image):
             sender.nuke_display(image: image)
-            completion?(.success(image))
+            completion?(.success((options.kind, image)))
         default:
-            guard let url = image[kind].url else { return }
+            guard let url = image[options.kind].url else { return }
+            
+            if options.allowsThumbnail, let thumbnailImage = thumbnailImage(at: index) {
+                completion?(.success((.thumbnail, thumbnailImage)))
+            }
+            
             let priority: ImageRequest.Priority
             
             if index == displayingImageIndex {
-                priority = preferredSize == nil ? .veryHigh : .high
+                priority = options.preferredSize == nil ? .veryHigh : .high
             } else {
                 priority = .normal
             }
-            
+
             let request = ImageRequest(
                 url: url,
-                processors: preferredSize.map { [ImageProcessor.Resize(size: $0)] } ?? [],
+                processors: options.preferredSize.map { [ImageProcessor.Resize(size: $0)] } ?? [],
                 priority: priority)
-            
-            var options = ImageLoadingOptions(
+
+            var loadingOptions = ImageLoadingOptions(
                 placeholder: image.placeholder ?? placeholderImage,
                 transition: .fadeIn(duration: 0.1, options: .curveEaseOut))
-            options.pipeline = pipeline
-            
-            Nuke.loadImage(with: request, options: options, into: sender) { result in
-                completion?(result.map { $0.image }.mapError { $0 })
+            loadingOptions.pipeline = pipeline
+
+            Nuke.loadImage(with: request, options: loadingOptions, into: sender) { result in
+                completion?(result.map { (options.kind, $0.image) }.mapError { $0 })
             }
+        }
+    }
+    
+    private func thumbnailImage(at index: Int) -> UIImage? {
+        guard let thumbnail = images[safe: index]?.thumbnail else { return nil }
+        switch thumbnail {
+        case .image(let image):
+            return image
+        default:
+            guard let url = thumbnail.url else { return nil }
+            return pipeline.cachedResponse(for: ImageRequest(url: url))?.image
         }
     }
     

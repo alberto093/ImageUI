@@ -21,7 +21,7 @@ extension IFImage {
         Bundle.main.path(forResource: "Image5", ofType: "jpeg")!
         ].enumerated().map { IFImage(title: "Local file \($0.offset + 1)", path: $0.element) }
 
-    private static let remoteImages = [
+    private static let remoteImages: [IFImage] = [
         "https://i.imgur.com/GJoXDDu.jpg",
         "https://i.imgur.com/NCaJTv1.jpeg",
         "https://i.imgur.com/2zyjIRm.jpg",
@@ -114,7 +114,11 @@ extension IFImage {
         "https://i.imgur.com/LHDhBwR.jpg",
         "https://i.imgur.com/XawVasr.jpeg",
         "https://i.imgur.com/3xDRjrW.jpeg"
-        ].enumerated().map { IFImage(title: "Remote image \($0.offset + 1)", url: URL(string: $0.element)!) }
+        ].enumerated().map {
+            var image = IFImage(title: "Remote image \($0.offset + 1)", url: URL(string: $0.element)!)
+            image.placeholder = UIImage(color: UIColor(white: 0.75, alpha: 0.8))
+            return image
+    }
 
     private static let memoryImages = [UIImage(named: "photo1")!, UIImage(named: "photo2")!]
         .enumerated()

@@ -300,8 +300,9 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
                 itemPositionX = previousItemsMaxX + minimumPreviewingWidth + middleItemsMultiplier * itemSize.width + middleItemsMultiplier * minimumLineSpacing
             }
         case maximumPreviewingIndexPath: // max
-            let previousItemsMaxX = beforeItemsMaxX + minimumPreviewingLineSpacing * 2 + minimumPreviewingWidth + numberOfMiddleItems * itemSize.width + numberOfMiddleSpaces * minimumLineSpacing
-            itemPositionX = previousItemsMaxX + maximumPreviewingLineSpacing
+            let minimumPreviewingOffset = beforeItemsMaxX + minimumPreviewingLineSpacing * 2 + minimumPreviewingWidth
+            let middleItemsOffset = numberOfMiddleItems * itemSize.width + numberOfMiddleSpaces * minimumLineSpacing
+            itemPositionX = minimumPreviewingOffset + middleItemsOffset + maximumPreviewingLineSpacing
         default: // over
             let minimumPreviewingOffset = beforeItemsMaxX + minimumPreviewingLineSpacing * 2 + minimumPreviewingWidth
             let middleItemsOffset = numberOfMiddleItems * itemSize.width + numberOfMiddleSpaces * minimumLineSpacing
@@ -336,9 +337,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     private func setInitialContentOffsetIfNeeded() {
         guard needsInitialContentOffset, let collectionView = collectionView else { return }
         needsInitialContentOffset = false
-        let context = UICollectionViewFlowLayoutInvalidationContext()
-        context.contentOffsetAdjustment.x = contentOffsetX(forItemAt: centerIndexPath) - collectionView.contentOffset.x
-        invalidateLayout(with: context)
+        collectionView.contentOffset.x = contentOffsetX(forItemAt: centerIndexPath)
     }
     
     private func updatePreferredItemSize(forItemIndexPaths indexPaths: [IndexPath]? = nil) {

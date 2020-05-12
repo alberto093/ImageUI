@@ -29,10 +29,6 @@ class IFImageViewController: UIViewController {
         static let minimumMaximumZoomFactor: CGFloat = 3
         static let doubleTapZoomMultiplier: CGFloat = 0.85
         static let preferredAspectFillRatio: CGFloat = 0.9
-        static let maxImageSize: CGSize = {
-            let maxSize = max(UIScreen.main.nativeBounds.width, UIScreen.main.nativeBounds.height)
-            return CGSize(width: maxSize, height: maxSize)
-        }()
     }
     
     // MARK: - View
@@ -139,7 +135,7 @@ class IFImageViewController: UIViewController {
         UIView.performWithoutAnimation {
             imageView.image = imageManager.placeholderImage
             updateScrollView()
-            imageManager.loadImage(at: displayingImageIndex, kind: .original, sender: imageView) { [weak self] _ in
+            imageManager.loadImage(at: displayingImageIndex, options: IFImage.LoadOptions(kind: .original), sender: imageView) { [weak self] _ in
                 self?.updateScrollView()
             }
         }
