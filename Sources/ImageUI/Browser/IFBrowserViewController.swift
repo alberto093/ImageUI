@@ -283,8 +283,7 @@ open class IFBrowserViewController: UIViewController {
         }
         
         if isToolbarEnabled, isToolbarHidden {
-            navigationController?.setToolbarHidden(false, animated: false)
-            navigationController?.toolbar.alpha = 0
+            navigationController?.isToolbarHidden = false
         }
         
         if isCollectionViewEnabled, isCollectionViewHidden {
@@ -296,12 +295,15 @@ open class IFBrowserViewController: UIViewController {
         
         updateToolbarMask()
         isFullScreenMode.toggle()
-        UIView.animate(
+        
+        DispatchQueue.main.async {
+            if self.isToolbarEnabled, isToolbarHidden {
+                self.navigationController?.toolbar.alpha = 0
+            }
+            
+            UIView.animate(
             withDuration: TimeInterval(UINavigationController.hideShowBarDuration),
             animations: {
-                self.setNeedsStatusBarAppearanceUpdate()
-                self.setNeedsUpdateOfHomeIndicatorAutoHidden()
-                
                 self.view.backgroundColor = self.isFullScreenMode ? .black : self.defaultBackgroundColor
                 self.navigationController?.navigationBar.alpha = self.isFullScreenMode && self.isNavigationBarEnabled ? 0 : 1
                 if self.isToolbarEnabled {
@@ -311,13 +313,17 @@ open class IFBrowserViewController: UIViewController {
                 if self.isCollectionViewEnabled {
                     [self.collectionToolbar, self.collectionContainerView].forEach { $0.alpha = isCollectionViewHidden ? 1 : 0 }
                 }
+                
+                self.setNeedsStatusBarAppearanceUpdate()
+                self.setNeedsUpdateOfHomeIndicatorAutoHidden()
             }, completion: { _ in
                 if self.isFullScreenMode && self.isNavigationBarEnabled {
-                    self.navigationController?.setNavigationBarHidden(true, animated: false)
+                    self.navigationController?.setNavigationBarHidden(true, animated: true)
+                    self.navigationController?.navigationBar.alpha = 0
                 }
                 
                 if self.isToolbarEnabled, !isToolbarHidden {
-                    self.navigationController?.setToolbarHidden(true, animated: false)
+                    self.navigationController?.isToolbarHidden = true
                 }
                 
                 if self.isCollectionViewEnabled {
@@ -325,6 +331,7 @@ open class IFBrowserViewController: UIViewController {
                     self.collectionToolbar.layer.mask = nil
                 }
             })
+        }
     }
     
     private func updateTitleIfNeeded(imageIndex: Int? = nil) {
