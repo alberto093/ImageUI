@@ -26,11 +26,15 @@ import UIKit
 
 public protocol IFBrowserViewControllerDelegate: class {
     func browserViewController(_ browserViewController: IFBrowserViewController, didSelectActionWith identifier: String, forImageAt index: Int)
+    func browserViewController(_ browserViewController: IFBrowserViewController, willDeleteItemAt index: Int, completion: @escaping (Bool) -> Void)
     func browserViewController(_ browserViewController: IFBrowserViewController, willDisplayImageAt index: Int)
 }
 
 public extension IFBrowserViewControllerDelegate {
     func browserViewController(_ browserViewController: IFBrowserViewController, didSelectActionWith identifier: String, forImageAt index: Int) { }
+    func browserViewController(_ browserViewController: IFBrowserViewController, willDeleteItemAt index: Int, completion: @escaping (Bool) -> Void) {
+        completion(true)
+    }
     func browserViewController(_ browserViewController: IFBrowserViewController, willDisplayImageAt index: Int) { }
 }
 
@@ -391,7 +395,16 @@ open class IFBrowserViewController: UIViewController {
         case .share:
             presentShareViewController(sender: sender)
         case .delete:
-            break
+            let removingAction: (Bool) -> Void = { [weak self] shouldRemove in
+                guard shouldRemove else { return }
+                self?.imageManager.removeDisplayingImage()
+            }
+            
+            if let delegate = delegate {
+                delegate.browserViewController(self, willDeleteItemAt: imageManager.displayingImageIndex, completion: removingAction)
+            } else {
+                removingAction(true)
+            }
         case .custom(let identifier, _):
             delegate?.browserViewController(self, didSelectActionWith: identifier, forImageAt: imageManager.displayingImageIndex)
         }
