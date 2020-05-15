@@ -384,7 +384,7 @@ open class IFBrowserViewController: UIViewController {
         if navigationController?.isToolbarHidden == true {
             senderIndex = navigationItem.rightBarButtonItems?.reversed().firstIndex(of: sender)
         } else {
-            senderIndex = toolbarItems?.firstIndex(of: sender)
+            senderIndex = toolbarItems?.firstIndex(of: sender).map { $0 / 2 }
         }
         
         guard let actionIndex = senderIndex, let action = configuration.actions[safe: actionIndex] else { return }
@@ -398,6 +398,8 @@ open class IFBrowserViewController: UIViewController {
             let removingAction: (Bool) -> Void = { [weak self] shouldRemove in
                 guard shouldRemove else { return }
                 self?.imageManager.removeDisplayingImage()
+                self?.pageViewController.removeDisplayingImage()
+                self?.collectionViewController.removeDisplayingImage()
             }
             
             if let delegate = delegate {

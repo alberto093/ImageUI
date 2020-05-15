@@ -218,3 +218,9 @@ extension IFImageViewController: UIScrollViewDelegate {
         updateContentInset()
     }
 }
+
+extension IFImageViewController: IFImageContainer {
+    var imageContainerView: UIView {
+        scrollView
+    }
+}
