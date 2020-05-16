@@ -67,7 +67,7 @@ class IFImageManager {
         let removingIndex = displayingImageIndex
         let displayingIndex = (previousDisplayingImageIndex ?? removingIndex) > removingIndex ? removingIndex - 1 : removingIndex
         images.remove(at: removingIndex)
-        displayingImageIndex = min(max(displayingIndex, 0), images.count - 1)
+        updatedisplayingImage(index: min(max(displayingIndex, 0), images.count - 1))
     }
     
     func loadImage(
