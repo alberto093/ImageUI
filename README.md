@@ -18,7 +18,7 @@ In this version there is the photo browser that allows to display thumbnail and 
 ## Features
 - [x] Loading remote, local and in-memory images
 - [x] Support both portrait and landscape mode
-- [x] Sharing, deleting (not yet implemented) and custom actions
+- [x] Sharing, deleting and custom actions
 - [x] Size class adaptive layout (iOS, iPadOS)
 - [x] Dark mode
 - [x] Multiple gestures (tap, double tap, pan, swipe, pinch)
@@ -89,7 +89,7 @@ It is possibile to use it directly in Storyboard or programmatically and It does
 
 ```swift
 let viewController = IFBrowserViewController(images: images, initialImageIndex: 0)
-viewController.actions = [.share]
+viewController.configuration.actions = [.share, .delete]
 
 // Navigation controller
 navigationController.pushViewController(viewController, animated: true)
@@ -122,7 +122,7 @@ let viewController = IFBrowserViewController(
     images: images, 
     initialImageIndex: 0)
 
-viewController.prefersAspectFillZoom = false // default
+viewController.configuration.prefersAspectFillZoom = false 
 ```
 </p>
 
@@ -134,16 +134,16 @@ let viewController = IFBrowserViewController(
     images: images, 
     initialImageIndex: 0)
 
-viewController.prefersAspectFillZoom = true
+viewController.configuration.prefersAspectFillZoom = true
 ```
 </p>
 
 ### Custom actions
 It is possibile to create a custom action to allow user to interact with images.
 ```swift
-browserViewController.actions = [.share, .custom(identifier: "cropAction", image: cropImage)]
+browserViewController.configuration.actions = [.share, .custom(identifier: "cropAction", image: cropImage)]
 ```
->Sharing and deleting (not yet implemented) actions are already managed by the `IFBrowserViewController`.
+>Sharing and deleting actions are already managed by the `IFBrowserViewController`.
 
 Then you can interact with them by implementing `IFBrowserViewControllerDelegate`:
 ```swift
