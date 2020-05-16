@@ -78,7 +78,7 @@ extension IFCollectionViewCell: Nuke_ImageDisplaying {
     }
 }
 
-extension IFCollectionViewCell: IFImageContainer {
+extension IFCollectionViewCell: IFImageContainerProvider {
     var imageContainerView: UIView {
         contentView
     }

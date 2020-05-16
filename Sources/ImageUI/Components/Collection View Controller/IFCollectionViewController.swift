@@ -140,7 +140,7 @@ class IFCollectionViewController: UIViewController {
         let currentIndexPath = collectionViewLayout.centerIndexPath
         collectionViewLayout.update(centerIndexPath: IndexPath(item: imageManager.displayingImageIndex, section: 0))
         
-        if let cell = cell as? IFImageContainer {
+        if let cell = cell as? IFImageContainerProvider {
             cell.prepareForRemove { self.collectionView.deleteItems(at: [currentIndexPath]) }
         } else {
             collectionView.deleteItems(at: [currentIndexPath])

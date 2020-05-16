@@ -219,7 +219,7 @@ extension IFImageViewController: UIScrollViewDelegate {
     }
 }
 
-extension IFImageViewController: IFImageContainer {
+extension IFImageViewController: IFImageContainerProvider {
     var imageContainerView: UIView {
         scrollView
     }
