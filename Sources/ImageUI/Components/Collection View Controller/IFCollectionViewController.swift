@@ -141,7 +141,14 @@ class IFCollectionViewController: UIViewController {
         collectionViewLayout.update(centerIndexPath: IndexPath(item: imageManager.displayingImageIndex, section: 0))
         
         if let cell = cell as? IFImageContainerProvider {
-            cell.prepareForRemove { self.collectionView.deleteItems(at: [currentIndexPath]) }
+            cell.prepareForRemove {
+                self.collectionView.performBatchUpdates({
+                    self.collectionView.deleteItems(at: [currentIndexPath])
+                }, completion: { _ in
+                    let targetContentOffset = self.collectionViewLayout.targetContentOffset(forProposedContentOffset: self.collectionView.contentOffset)
+                    self.collectionView.setContentOffset(targetContentOffset, animated: false)
+                })
+            }
         } else {
             collectionView.deleteItems(at: [currentIndexPath])
         }

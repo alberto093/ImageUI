@@ -212,9 +212,10 @@ extension IFCollectionViewFlowLayout {
     }
     
     override func targetContentOffset(forProposedContentOffset proposedContentOffset: CGPoint) -> CGPoint {
-        if let centerIndexPathBeforeUpdate = centerIndexPathBeforeUpdate, centerIndexPathBeforeUpdate >= centerIndexPath {
+        if let centerIndexPathBeforeUpdate = centerIndexPathBeforeUpdate {
             let centerItemOffsetX = contentOffsetX(forItemAt: centerIndexPathBeforeUpdate)
-            return CGPoint(x: centerItemOffsetX - minimumLineSpacing - itemSize.width, y: proposedContentOffset.y)
+            let contentOffsetX = centerIndexPathBeforeUpdate > centerIndexPath ? centerItemOffsetX - minimumLineSpacing - itemSize.width : centerItemOffsetX
+            return CGPoint(x: contentOffsetX, y: proposedContentOffset.y)
         } else {
             let centerItemOffsetX = contentOffsetX(forItemAt: centerIndexPath)
             let transitionItemOffsetX = contentOffsetX(forItemAt: transition.indexPath)
@@ -236,13 +237,14 @@ extension IFCollectionViewFlowLayout {
         if let updateItem = updateItems.first(where: { $0.updateAction == .delete }) {
             self.deletingIndexPath = updateItem.indexPathBeforeUpdate
             if centerIndexPath == deletingIndexPath {
-                let item = min(centerIndexPath.item + 1, collectionView.numberOfItems(inSection: 0) - 1)
+                let item = min(centerIndexPath.item + 1, collectionView.numberOfItems(inSection: 0))
                 centerIndexPathBeforeUpdate = IndexPath(item: item, section: 0)
             } else {
-                let item = max(centerIndexPath.item - 1, 0)
-                centerIndexPathBeforeUpdate = IndexPath(item: item, section: 0)
+                centerIndexPathBeforeUpdate = centerIndexPath
             }
         }
+        
+        updatePreferredItemSize(forItemIndexPaths: centerIndexPathBeforeUpdate.map { [$0] })
     }
     
     override func finalizeCollectionViewUpdates() {
@@ -396,12 +398,17 @@ private extension IFCollectionViewFlowLayout {
         
         switch indexPath {
         case deletingIndexPath:
-            return originX(forItemAt: indexPath) - maximumLineSpacing
+            let defaultOriginX = originX(forItemAt: indexPath)
+            if indexPath < centerIndexPathBeforeUpdate {
+                return defaultOriginX - maximumLineSpacing
+            } else {
+                return defaultOriginX - minimumLineSpacing
+            }
         case centerIndexPathBeforeUpdate:
             let defaultOriginX = originX(forItemAt: indexPath)
             
             if indexPath < deletingIndexPath {
-                return defaultOriginX + (maximumLineSpacing - minimumLineSpacing)
+                return defaultOriginX
             } else {
                 return defaultOriginX - (preferredSize(forItemAt: deletingIndexPath).width + maximumLineSpacing)
             }
