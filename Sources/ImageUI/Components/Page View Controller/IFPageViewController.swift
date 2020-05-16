@@ -77,6 +77,15 @@ class IFPageViewController: UIPageViewController {
         visibleViewController.displayingImageIndex = index
     }
     
+    func removeDisplayingImage() {
+        guard let displayingImageIndex = visibleViewController?.displayingImageIndex else { return }
+        let removingDirection: NavigationDirection = displayingImageIndex > imageManager.displayingImageIndex ? .reverse : .forward
+        let viewController = IFImageViewController(imageManager: imageManager)
+        visibleViewController?.prepareForRemove() { [weak self] in
+            self?.setViewControllers([viewController], direction: removingDirection, animated: true)
+        }
+    }
+    
     func invalidateDataSourceIfNeeded() {
         guard let scrollView = scrollView, scrollView.isDragging || scrollView.isDecelerating else { return }
         invalidateDataSource()

@@ -13,18 +13,17 @@ class ViewController: UIViewController {
     var browserViewController: IFBrowserViewController {
         let images = IFImage.mock
         let viewController = IFBrowserViewController(images: images, initialImageIndex: .random(in: images.indices))
-        viewController.configuration.actions = [.share]
+        viewController.configuration.actions = [.share, .delete]
         return viewController
     }
 
     @IBAction private func pushButtonDidTap() {
         navigationController?.pushViewController(browserViewController, animated: true)
     }
-    
+
     @IBAction private func presentButtonDidTap() {
         let navigationController = UINavigationController(rootViewController: browserViewController)
         navigationController.modalPresentationStyle = .fullScreen
         present(navigationController, animated: true)
     }
 }
-

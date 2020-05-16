@@ -135,6 +135,18 @@ class IFCollectionViewController: UIViewController {
         updateCollectionViewLayout(style: .carousel)
     }
     
+    func removeDisplayingImage() {
+        guard let cell = collectionView.cellForItem(at: collectionViewLayout.centerIndexPath) else { return }
+        let currentIndexPath = collectionViewLayout.centerIndexPath
+        collectionViewLayout.update(centerIndexPath: IndexPath(item: imageManager.displayingImageIndex, section: 0))
+        
+        if let cell = cell as? IFImageContainer {
+            cell.prepareForRemove { self.collectionView.deleteItems(at: [currentIndexPath]) }
+        } else {
+            collectionView.deleteItems(at: [currentIndexPath])
+        }
+    }
+    
     // MARK: - Private methods
     private func setup() {
         collectionView.register(IFCollectionViewCell.self, forCellWithReuseIdentifier: IFCollectionViewCell.identifier)
