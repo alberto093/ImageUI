@@ -362,6 +362,21 @@ open class IFBrowserViewController: UIViewController {
         }
     }
     
+    private func handleRemove() {
+        imageManager.removeDisplayingImage()
+        
+        let group = DispatchGroup()
+        group.enter()
+        pageViewController.removeDisplayingImage { group.leave() }
+        group.enter()
+        collectionViewController.removeDisplayingImage { group.leave() }
+        let view = navigationController?.view ?? self.view
+        view?.isUserInteractionEnabled = false
+        group.notify(queue: .main) {
+            view?.isUserInteractionEnabled = true
+        }
+    }
+    
     // MARK: - UI Actions
     @objc private func gestureRecognizerDidChange(_ sender: UIGestureRecognizer) {
         switch sender {
@@ -395,17 +410,13 @@ open class IFBrowserViewController: UIViewController {
         case .share:
             presentShareViewController(sender: sender)
         case .delete:
-            let removingAction: (Bool) -> Void = { [weak self] shouldRemove in
-                guard shouldRemove else { return }
-                self?.imageManager.removeDisplayingImage()
-                self?.pageViewController.removeDisplayingImage()
-                self?.collectionViewController.removeDisplayingImage()
-            }
-            
             if let delegate = delegate {
-                delegate.browserViewController(self, willDeleteItemAt: imageManager.displayingImageIndex, completion: removingAction)
+                delegate.browserViewController(self, willDeleteItemAt: imageManager.displayingImageIndex) { [weak self]  shouldRemove in
+                    guard shouldRemove else { return }
+                    self?.handleRemove()
+                }
             } else {
-                removingAction(true)
+                handleRemove()
             }
         case .custom(let identifier, _):
             delegate?.browserViewController(self, didSelectActionWith: identifier, forImageAt: imageManager.displayingImageIndex)

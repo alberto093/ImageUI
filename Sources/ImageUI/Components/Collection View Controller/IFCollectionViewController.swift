@@ -135,22 +135,25 @@ class IFCollectionViewController: UIViewController {
         updateCollectionViewLayout(style: .carousel)
     }
     
-    func removeDisplayingImage() {
+    func removeDisplayingImage(completion: (() -> Void)? = nil) {
         guard let cell = collectionView.cellForItem(at: collectionViewLayout.centerIndexPath) else { return }
         let currentIndexPath = collectionViewLayout.centerIndexPath
         collectionViewLayout.update(centerIndexPath: IndexPath(item: imageManager.displayingImageIndex, section: 0))
         
+        let removingAnimation = {
+            self.collectionView.performBatchUpdates({
+                self.collectionView.deleteItems(at: [currentIndexPath])
+            }, completion: { _ in
+                let targetContentOffset = self.collectionViewLayout.targetContentOffset(forProposedContentOffset: self.collectionView.contentOffset)
+                self.collectionView.setContentOffset(targetContentOffset, animated: false)
+                completion?()
+            })
+        }
+        
         if let cell = cell as? IFImageContainerProvider {
-            cell.prepareForRemove {
-                self.collectionView.performBatchUpdates({
-                    self.collectionView.deleteItems(at: [currentIndexPath])
-                }, completion: { _ in
-                    let targetContentOffset = self.collectionViewLayout.targetContentOffset(forProposedContentOffset: self.collectionView.contentOffset)
-                    self.collectionView.setContentOffset(targetContentOffset, animated: false)
-                })
-            }
+            cell.prepareForRemove(completion: removingAnimation)
         } else {
-            collectionView.deleteItems(at: [currentIndexPath])
+            removingAnimation()
         }
     }
     

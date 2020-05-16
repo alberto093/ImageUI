@@ -78,7 +78,7 @@ class IFPageViewController: UIPageViewController {
         visibleViewController.displayingImageIndex = index
     }
     
-    func removeDisplayingImage() {
+    func removeDisplayingImage(completion: (() -> Void)? = nil) {
         guard let displayingImageIndex = visibleViewController?.displayingImageIndex else { return }
         let removingDirection: NavigationDirection = displayingImageIndex > imageManager.displayingImageIndex ? .reverse : .forward
         let viewController = IFImageViewController(imageManager: imageManager)
@@ -86,6 +86,7 @@ class IFPageViewController: UIPageViewController {
         visibleViewController?.prepareForRemove() { [weak self] in
             self?.setViewControllers([viewController], direction: removingDirection, animated: true) { _ in
                 self?.isRemovingPage = false
+                completion?()
             }
         }
     }
