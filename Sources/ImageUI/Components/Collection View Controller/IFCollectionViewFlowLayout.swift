@@ -244,7 +244,9 @@ extension IFCollectionViewFlowLayout {
             }
         }
         
-        updatePreferredItemSize(forItemIndexPaths: centerIndexPathBeforeUpdate.map { [$0] })
+        if collectionView.numberOfItems(inSection: 0) > 0 {
+            updatePreferredItemSize(forItemIndexPaths: centerIndexPathBeforeUpdate.map { [$0] })
+        }
     }
     
     override func finalizeCollectionViewUpdates() {

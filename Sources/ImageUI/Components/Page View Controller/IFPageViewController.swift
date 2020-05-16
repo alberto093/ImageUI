@@ -83,10 +83,15 @@ class IFPageViewController: UIPageViewController {
         let removingDirection: NavigationDirection = displayingImageIndex > imageManager.displayingImageIndex ? .reverse : .forward
         let viewController = IFImageViewController(imageManager: imageManager)
         isRemovingPage = true
-        visibleViewController?.prepareForRemove() { [weak self] in
-            self?.setViewControllers([viewController], direction: removingDirection, animated: true) { _ in
+        visibleViewController?.prepareForRemove { [weak self] in
+            if self?.imageManager.images.isEmpty == true {
                 self?.isRemovingPage = false
                 completion?()
+            } else {
+                self?.setViewControllers([viewController], direction: removingDirection, animated: true) { _ in
+                    self?.isRemovingPage = false
+                    completion?()
+                }
             }
         }
     }

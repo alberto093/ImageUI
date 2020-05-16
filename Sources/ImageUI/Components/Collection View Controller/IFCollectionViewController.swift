@@ -151,7 +151,13 @@ class IFCollectionViewController: UIViewController {
         }
         
         if let cell = cell as? IFImageContainerProvider {
-            cell.prepareForRemove(completion: removingAnimation)
+            cell.prepareForRemove {
+                if self.imageManager.images.isEmpty {
+                    completion?()
+                } else {
+                    removingAnimation()
+                }
+            }
         } else {
             removingAnimation()
         }

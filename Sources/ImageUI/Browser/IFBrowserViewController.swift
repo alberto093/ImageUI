@@ -27,6 +27,7 @@ import UIKit
 public protocol IFBrowserViewControllerDelegate: class {
     func browserViewController(_ browserViewController: IFBrowserViewController, didSelectActionWith identifier: String, forImageAt index: Int)
     func browserViewController(_ browserViewController: IFBrowserViewController, willDeleteItemAt index: Int, completion: @escaping (Bool) -> Void)
+    func browserViewController(_ browserViewController: IFBrowserViewController, didDeleteItemAt index: Int, isEmpty: Bool)
     func browserViewController(_ browserViewController: IFBrowserViewController, willDisplayImageAt index: Int)
 }
 
@@ -35,6 +36,7 @@ public extension IFBrowserViewControllerDelegate {
     func browserViewController(_ browserViewController: IFBrowserViewController, willDeleteItemAt index: Int, completion: @escaping (Bool) -> Void) {
         completion(true)
     }
+    func browserViewController(_ browserViewController: IFBrowserViewController, didDeleteItemAt index: Int, isEmpty: Bool) { }
     func browserViewController(_ browserViewController: IFBrowserViewController, willDisplayImageAt index: Int) { }
 }
 
@@ -363,6 +365,7 @@ open class IFBrowserViewController: UIViewController {
     }
     
     private func handleRemove() {
+        let removingIndex = imageManager.displayingImageIndex
         imageManager.removeDisplayingImage()
         
         let group = DispatchGroup()
@@ -370,10 +373,14 @@ open class IFBrowserViewController: UIViewController {
         pageViewController.removeDisplayingImage { group.leave() }
         group.enter()
         collectionViewController.removeDisplayingImage { group.leave() }
+        
         let view = navigationController?.view ?? self.view
         view?.isUserInteractionEnabled = false
-        group.notify(queue: .main) {
+        group.notify(queue: .main) { [weak self, weak view] in
             view?.isUserInteractionEnabled = true
+            if let self = self {
+                self.delegate?.browserViewController(self, didDeleteItemAt: removingIndex, isEmpty: self.imageManager.images.isEmpty)
+            }
         }
     }
     
