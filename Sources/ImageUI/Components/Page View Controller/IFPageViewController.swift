@@ -45,6 +45,7 @@ class IFPageViewController: UIPageViewController {
     
     // MARK: - Accessory properties
     private var contentOffsetObservation: NSKeyValueObservation?
+    private var isRemovingPage = false
     private var beforeViewController: IFImageViewController?
     private var visibleViewController: IFImageViewController? {
         viewControllers?.first as? IFImageViewController
@@ -75,6 +76,24 @@ class IFPageViewController: UIPageViewController {
         beforeViewController?.displayingImageIndex = index - 1
         afterViewController?.displayingImageIndex = index + 1
         visibleViewController.displayingImageIndex = index
+    }
+    
+    func removeDisplayingImage(completion: (() -> Void)? = nil) {
+        guard let displayingImageIndex = visibleViewController?.displayingImageIndex else { return }
+        let removingDirection: NavigationDirection = displayingImageIndex > imageManager.displayingImageIndex ? .reverse : .forward
+        let viewController = IFImageViewController(imageManager: imageManager)
+        isRemovingPage = true
+        visibleViewController?.prepareForRemove { [weak self] in
+            if self?.imageManager.images.isEmpty == true {
+                self?.isRemovingPage = false
+                completion?()
+            } else {
+                self?.setViewControllers([viewController], direction: removingDirection, animated: true) { _ in
+                    self?.isRemovingPage = false
+                    completion?()
+                }
+            }
+        }
     }
     
     func invalidateDataSourceIfNeeded() {
@@ -121,7 +140,7 @@ class IFPageViewController: UIPageViewController {
                 self.progressDelegate?.pageViewControllerDidResetScroll(self)
             }
         default:
-            guard scrollView.isDragging || scrollView.isDecelerating else { break }
+            guard isRemovingPage || scrollView.isDragging || scrollView.isDecelerating else { break }
             
             let oldProgress = (oldValue.x - scrollView.bounds.width) / scrollView.bounds.width
             let oldNormalizedProgress = min(max(abs(oldProgress), 0), 1)
@@ -129,11 +148,18 @@ class IFPageViewController: UIPageViewController {
             let normalizedProgress = min(max(abs(progress), 0), 1)
             
             let direction: NavigationDirection = progress < 0 ? .reverse : .forward
-            progressDelegate?.pageViewController(self, didScrollFrom: imageManager.displayingImageIndex, direction: direction, progress: normalizedProgress)
-                        
+            if !isRemovingPage {
+                progressDelegate?.pageViewController(self, didScrollFrom: imageManager.displayingImageIndex, direction: direction, progress: normalizedProgress)
+            }
+            
             switch (oldNormalizedProgress, normalizedProgress) {
             case (CGFloat(0.nextUp)..<0.5, 0.5..<1):
-                let index = direction == .forward ? imageManager.displayingImageIndex + 1 : imageManager.displayingImageIndex - 1
+                let index: Int
+                if isRemovingPage {
+                    index = imageManager.displayingImageIndex
+                } else {
+                    index = direction == .forward ? imageManager.displayingImageIndex + 1 : imageManager.displayingImageIndex - 1
+                }
                 progressDelegate?.pageViewController(self, didUpdatePage: index)
             case (CGFloat(0.5.nextUp)..<1, CGFloat(0.nextUp)...0.5):
                 progressDelegate?.pageViewController(self, didUpdatePage: imageManager.displayingImageIndex)

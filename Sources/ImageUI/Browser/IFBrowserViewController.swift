@@ -26,11 +26,17 @@ import UIKit
 
 public protocol IFBrowserViewControllerDelegate: class {
     func browserViewController(_ browserViewController: IFBrowserViewController, didSelectActionWith identifier: String, forImageAt index: Int)
+    func browserViewController(_ browserViewController: IFBrowserViewController, willDeleteItemAt index: Int, completion: @escaping (Bool) -> Void)
+    func browserViewController(_ browserViewController: IFBrowserViewController, didDeleteItemAt index: Int, isEmpty: Bool)
     func browserViewController(_ browserViewController: IFBrowserViewController, willDisplayImageAt index: Int)
 }
 
 public extension IFBrowserViewControllerDelegate {
     func browserViewController(_ browserViewController: IFBrowserViewController, didSelectActionWith identifier: String, forImageAt index: Int) { }
+    func browserViewController(_ browserViewController: IFBrowserViewController, willDeleteItemAt index: Int, completion: @escaping (Bool) -> Void) {
+        completion(true)
+    }
+    func browserViewController(_ browserViewController: IFBrowserViewController, didDeleteItemAt index: Int, isEmpty: Bool) { }
     func browserViewController(_ browserViewController: IFBrowserViewController, willDisplayImageAt index: Int) { }
 }
 
@@ -283,8 +289,7 @@ open class IFBrowserViewController: UIViewController {
         }
         
         if isToolbarEnabled, isToolbarHidden {
-            navigationController?.setToolbarHidden(false, animated: false)
-            navigationController?.toolbar.alpha = 0
+            navigationController?.isToolbarHidden = false
         }
         
         if isCollectionViewEnabled, isCollectionViewHidden {
@@ -296,12 +301,15 @@ open class IFBrowserViewController: UIViewController {
         
         updateToolbarMask()
         isFullScreenMode.toggle()
-        UIView.animate(
+        
+        DispatchQueue.main.async {
+            if self.isToolbarEnabled, isToolbarHidden {
+                self.navigationController?.toolbar.alpha = 0
+            }
+            
+            UIView.animate(
             withDuration: TimeInterval(UINavigationController.hideShowBarDuration),
             animations: {
-                self.setNeedsStatusBarAppearanceUpdate()
-                self.setNeedsUpdateOfHomeIndicatorAutoHidden()
-                
                 self.view.backgroundColor = self.isFullScreenMode ? .black : self.defaultBackgroundColor
                 self.navigationController?.navigationBar.alpha = self.isFullScreenMode && self.isNavigationBarEnabled ? 0 : 1
                 if self.isToolbarEnabled {
@@ -311,13 +319,17 @@ open class IFBrowserViewController: UIViewController {
                 if self.isCollectionViewEnabled {
                     [self.collectionToolbar, self.collectionContainerView].forEach { $0.alpha = isCollectionViewHidden ? 1 : 0 }
                 }
+                
+                self.setNeedsStatusBarAppearanceUpdate()
+                self.setNeedsUpdateOfHomeIndicatorAutoHidden()
             }, completion: { _ in
                 if self.isFullScreenMode && self.isNavigationBarEnabled {
-                    self.navigationController?.setNavigationBarHidden(true, animated: false)
+                    self.navigationController?.setNavigationBarHidden(true, animated: true)
+                    self.navigationController?.navigationBar.alpha = 0
                 }
                 
                 if self.isToolbarEnabled, !isToolbarHidden {
-                    self.navigationController?.setToolbarHidden(true, animated: false)
+                    self.navigationController?.isToolbarHidden = true
                 }
                 
                 if self.isCollectionViewEnabled {
@@ -325,6 +337,7 @@ open class IFBrowserViewController: UIViewController {
                     self.collectionToolbar.layer.mask = nil
                 }
             })
+        }
     }
     
     private func updateTitleIfNeeded(imageIndex: Int? = nil) {
@@ -351,6 +364,26 @@ open class IFBrowserViewController: UIViewController {
         }
     }
     
+    private func handleRemove() {
+        let removingIndex = imageManager.displayingImageIndex
+        imageManager.removeDisplayingImage()
+        
+        let group = DispatchGroup()
+        group.enter()
+        pageViewController.removeDisplayingImage { group.leave() }
+        group.enter()
+        collectionViewController.removeDisplayingImage { group.leave() }
+        
+        let view = navigationController?.view ?? self.view
+        view?.isUserInteractionEnabled = false
+        group.notify(queue: .main) { [weak self, weak view] in
+            view?.isUserInteractionEnabled = true
+            if let self = self {
+                self.delegate?.browserViewController(self, didDeleteItemAt: removingIndex, isEmpty: self.imageManager.images.isEmpty)
+            }
+        }
+    }
+    
     // MARK: - UI Actions
     @objc private func gestureRecognizerDidChange(_ sender: UIGestureRecognizer) {
         switch sender {
@@ -373,18 +406,25 @@ open class IFBrowserViewController: UIViewController {
         if navigationController?.isToolbarHidden == true {
             senderIndex = navigationItem.rightBarButtonItems?.reversed().firstIndex(of: sender)
         } else {
-            senderIndex = toolbarItems?.firstIndex(of: sender)
+            senderIndex = toolbarItems?.firstIndex(of: sender).map { $0 / 2 }
         }
         
         guard let actionIndex = senderIndex, let action = configuration.actions[safe: actionIndex] else { return }
-        collectionViewController.scroll(toItemAt: imageManager.displayingImageIndex)
+        collectionViewController.scrollToDisplayingImageIndex()
         pageViewController.invalidateDataSourceIfNeeded()
         
         switch action {
         case .share:
             presentShareViewController(sender: sender)
         case .delete:
-            break
+            if let delegate = delegate {
+                delegate.browserViewController(self, willDeleteItemAt: imageManager.displayingImageIndex) { [weak self]  shouldRemove in
+                    guard shouldRemove else { return }
+                    self?.handleRemove()
+                }
+            } else {
+                handleRemove()
+            }
         case .custom(let identifier, _):
             delegate?.browserViewController(self, didSelectActionWith: identifier, forImageAt: imageManager.displayingImageIndex)
         }
@@ -422,7 +462,7 @@ extension IFBrowserViewController: IFPageViewControllerDelegate {
     }
     
     func pageViewControllerDidResetScroll(_ pageViewController: IFPageViewController) {
-        collectionViewController.scroll(toItemAt: imageManager.displayingImageIndex, animated: true)
+        collectionViewController.scrollToDisplayingImageIndex()
         updateTitleIfNeeded(imageIndex: imageManager.displayingImageIndex)
         delegate?.browserViewController(self, willDisplayImageAt: imageManager.displayingImageIndex)
     }

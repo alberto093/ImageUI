@@ -22,7 +22,8 @@ nesting:
         warning: 2
 
 included:
-    - Sources/ImageUI
+    - ImageUI-Demo
+    - ../Sources/ImageUI
     
 line_length:
     warning: 190

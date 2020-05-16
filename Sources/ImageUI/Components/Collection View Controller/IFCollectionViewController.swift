@@ -119,7 +119,7 @@ class IFCollectionViewController: UIViewController {
     }
     
     // MARK: - Public methods
-    func scroll(toItemAt index: Int, progress: CGFloat = 1) {
+    func scroll(toItemAt index: Int, progress: CGFloat) {
         guard isViewLoaded else { return }
         
         if collectionView.isDecelerating {
@@ -130,9 +130,37 @@ class IFCollectionViewController: UIViewController {
         }
     }
     
-    func scroll(toItemAt index: Int, animated: Bool) {
-        guard collectionViewLayout.isTransitioning || collectionViewLayout.centerIndexPath.item != index else { return }
+    func scrollToDisplayingImageIndex() {
+        guard collectionViewLayout.isTransitioning || collectionViewLayout.centerIndexPath.item != imageManager.displayingImageIndex else { return }
         updateCollectionViewLayout(style: .carousel)
+    }
+    
+    func removeDisplayingImage(completion: (() -> Void)? = nil) {
+        guard let cell = collectionView.cellForItem(at: collectionViewLayout.centerIndexPath) else { return }
+        let currentIndexPath = collectionViewLayout.centerIndexPath
+        collectionViewLayout.update(centerIndexPath: IndexPath(item: imageManager.displayingImageIndex, section: 0))
+        
+        let removingAnimation = {
+            self.collectionView.performBatchUpdates({
+                self.collectionView.deleteItems(at: [currentIndexPath])
+            }, completion: { _ in
+                let targetContentOffset = self.collectionViewLayout.targetContentOffset(forProposedContentOffset: self.collectionView.contentOffset)
+                self.collectionView.setContentOffset(targetContentOffset, animated: false)
+                completion?()
+            })
+        }
+        
+        if let cell = cell as? IFImageContainerProvider {
+            cell.prepareForRemove {
+                if self.imageManager.images.isEmpty {
+                    completion?()
+                } else {
+                    removingAnimation()
+                }
+            }
+        } else {
+            removingAnimation()
+        }
     }
     
     // MARK: - Private methods

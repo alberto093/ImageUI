@@ -29,12 +29,15 @@ import LinkPresentation
 #endif
 
 class IFImageManager {
-    let images: [IFImage]
+    private(set) var images: [IFImage]
     private let pipeline = ImagePipeline()
     
     var prefersAspectFillZoom = false
     var placeholderImage: UIImage?
-    private(set) var displayingImageIndex = 0
+    private var previousDisplayingImageIndex: Int?
+    private(set) var displayingImageIndex: Int {
+        didSet { previousDisplayingImageIndex = oldValue }
+    }
     
     @available(iOS 13.0, *)
     private lazy var displayingLinkMetadata: LPLinkMetadata? = nil
@@ -58,6 +61,13 @@ class IFImageManager {
         if #available(iOS 13.0, *) {
             prepareDisplayingMetadata()
         }
+    }
+    
+    func removeDisplayingImage() {
+        let removingIndex = displayingImageIndex
+        let displayingIndex = (previousDisplayingImageIndex ?? removingIndex) > removingIndex ? removingIndex - 1 : removingIndex
+        images.remove(at: removingIndex)
+        updatedisplayingImage(index: min(max(displayingIndex, 0), images.count - 1))
     }
     
     func loadImage(

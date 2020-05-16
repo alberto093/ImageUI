@@ -46,6 +46,12 @@ class IFCollectionViewCell: UICollectionViewCell {
         setup()
     }
     
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        imageContainerView.alpha = 1
+        imageContainerView.transform = .identity
+    }
+    
     override func preferredLayoutAttributesFitting(_ layoutAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutAttributes {
         guard let image = imageView.image else { return layoutAttributes }
         let imageRatio = image.size.width / image.size.height
@@ -55,6 +61,8 @@ class IFCollectionViewCell: UICollectionViewCell {
     
     // MARK: - Style
     private func setup() {
+        clipsToBounds = true
+        contentView.clipsToBounds = false
         contentView.addSubview(imageView)
         NSLayoutConstraint.activate([
             imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
@@ -67,5 +75,11 @@ class IFCollectionViewCell: UICollectionViewCell {
 extension IFCollectionViewCell: Nuke_ImageDisplaying {
     func nuke_display(image: PlatformImage?) {
         imageView.image = image
+    }
+}
+
+extension IFCollectionViewCell: IFImageContainerProvider {
+    var imageContainerView: UIView {
+        contentView
     }
 }

@@ -1,6 +1,3 @@
-# Mac OS X
-.DS_Store
-
 # Xcode
 
 ## Build generated
@@ -16,17 +13,20 @@ DerivedData
 !default.mode2v3
 *.perspectivev3
 !default.perspectivev3
-xcuserdata
+xcuserdata/
 
 ## Other
 *.xccheckout
 *.moved-aside
 *.xcuserstate
 *.xcscmblueprint
+*.DS_Store
 
 ## Obj-C/Swift specific
 *.hmap
 *.ipa
+*.dSYM.zip
+*.dSYM
 
 ## Playgrounds
 timeline.xctimeline

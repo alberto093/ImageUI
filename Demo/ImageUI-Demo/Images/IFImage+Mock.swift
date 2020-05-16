@@ -117,7 +117,7 @@ extension IFImage {
         "https://i.imgur.com/3xDRjrW.jpeg"
         ].enumerated().map {
             var image = IFImage(title: "Remote image \($0.offset + 1)", url: URL(string: $0.element)!)
-            image.placeholder = UIImage(color: UIColor(white: 0.9, alpha: 1))
+            image.placeholder = UIImage(color: UIColor(white: 0.9, alpha: 0.5))
             return image
     }
 
