@@ -38,6 +38,7 @@ extension IFImageContainerProvider {
         let scaleFactor: CGFloat = 0.18
         
         let blurView = UIVisualEffectView()
+        blurView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         blurView.frame = imageContainerView.bounds.insetBy(dx: -blurPadding, dy: -blurPadding)
         blurView.clipsToBounds = false
         imageContainerView.clipsToBounds = false
