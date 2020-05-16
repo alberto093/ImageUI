@@ -119,7 +119,7 @@ class IFCollectionViewController: UIViewController {
     }
     
     // MARK: - Public methods
-    func scroll(toItemAt index: Int, progress: CGFloat = 1) {
+    func scroll(toItemAt index: Int, progress: CGFloat) {
         guard isViewLoaded else { return }
         
         if collectionView.isDecelerating {
@@ -130,8 +130,8 @@ class IFCollectionViewController: UIViewController {
         }
     }
     
-    func scroll(toItemAt index: Int, animated: Bool) {
-        guard collectionViewLayout.isTransitioning || collectionViewLayout.centerIndexPath.item != index else { return }
+    func scrollToDisplayingImageIndex() {
+        guard collectionViewLayout.isTransitioning || collectionViewLayout.centerIndexPath.item != imageManager.displayingImageIndex else { return }
         updateCollectionViewLayout(style: .carousel)
     }
     

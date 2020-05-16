@@ -388,7 +388,7 @@ open class IFBrowserViewController: UIViewController {
         }
         
         guard let actionIndex = senderIndex, let action = configuration.actions[safe: actionIndex] else { return }
-        collectionViewController.scroll(toItemAt: imageManager.displayingImageIndex)
+        collectionViewController.scrollToDisplayingImageIndex()
         pageViewController.invalidateDataSourceIfNeeded()
         
         switch action {
@@ -444,7 +444,7 @@ extension IFBrowserViewController: IFPageViewControllerDelegate {
     }
     
     func pageViewControllerDidResetScroll(_ pageViewController: IFPageViewController) {
-        collectionViewController.scroll(toItemAt: imageManager.displayingImageIndex, animated: true)
+        collectionViewController.scrollToDisplayingImageIndex()
         updateTitleIfNeeded(imageIndex: imageManager.displayingImageIndex)
         delegate?.browserViewController(self, willDisplayImageAt: imageManager.displayingImageIndex)
     }
