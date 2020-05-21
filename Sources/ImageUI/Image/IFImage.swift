@@ -26,8 +26,7 @@ import UIKit
 
 public struct IFImage {
     public enum Source {
-        case local(path: String)
-        case remote(url: URL)
+        case url(_ url: URL)
         case image(UIImage)
     }
 
@@ -46,11 +45,11 @@ public struct IFImage {
 
 public extension IFImage {
     init(title: String? = nil, url: URL, placeholder: UIImage? = nil) {
-        self.init(title: title, original: .remote(url: url), placeholder: placeholder)
+        self.init(title: title, original: .url(url), placeholder: placeholder)
     }
     
     init(title: String? = nil, path: String, placeholder: UIImage? = nil) {
-        self.init(title: title, original: .local(path: path), placeholder: placeholder)
+        self.init(title: title, original: .url(URL(fileURLWithPath: path)), placeholder: placeholder)
     }
     
     init(title: String? = nil, image: UIImage, placeholder: UIImage? = nil) {

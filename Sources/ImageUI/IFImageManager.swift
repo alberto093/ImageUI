@@ -99,7 +99,7 @@ class IFImageManager {
 
             let request = ImageRequest(
                 url: url,
-                processors: options.preferredSize.map { [ImageProcessor.Resize(size: $0)] } ?? [],
+                processors: options.preferredSize.map { [ImageProcessors.Resize(size: $0)] } ?? [],
                 priority: priority)
 
             var loadingOptions = ImageLoadingOptions(
@@ -120,7 +120,7 @@ class IFImageManager {
             return image
         default:
             guard let url = thumbnail.url else { return nil }
-            return pipeline.cachedResponse(for: ImageRequest(url: url))?.image
+            return pipeline.cachedImage(for: url)?.image
         }
     }
     
