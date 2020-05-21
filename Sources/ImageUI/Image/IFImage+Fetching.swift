@@ -28,9 +28,7 @@ import Photos
 extension IFImage.Source {
     var url: URL? {
         switch self {
-        case .local(let path):
-            return URL(fileURLWithPath: path)
-        case .remote(let url):
+        case .url(let url):
             return url
         case .image:
             return nil
