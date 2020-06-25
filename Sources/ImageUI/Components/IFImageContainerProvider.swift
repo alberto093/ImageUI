@@ -62,7 +62,7 @@ extension IFImageContainerProvider {
             animations: {
                 self.imageContainerView.alpha = 0
             },
-            completion: { completed in
+            completion: { _ in
                 blurAnimator.stopAnimation(true)
                 blurView.removeFromSuperview()
         })
