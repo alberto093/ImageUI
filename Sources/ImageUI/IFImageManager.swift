@@ -107,9 +107,9 @@ class IFImageManager {
                 transition: .fadeIn(duration: 0.1, options: .curveEaseOut))
             loadingOptions.pipeline = pipeline
 
-            Nuke.loadImage(with: request, options: loadingOptions, into: sender) { result in
+            Nuke.loadImage(with: request, options: loadingOptions, into: sender, completion: { result in
                 completion?(result.map { (options.kind, $0.image) }.mapError { $0 })
-            }
+            })
         }
     }
     
@@ -146,9 +146,9 @@ class IFImageManager {
             prepareSharingImage(.success(image))
         case let source:
             guard let url = source.url else { return }
-            pipeline.loadImage(with: url) { result in
+            pipeline.loadImage(with: url, completion: { result in
                 prepareSharingImage(result.map { $0.image }.mapError { $0 })
-            }
+            })
         }
     }
 }
@@ -175,13 +175,13 @@ extension IFImageManager {
         case let source:
             guard let url = source.url else { return }
             let request = ImageRequest(url: url, priority: .low)
-            linkMetadataTask = pipeline.loadImage(with: request) { result in
+            linkMetadataTask = pipeline.loadImage(with: request, completion: { result in
                 if case .success(let response) = result {
                     let provider = NSItemProvider(object: response.image)
                     metadata.imageProvider = provider
                     metadata.iconProvider = provider
                 }
-            }
+            })
         }
 
         self.displayingLinkMetadata = metadata

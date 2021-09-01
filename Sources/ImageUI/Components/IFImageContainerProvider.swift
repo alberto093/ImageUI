@@ -24,7 +24,7 @@
 
 import UIKit
 
-protocol IFImageContainerProvider: class {
+protocol IFImageContainerProvider: AnyObject {
     var imageContainerView: UIView { get }
     func prepareForRemove(completion: (() -> Void)?)
 }

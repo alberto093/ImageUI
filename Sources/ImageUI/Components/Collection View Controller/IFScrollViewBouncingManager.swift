@@ -33,7 +33,7 @@ extension UIScrollView {
     }
 }
 
-protocol IFScrollViewBouncingDelegate: class {
+protocol IFScrollViewBouncingDelegate: AnyObject {
     func scrollView(_ scrollView: UIScrollView, didBeginBouncing direction: UIScrollView.BouncingDirection)
     func scrollView(_ scrollView: UIScrollView, didReverseBouncing direction: UIScrollView.BouncingDirection)
 }

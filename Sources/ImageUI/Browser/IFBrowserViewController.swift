@@ -24,7 +24,7 @@
 
 import UIKit
 
-public protocol IFBrowserViewControllerDelegate: class {
+public protocol IFBrowserViewControllerDelegate: AnyObject {
     func browserViewController(_ browserViewController: IFBrowserViewController, didSelectActionWith identifier: String, forImageAt index: Int)
     func browserViewController(_ browserViewController: IFBrowserViewController, willDeleteItemAt index: Int, completion: @escaping (Bool) -> Void)
     func browserViewController(_ browserViewController: IFBrowserViewController, didDeleteItemAt index: Int, isEmpty: Bool)
