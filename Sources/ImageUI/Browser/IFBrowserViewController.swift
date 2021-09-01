@@ -142,7 +142,7 @@ open class IFBrowserViewController: UIViewController {
     
     public required init?(coder: NSCoder) {
         imageManager = IFImageManager(images: [])
-        super.init(nibName: nil, bundle: nil)
+        super.init(coder: coder)
     }
     
     // MARK: - Lifecycle

@@ -71,7 +71,7 @@ class IFImageViewController: UIViewController {
     public required init?(coder: NSCoder) {
         self.imageManager = IFImageManager(images: [])
         self.displayingImageIndex = 0
-        super.init(nibName: nil, bundle: nil)
+        super.init(coder: coder)
     }
     
     // MARK: - Lifecycle
