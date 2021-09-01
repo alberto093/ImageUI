@@ -140,7 +140,10 @@ class IFImageViewController: UIViewController {
     }
     
     private func updateScrollView(resetZoom: Bool = true) {
-        guard let image = imageView.image, image.size.width > 0, image.size.height > 0 else { return }
+        guard let image = imageView.image, image.size.width > 0, image.size.height > 0, view.frame != .zero else {
+            return
+        }
+        
         let aspectFitZoom = min(view.frame.width / image.size.width, view.frame.height / image.size.height)
         aspectFillZoom = max(view.frame.width / image.size.width, view.frame.height / image.size.height)
         let zoomMultiplier = (scrollView.zoomScale - scrollView.minimumZoomScale) / (scrollView.maximumZoomScale - scrollView.minimumZoomScale)
