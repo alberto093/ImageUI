@@ -24,7 +24,7 @@
 
 import UIKit
 
-protocol IFPageViewControllerDelegate: class {
+protocol IFPageViewControllerDelegate: AnyObject {
     func pageViewController(_ pageViewController: IFPageViewController, didScrollFrom startIndex: Int, direction: UIPageViewController.NavigationDirection, progress: CGFloat)
     func pageViewController(_ pageViewController: IFPageViewController, didUpdatePage index: Int)
     func pageViewControllerDidResetScroll(_ pageViewController: IFPageViewController)
