@@ -32,6 +32,8 @@ extension IFImage.Source {
             return url
         case .image:
             return nil
+        case .asset:
+            return nil
         }
     }
 }

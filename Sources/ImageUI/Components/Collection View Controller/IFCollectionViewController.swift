@@ -25,7 +25,7 @@
 import UIKit
 import Nuke
 
-protocol IFCollectionViewControllerDelegate: class {
+protocol IFCollectionViewControllerDelegate: AnyObject {
     func collectionViewController(_ collectionViewController: IFCollectionViewController, didSelectItemAt index: Int)
     func collectionViewControllerWillBeginScrolling(_ collectionViewController: IFCollectionViewController)
 }
@@ -65,7 +65,7 @@ class IFCollectionViewController: UIViewController {
     private var pendingInvalidation: PendingInvalidation?
     
     private var collectionViewLayout: IFCollectionViewFlowLayout {
-        //swiftlint:disable:next force_cast
+        // swiftlint:disable:next force_cast
         collectionView.collectionViewLayout as! IFCollectionViewFlowLayout
     }
     

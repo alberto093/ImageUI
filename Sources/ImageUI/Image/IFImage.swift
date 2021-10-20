@@ -22,12 +22,14 @@
 //  THE SOFTWARE.
 //
 
+import Photos
 import UIKit
 
 public struct IFImage {
     public enum Source {
         case url(_ url: URL)
         case image(UIImage)
+        case asset(PHAsset)
     }
 
     public let title: String?
@@ -54,5 +56,9 @@ public extension IFImage {
     
     init(title: String? = nil, image: UIImage, placeholder: UIImage? = nil) {
         self.init(title: title, original: .image(image), placeholder: placeholder)
+    }
+
+    init(title: String? = nil, photoAsset: PHAsset) {
+        self.init(title: title, original: .asset(photoAsset))
     }
 }
