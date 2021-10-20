@@ -23,6 +23,7 @@
 //
 
 import Nuke
+import Photos
 
 #if canImport(LinkPresentation)
 import LinkPresentation
@@ -31,6 +32,7 @@ import LinkPresentation
 class IFImageManager {
     private(set) var images: [IFImage]
     private let pipeline = ImagePipeline()
+    private let photosManager = PHCachingImageManager()
     
     var prefersAspectFillZoom = false
     var placeholderImage: UIImage?
@@ -82,7 +84,64 @@ class IFImageManager {
         case .image(let image):
             sender.nuke_display(image: image)
             completion?(.success((options.kind, image)))
-        default:
+
+        case .asset(let asset):
+            // Required
+            let size = options.preferredSize ?? CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
+#if DEBUG
+            print("[ImageUI]", "Requesting \(asset.localIdentifier) at size \(size).")
+#endif
+
+            let request = PHImageRequestOptions()
+            // Avoid resizing if no preference is set.
+            if options.preferredSize == nil {
+                request.resizeMode = .none
+            }
+            // Determine system delivery mode according to various options.
+            switch options.deliveryMode {
+            case .highQuality:
+                request.deliveryMode = .highQualityFormat
+            case .opportunistic:
+                request.deliveryMode = .opportunistic
+            }
+
+            self.photosManager.requestImage(for: asset,
+                                            targetSize: size,
+                                            contentMode: .aspectFit, options: request) { image, userInfo in
+                if let image = image {
+#if DEBUG
+                    print("[ImageUI]", "Loaded \(asset.localIdentifier) at size \(image.size).")
+#endif
+                    sender.nuke_display(image: image)
+
+                    if (userInfo?[PHImageResultIsDegradedKey] as? NSNumber)?.boolValue == true {
+                        completion?(.success((kind: .thumbnail, resource: image)))
+                        return
+                    }
+
+                    completion?(.success((kind: .original, resource: image)))
+                    return
+                }
+
+#if DEBUG
+                print("[ImageUI]", "Loading of \(asset.localIdentifier) failed.")
+#endif
+
+                if (userInfo?[PHImageCancelledKey] as? NSNumber)?.boolValue == true {
+                    completion?(.failure(IFError.cancelled))
+                    return
+                }
+
+                if let error = userInfo?[PHImageErrorKey] as? Error {
+                    completion?(.failure(error))
+                    return
+                }
+
+                completion?(.failure(IFError.failed))
+                return
+            }
+
+        case .url:
             guard let url = image[options.kind].url else { return }
             
             if options.allowsThumbnail, let thumbnailImage = thumbnailImage(at: index) {
