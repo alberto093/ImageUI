@@ -8,11 +8,12 @@
 
 import UIKit
 import ImageUI
+import Photos
 
 extension IFImage {
-    static let mock: [IFImage] = {
-        [localImages, remoteImages, memoryImages].flatMap { $0 }.shuffled()
-    }()
+    static var mock: [IFImage] {
+        [/*localImages, remoteImages, memoryImages,*/ imageAssets].flatMap { $0 }.shuffled()
+    }
 
     private static let localImages = [
         Bundle.main.path(forResource: "Image1", ofType: "jpeg")!,
@@ -124,4 +125,9 @@ extension IFImage {
     private static let memoryImages = [UIImage(named: "photo1")!, UIImage(named: "photo2")!]
         .enumerated()
         .map { IFImage(title: "In-memory image \($0.offset + 1)", original: .image($0.element)) }
+    
+    private static let imageAssets: [IFImage] = {
+        let result = PHAsset.fetchAssets(with: .image, options: nil)
+        return (0..<result.count).map { IFImage(title: "Photo asset \($0 + 1)", photoAsset: result.object(at: $0)) }
+    }()
 }

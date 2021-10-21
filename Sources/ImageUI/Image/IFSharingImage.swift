@@ -26,6 +26,7 @@ import MobileCoreServices
 
 #if canImport(LinkPresentation)
 import LinkPresentation
+import Photos
 #endif
 
 class IFSharingImage: NSObject, UIActivityItemSource {
@@ -71,7 +72,10 @@ extension IFSharingImage {
         } else {
             let metadata = LPLinkMetadata()
             metadata.title = container.title
-            metadata.originalURL = container.original.url
+            if case .url(let url) = container.original {
+                metadata.originalURL = url
+            }
+
             let provider = NSItemProvider(object: image)
             metadata.imageProvider = provider
             metadata.iconProvider = provider

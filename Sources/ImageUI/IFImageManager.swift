@@ -32,7 +32,7 @@ import LinkPresentation
 class IFImageManager {
     private(set) var images: [IFImage]
     private let pipeline = ImagePipeline()
-    private let photosManager = PHCachingImageManager()
+    let photosManager = PHCachingImageManager()
     
     var prefersAspectFillZoom = false
     var placeholderImage: UIImage?
@@ -45,6 +45,14 @@ class IFImageManager {
     private lazy var displayingLinkMetadata: LPLinkMetadata? = nil
     private var linkMetadataTask: ImageTask? {
         didSet { oldValue?.cancel() }
+    }
+    
+    private var assetMetadataTaskID: PHImageRequestID? {
+        didSet { oldValue.map(photosManager.cancelImageRequest) }
+    }
+    
+    private var assetHighQualityRequestID: PHImageRequestID? {
+        didSet { oldValue.map(photosManager.cancelImageRequest) }
     }
     
     init(images: [IFImage], initialImageIndex: Int = 0) {
@@ -87,67 +95,41 @@ class IFImageManager {
 
         case .asset(let asset):
             // Required
-            let size = options.preferredSize ?? CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
-#if DEBUG
-            print("[ImageUI]", "Requesting \(asset.localIdentifier) at size \(size).")
-#endif
-
+            let preferredSize = options.preferredSize.map { CGSize(width: $0.width * UIScreen.main.scale, height: $0.height * UIScreen.main.scale) }
+            let size = preferredSize ?? CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
             let request = PHImageRequestOptions()
-            // Avoid resizing if no preference is set.
+
             if options.preferredSize == nil {
                 request.resizeMode = .none
             }
-            // Determine system delivery mode according to various options.
-            switch options.deliveryMode {
-            case .highQuality:
-                request.deliveryMode = .highQualityFormat
-            case .opportunistic:
-                request.deliveryMode = .opportunistic
-            }
-
-            self.photosManager.requestImage(for: asset,
-                                            targetSize: size,
-                                            contentMode: .aspectFit, options: request) { image, userInfo in
+            
+            request.deliveryMode = options.deliveryMode
+            request.isNetworkAccessAllowed = true
+            
+            let requestID = self.photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { image, userInfo in
                 if let image = image {
-#if DEBUG
-                    print("[ImageUI]", "Loaded \(asset.localIdentifier) at size \(image.size).")
-#endif
                     sender.nuke_display(image: image)
 
                     if (userInfo?[PHImageResultIsDegradedKey] as? NSNumber)?.boolValue == true {
                         completion?(.success((kind: .thumbnail, resource: image)))
-                        return
+                    } else {
+                        completion?(.success((kind: .original, resource: image)))
                     }
-
-                    completion?(.success((kind: .original, resource: image)))
-                    return
+                } else {
+                    if (userInfo?[PHImageCancelledKey] as? NSNumber)?.boolValue == true {
+                        completion?(.failure(IFError.cancelled))
+                    } else if let error = userInfo?[PHImageErrorKey] as? Error {
+                        completion?(.failure(error))
+                    } else {
+                        completion?(.failure(IFError.failed))
+                    }
                 }
-
-#if DEBUG
-                print("[ImageUI]", "Loading of \(asset.localIdentifier) failed.")
-#endif
-
-                if (userInfo?[PHImageCancelledKey] as? NSNumber)?.boolValue == true {
-                    completion?(.failure(IFError.cancelled))
-                    return
-                }
-
-                if let error = userInfo?[PHImageErrorKey] as? Error {
-                    completion?(.failure(error))
-                    return
-                }
-
-                completion?(.failure(IFError.failed))
-                return
-            }
-
-        case .url:
-            guard let url = image[options.kind].url else { return }
-            
-            if options.allowsThumbnail, let thumbnailImage = thumbnailImage(at: index) {
-                completion?(.success((.thumbnail, thumbnailImage)))
             }
             
+            if options.kind == .original {
+                assetHighQualityRequestID = requestID
+            }
+        case .url(let url):
             let priority: ImageRequest.Priority
             
             if index == displayingImageIndex {
@@ -175,11 +157,12 @@ class IFImageManager {
     private func thumbnailImage(at index: Int) -> UIImage? {
         guard let thumbnail = images[safe: index]?.thumbnail else { return nil }
         switch thumbnail {
+        case .url(let url):
+            return pipeline.cachedImage(for: url)?.image
         case .image(let image):
             return image
-        default:
-            guard let url = thumbnail.url else { return nil }
-            return pipeline.cachedImage(for: url)?.image
+        case .asset:
+            return nil
         }
     }
     
@@ -201,13 +184,30 @@ class IFImageManager {
         }
         
         switch image[.original] {
-        case .image(let image):
-            prepareSharingImage(.success(image))
-        case let source:
-            guard let url = source.url else { return }
+        case .url(let url):
             pipeline.loadImage(with: url, completion: { result in
                 prepareSharingImage(result.map { $0.image }.mapError { $0 })
             })
+        case .image(let image):
+            prepareSharingImage(.success(image))
+        case .asset(let asset):
+            let request = PHImageRequestOptions()
+            request.deliveryMode = .highQualityFormat
+            let size = CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
+            
+            photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { image, userInfo in
+                if let image = image {
+                    prepareSharingImage(.success(image))
+                } else {
+                    if (userInfo?[PHImageCancelledKey] as? NSNumber)?.boolValue == true {
+                        completion(.failure(IFError.cancelled))
+                    } else if let error = userInfo?[PHImageErrorKey] as? Error {
+                        completion(.failure(error))
+                    } else {
+                        completion(.failure(IFError.failed))
+                    }
+                }
+            }
         }
     }
 }
@@ -223,17 +223,12 @@ extension IFImageManager {
         guard let image = images[safe: displayingImageIndex] else { return }
         let metadata = LPLinkMetadata()
         metadata.title = image.title
-        metadata.originalURL = image.original.url
         
         switch image[.original] {
-        case .image(let image):
-            linkMetadataTask = nil
-            let provider = NSItemProvider(object: image)
-            metadata.imageProvider = provider
-            metadata.iconProvider = provider
-        case let source:
-            guard let url = source.url else { return }
+        case .url(let url):
+            metadata.originalURL = url
             let request = ImageRequest(url: url, priority: .low)
+            assetMetadataTaskID = nil
             linkMetadataTask = pipeline.loadImage(with: request, completion: { result in
                 if case .success(let response) = result {
                     let provider = NSItemProvider(object: response.image)
@@ -241,8 +236,28 @@ extension IFImageManager {
                     metadata.iconProvider = provider
                 }
             })
+        case .image(let image):
+            linkMetadataTask = nil
+            assetMetadataTaskID = nil
+            let provider = NSItemProvider(object: image)
+            metadata.imageProvider = provider
+            metadata.iconProvider = provider
+        case .asset(let asset):
+            linkMetadataTask = nil
+            
+            let request = PHImageRequestOptions()
+            request.deliveryMode = .highQualityFormat
+            let size = CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
+            
+            assetMetadataTaskID = photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { image, userInfo in
+                if let image = image {
+                    let provider = NSItemProvider(object: image)
+                    metadata.imageProvider = provider
+                    metadata.iconProvider = provider
+                }
+            }
         }
-
+        
         self.displayingLinkMetadata = metadata
     }
 }

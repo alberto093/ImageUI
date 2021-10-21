@@ -8,6 +8,7 @@
 
 import UIKit
 import ImageUI
+import Photos
 
 class ViewController: UIViewController {
     var browserViewController: IFBrowserViewController {
@@ -16,6 +17,11 @@ class ViewController: UIViewController {
         viewController.configuration.actions = [.share, .delete]
         viewController.delegate = self
         return viewController
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        PHPhotoLibrary.requestAuthorization { _ in }
     }
 
     @IBAction private func pushButtonDidTap() {

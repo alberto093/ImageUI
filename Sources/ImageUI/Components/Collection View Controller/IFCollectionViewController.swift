@@ -24,6 +24,7 @@
 
 import UIKit
 import Nuke
+import Photos
 
 protocol IFCollectionViewControllerDelegate: AnyObject {
     func collectionViewController(_ collectionViewController: IFCollectionViewController, didSelectItemAt index: Int)
@@ -272,12 +273,44 @@ extension IFCollectionViewController: UICollectionViewDataSource {
 extension IFCollectionViewController: UICollectionViewDataSourcePrefetching {
     func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
         guard collectionView.isDragging || collectionView.isDecelerating else { return }
-        let urls = indexPaths.compactMap { imageManager.images[safe: $0.item]?.thumbnail?.url }
+        var urls: [URL] = []
+        var assets: [PHAsset] = []
+        
+        for indexPath in indexPaths {
+            guard let image = imageManager.images[safe: indexPath.item] else { continue }
+            
+            if case .asset(let asset) = image.original {
+                assets.append(asset)
+            } else if case .url(let url) = image.thumbnail {
+                urls.append(url)
+            }
+        }
+        
+        let request = PHImageRequestOptions()
+        request.isNetworkAccessAllowed = true
+        
+        imageManager.photosManager.startCachingImages(for: assets, targetSize: collectionViewLayout.itemSize, contentMode: .aspectFit, options: request)
         prefetcher.startPreheating(with: urls)
     }
     
     func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
-        let urls = indexPaths.compactMap { imageManager.images[safe: $0.item]?.thumbnail?.url }
+        var urls: [URL] = []
+        var assets: [PHAsset] = []
+        
+        for indexPath in indexPaths {
+            guard let image = imageManager.images[safe: indexPath.item] else { continue }
+            
+            if case .asset(let asset) = image.original {
+                assets.append(asset)
+            } else if case .url(let url) = image.thumbnail {
+                urls.append(url)
+            }
+        }
+        
+        let request = PHImageRequestOptions()
+        request.isNetworkAccessAllowed = true
+        
+        imageManager.photosManager.stopCachingImages(for: assets, targetSize: collectionViewLayout.itemSize, contentMode: .aspectFit, options: request)
         prefetcher.stopPreheating(with: urls)
     }
 }

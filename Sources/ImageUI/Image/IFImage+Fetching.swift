@@ -25,19 +25,6 @@
 import UIKit
 import Photos
 
-extension IFImage.Source {
-    var url: URL? {
-        switch self {
-        case .url(let url):
-            return url
-        case .image:
-            return nil
-        case .asset:
-            return nil
-        }
-    }
-}
-
 extension IFImage {
     enum Kind {
         case original
@@ -56,20 +43,15 @@ extension IFImage {
 
 extension IFImage {
     struct LoadOptions {
-        enum DeliveryMode {
-            case highQuality
-            case opportunistic
-        }
-        
         let preferredSize: CGSize?
         let kind: Kind
-        let deliveryMode: DeliveryMode
+        let deliveryMode: PHImageRequestOptionsDeliveryMode
         
         var allowsThumbnail: Bool {
             kind == .original && deliveryMode == .opportunistic
         }
         
-        init(preferredSize: CGSize? = nil, kind: Kind, deliveryMode: DeliveryMode = .opportunistic) {
+        init(preferredSize: CGSize? = nil, kind: Kind, deliveryMode: PHImageRequestOptionsDeliveryMode = .opportunistic) {
             self.preferredSize = preferredSize
             self.kind = kind
             self.deliveryMode = deliveryMode
