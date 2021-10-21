@@ -12,7 +12,7 @@ import Photos
 
 extension IFImage {
     static var mock: [IFImage] {
-        [/*localImages, remoteImages, memoryImages,*/ imageAssets].flatMap { $0 }.shuffled()
+        [localImages, remoteImages, memoryImages, imageAssets].flatMap { $0 }.shuffled()
     }
 
     private static let localImages = [
