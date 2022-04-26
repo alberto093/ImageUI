@@ -11,9 +11,7 @@ import ImageUI
 import Photos
 
 extension IFImage {
-    static var mock: [IFImage] {
-        [localImages, remoteImages, memoryImages, imageAssets].flatMap { $0 }.shuffled()
-    }
+    static let mock: [IFImage] = [localImages, remoteImages, memoryImages, imageAssets].flatMap { $0 }.shuffled()
 
     private static let localImages = [
         Bundle.main.path(forResource: "Image1", ofType: "jpeg")!,

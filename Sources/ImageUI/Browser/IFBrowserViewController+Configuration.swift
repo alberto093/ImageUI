@@ -48,7 +48,7 @@ extension IFBrowserViewController {
         /// When this property is set to `true`, the browser allows the image to be displayed using the aspect fill zoom if the aspect ratio is similar to its container view one.
         ///
         /// When the property is set to `false` (the default), the browser use the aspect fit zoom as its minimum zoom value.
-        public var prefersAspectFillZoom: Bool
+        public var prefersAspectFillZoom: Bool = false
 
         /// A Boolean value indicating whether the navigation bar is always visible.
         ///
@@ -67,9 +67,19 @@ extension IFBrowserViewController {
         var isNavigationBarHidden = false
         var isToolbarHidden = true
         
-        public init(actions: [Action] = [], prefersAspectFillZoom: Bool = false) {
-            self.actions = actions
-            self.prefersAspectFillZoom = prefersAspectFillZoom
-        }
+        public init(
+            actions: [Action] = [],
+            prefersAspectFillZoom: Bool = false,
+            alwaysShowNavigationBar: Bool = true,
+            alwaysShowToolbar: Bool = false,
+            isNavigationBarHidden: Bool = false,
+            isToolbarHidden: Bool = true) {
+                self.actions = actions
+                self.prefersAspectFillZoom = prefersAspectFillZoom
+                self.alwaysShowNavigationBar = alwaysShowNavigationBar
+                self.alwaysShowToolbar = alwaysShowToolbar
+                self.isNavigationBarHidden = isNavigationBarHidden
+                self.isToolbarHidden = isToolbarHidden
+            }
     }
 }
