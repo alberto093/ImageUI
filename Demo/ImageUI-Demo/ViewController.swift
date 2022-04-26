@@ -36,6 +36,11 @@ class ViewController: UIViewController {
         
         return UIHostingController(rootView: contentView)
     }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        navigationController?.navigationBar.scrollEdgeAppearance = navigationController?.navigationBar.standardAppearance
+    }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
@@ -43,11 +48,13 @@ class ViewController: UIViewController {
     }
 
     @IBAction private func pushButtonDidTap() {
+
         navigationController?.pushViewController(enableSwiftUI ? browserHostingViewController : browserViewController, animated: true)
     }
 
     @IBAction private func presentButtonDidTap() {
         let navigationController = UINavigationController(rootViewController: enableSwiftUI ? browserHostingViewController : browserViewController)
+        navigationController.navigationBar.scrollEdgeAppearance = navigationController.navigationBar.standardAppearance
         navigationController.modalPresentationStyle = .fullScreen
         present(navigationController, animated: true)
     }
