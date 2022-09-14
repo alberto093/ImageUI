@@ -61,7 +61,7 @@ class IFCollectionViewController: UIViewController {
     let imageManager: IFImageManager
     
     // MARK: - Accessory properties
-    private let prefetcher = ImagePreheater()
+    private let prefetcher = ImagePrefetcher()
     private let bouncer = IFScrollViewBouncingManager()
     private var pendingInvalidation: PendingInvalidation?
     
@@ -82,7 +82,7 @@ class IFCollectionViewController: UIViewController {
     }
     
     deinit {
-        prefetcher.stopPreheating()
+        prefetcher.stopPrefetching()
     }
     
     // MARK: - Lifecycle
@@ -116,7 +116,7 @@ class IFCollectionViewController: UIViewController {
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         collectionView.prefetchDataSource = nil
-        prefetcher.stopPreheating()
+        prefetcher.stopPrefetching()
     }
     
     // MARK: - Public methods
@@ -290,7 +290,7 @@ extension IFCollectionViewController: UICollectionViewDataSourcePrefetching {
         request.isNetworkAccessAllowed = true
         
         imageManager.photosManager.startCachingImages(for: assets, targetSize: collectionViewLayout.itemSize, contentMode: .aspectFit, options: request)
-        prefetcher.startPreheating(with: urls)
+        prefetcher.startPrefetching(with: urls)
     }
     
     func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
@@ -311,7 +311,7 @@ extension IFCollectionViewController: UICollectionViewDataSourcePrefetching {
         request.isNetworkAccessAllowed = true
         
         imageManager.photosManager.stopCachingImages(for: assets, targetSize: collectionViewLayout.itemSize, contentMode: .aspectFit, options: request)
-        prefetcher.stopPreheating(with: urls)
+        prefetcher.stopPrefetching(with: urls)
     }
 }
 

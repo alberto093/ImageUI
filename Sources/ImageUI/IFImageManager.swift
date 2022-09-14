@@ -24,6 +24,7 @@
 
 import Nuke
 import Photos
+import NukeExtensions
 
 #if canImport(LinkPresentation)
 import LinkPresentation
@@ -41,7 +42,6 @@ class IFImageManager {
         didSet { previousDisplayingImageIndex = oldValue }
     }
     
-    @available(iOS 13.0, *)
     private lazy var displayingLinkMetadata: LPLinkMetadata? = nil
     private var linkMetadataTask: ImageTask? {
         didSet { oldValue?.cancel() }
@@ -80,6 +80,7 @@ class IFImageManager {
         updatedisplayingImage(index: min(max(displayingIndex, 0), images.count - 1))
     }
     
+    @MainActor
     func loadImage(
         at index: Int,
         options: IFImage.LoadOptions,
@@ -90,7 +91,8 @@ class IFImageManager {
         
         switch image[options.kind] {
         case .image(let image):
-            sender.nuke_display(image: image)
+            sender.nuke_display(image: image, data: nil)
+
             completion?(.success((options.kind, image)))
 
         case .asset(let asset):
@@ -108,7 +110,7 @@ class IFImageManager {
             
             let requestID = self.photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { image, userInfo in
                 if let image = image {
-                    sender.nuke_display(image: image)
+                    sender.nuke_display(image: image, data: nil)
 
                     if (userInfo?[PHImageResultIsDegradedKey] as? NSNumber)?.boolValue == true {
                         completion?(.success((kind: .thumbnail, resource: image)))
@@ -148,7 +150,7 @@ class IFImageManager {
                 transition: .fadeIn(duration: 0.1, options: .curveEaseOut))
             loadingOptions.pipeline = pipeline
 
-            Nuke.loadImage(with: request, options: loadingOptions, into: sender, completion: { result in
+            NukeExtensions.loadImage(with: request, options: loadingOptions, into: sender, completion: { result in
                 completion?(result.map { (options.kind, $0.image) }.mapError { $0 })
             })
         }
@@ -158,7 +160,7 @@ class IFImageManager {
         guard let thumbnail = images[safe: index]?.thumbnail else { return nil }
         switch thumbnail {
         case .url(let url):
-            return pipeline.cachedImage(for: url)?.image
+            return pipeline.cache[url]?.image
         case .image(let image):
             return image
         case .asset:
@@ -249,7 +251,7 @@ extension IFImageManager {
             request.deliveryMode = .highQualityFormat
             let size = CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
             
-            assetMetadataTaskID = photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { image, userInfo in
+            assetMetadataTaskID = photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { image, _ in
                 if let image = image {
                     let provider = NSItemProvider(object: image)
                     metadata.imageProvider = provider

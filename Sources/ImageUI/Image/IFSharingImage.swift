@@ -33,7 +33,6 @@ class IFSharingImage: NSObject, UIActivityItemSource {
     let container: IFImage
     let image: UIImage
     
-    @available(iOS 13.0, *)
     private lazy var metadata: LPLinkMetadata? = nil
     
     init(container: IFImage, image: UIImage) {
