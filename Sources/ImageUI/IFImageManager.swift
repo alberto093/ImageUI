@@ -32,7 +32,7 @@ import LinkPresentation
 
 class IFImageManager {
     private(set) var images: [IFImage]
-    private let pipeline = ImagePipeline()
+    private let pipeline = ImagePipeline(configuration: .withURLCache)
     let photosManager = PHCachingImageManager()
     
     var prefersAspectFillZoom = false
@@ -108,9 +108,9 @@ class IFImageManager {
             request.deliveryMode = options.deliveryMode
             request.isNetworkAccessAllowed = true
             
-            let requestID = self.photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { image, userInfo in
+            let requestID = self.photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { [weak sender] image, userInfo in
                 if let image = image {
-                    sender.nuke_display(image: image, data: nil)
+                    sender?.nuke_display(image: image, data: nil)
 
                     if (userInfo?[PHImageResultIsDegradedKey] as? NSNumber)?.boolValue == true {
                         completion?(.success((kind: .thumbnail, resource: image)))
