@@ -28,13 +28,13 @@ extension IFBrowserViewController {
     public enum Action: Hashable {
         case share
         case delete
-        case custom(identifier: String, image: UIImage)
+        case custom(identifier: String, title: String? = nil, image: UIImage? = nil)
         
         public func hash(into hasher: inout Hasher) {
             switch self {
             case .share, .delete:
                 hasher.combine(String(describing: self))
-            case .custom(let identifier, _):
+            case .custom(let identifier, _, _):
                 hasher.combine(identifier)
             }
         }

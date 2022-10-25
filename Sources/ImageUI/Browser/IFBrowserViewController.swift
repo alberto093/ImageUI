@@ -245,9 +245,24 @@ open class IFBrowserViewController: UIViewController {
         
         if isToolbarEnabled {
             navigationItem.setRightBarButtonItems([], animated: true)
-            let toolbarItems = barButtonItems.isEmpty ? [] : (0..<barButtonItems.count * 2 - 1).map {
-                $0.isMultiple(of: 2) ? barButtonItems[$0 / 2] : UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+            
+            let toolbarItems: [UIBarButtonItem]
+            
+            switch barButtonItems.count {
+            case 0:
+                toolbarItems = []
+            case 1:
+                toolbarItems = [
+                    UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
+                    barButtonItems[0],
+                    UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+                ]
+            default:
+                toolbarItems = barButtonItems.isEmpty ? [] : (0..<barButtonItems.count * 2 - 1).map {
+                    $0.isMultiple(of: 2) ? barButtonItems[$0 / 2] : UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+                }
             }
+
             setToolbarItems(toolbarItems, animated: true)
         } else {
             navigationItem.setRightBarButtonItems(barButtonItems.reversed(), animated: true)
@@ -425,7 +440,7 @@ open class IFBrowserViewController: UIViewController {
             } else {
                 handleRemove()
             }
-        case .custom(let identifier, _):
+        case .custom(let identifier, _, _):
             delegate?.browserViewController(self, didSelectActionWith: identifier, forImageAt: imageManager.displayingImageIndex)
         }
     }
@@ -487,8 +502,12 @@ private extension IFBrowserViewController.Action {
             return UIBarButtonItem(barButtonSystemItem: .action, target: target, action: action)
         case .delete:
             return UIBarButtonItem(barButtonSystemItem: .trash, target: target, action: action)
-        case .custom(_, let image):
-            return UIBarButtonItem(image: image, style: .plain, target: target, action: action)
+        case .custom(_, let title, let image):
+            if let image = image {
+                return UIBarButtonItem(image: image, style: .plain, target: target, action: action)
+            } else {
+                return UIBarButtonItem(title: title, style: .plain, target: target, action: action)
+            }
         }
     }
 }
