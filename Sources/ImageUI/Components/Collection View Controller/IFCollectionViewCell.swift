@@ -24,6 +24,7 @@
 
 import UIKit
 import Nuke
+import NukeExtensions
 
 class IFCollectionViewCell: UICollectionViewCell {
     // MARK: - View
@@ -73,7 +74,7 @@ class IFCollectionViewCell: UICollectionViewCell {
 }
 
 extension IFCollectionViewCell: Nuke_ImageDisplaying {
-    func nuke_display(image: PlatformImage?) {
+    func nuke_display(image: Nuke.PlatformImage?, data: Data?) {
         imageView.image = image
     }
 }

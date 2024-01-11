@@ -32,7 +32,11 @@ public struct IFBrowserView: UIViewControllerRepresentable {
     @Binding private var selectedIndex: Int
     private let imageAction: ImageAction?
     
-    public init(images: [IFImage], selectedIndex: Binding<Int>, action: ImageAction? = nil) {
+    public init(
+        images: [IFImage],
+        selectedIndex: Binding<Int>,
+        configuration: IFBrowserViewController.Configuration = IFBrowserViewController.Configuration(),
+        action: ImageAction? = nil) {
         self.images = images
         self._selectedIndex = selectedIndex
         self.imageAction = action
