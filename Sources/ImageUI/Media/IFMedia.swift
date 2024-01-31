@@ -1,5 +1,5 @@
 //
-//  IFImage.swift
+//  IFMedia.swift
 //
 //  Copyright © 2020 ImageUI - Alberto Saltarelli
 //
@@ -22,23 +22,29 @@
 //  THE SOFTWARE.
 //
 
-import Photos
-import UIKit
-
-public struct IFImage {
-    public enum Source {
-        case url(_ url: URL)
-        case image(UIImage)
-        case asset(PHAsset)
+public struct IFMedia {
+    public enum MediaType {
+        case image(IFImage)
+        case video(IFVideo)
+        case pdf(IFPDF)
     }
-
-    public let original: Source
-    public let thumbnail: Source?
-    public let placeholder: UIImage?
     
-    public init(original: Source, thumbnail: Source? = nil, placeholder: UIImage? = nil) {
-        self.original = original
-        self.thumbnail = thumbnail
-        self.placeholder = placeholder
+    public let title: String?
+    public let mediaType: MediaType
+    
+    public init(title: String? = nil, mediaType: MediaType) {
+        self.title = title
+        self.mediaType = mediaType
+    }
+}
+
+extension IFMedia.MediaType {
+    var isVideo: Bool {
+        switch self {
+        case .image, .pdf:
+            return false
+        case .video:
+            return true
+        }
     }
 }

@@ -16,19 +16,19 @@ class ViewController: UIViewController {
     private var enableSwiftUI = false
     
     var browserViewController: IFBrowserViewController {
-        let images = IFImage.mock
-        let viewController = IFBrowserViewController(images: images, initialImageIndex: .random(in: images.indices))
+        let media = IFMedia.mock
+        let viewController = IFBrowserViewController(media: media, initialIndex: .random(in: media.indices))
         viewController.configuration.actions = [.share, .delete]
         viewController.delegate = self
         return viewController
     }
     
     var browserHostingViewController: UIHostingController<IFBrowserView> {
-        let images = IFImage.mock
+        let media = IFMedia.mock
         let configuration = IFBrowserViewController.Configuration(actions: [.share, .delete])
         let contentView = IFBrowserView(
-            images: images,
-            selectedIndex: .constant(.random(in: images.indices)),
+            media: media,
+            selectedIndex: .constant(.random(in: media.indices)),
             configuration: configuration,
             action: { identifier in
                 print(identifier)

@@ -41,25 +41,25 @@ class IFPageViewController: UIPageViewController {
     
     // MARK: - Public properties
     weak var progressDelegate: IFPageViewControllerDelegate?
-    let imageManager: IFImageManager
+    let mediaManager: IFMediaManager
     
     // MARK: - Accessory properties
     private var contentOffsetObservation: NSKeyValueObservation?
     private var isRemovingPage = false
-    private var beforeViewController: IFImageViewController?
-    private var visibleViewController: IFImageViewController? {
-        viewControllers?.first as? IFImageViewController
+    private var beforeViewController: IFMediaViewController?
+    private var visibleViewController: IFMediaViewController? {
+        viewControllers?.first as? IFMediaViewController
     }
-    private var afterViewController: IFImageViewController?
+    private var afterViewController: IFMediaViewController?
     
     // MARK: - Initializer
-    init(imageManager: IFImageManager) {
-        self.imageManager = imageManager
+    init(mediaManager: IFMediaManager) {
+        self.mediaManager = mediaManager
         super.init(transitionStyle: .scroll, navigationOrientation: .horizontal, options: [.interPageSpacing: Constants.interPageSpacing])
     }
     
     required init?(coder: NSCoder) {
-        self.imageManager = IFImageManager(images: [])
+        self.mediaManager = IFMediaManager(media: [])
         super.init(coder: coder)
     }
     
@@ -73,18 +73,18 @@ class IFPageViewController: UIPageViewController {
     func updateVisibleImage(index: Int) {
         guard isViewLoaded, let visibleViewController = visibleViewController else { return }
         reloadDataSourceIfNeeded(forImageAt: index)
-        beforeViewController?.displayingImageIndex = index - 1
-        afterViewController?.displayingImageIndex = index + 1
-        visibleViewController.displayingImageIndex = index
+        beforeViewController?.displayingMediaIndex = index - 1
+        afterViewController?.displayingMediaIndex = index + 1
+        visibleViewController.displayingMediaIndex = index
     }
     
-    func removeDisplayingImage(completion: (() -> Void)? = nil) {
-        guard let displayingImageIndex = visibleViewController?.displayingImageIndex else { return }
-        let removingDirection: NavigationDirection = displayingImageIndex > imageManager.displayingImageIndex ? .reverse : .forward
-        let viewController = IFImageViewController(imageManager: imageManager)
+    func removeDisplayingMedia(completion: (() -> Void)? = nil) {
+        guard let displayingMediaIndex = visibleViewController?.displayingMediaIndex else { return }
+        let removingDirection: NavigationDirection = displayingMediaIndex > mediaManager.displayingMediaIndex ? .reverse : .forward
+        let viewController = IFMediaViewController(mediaManager: mediaManager)
         isRemovingPage = true
         visibleViewController?.prepareForRemove { [weak self] in
-            if self?.imageManager.images.isEmpty == true {
+            if self?.mediaManager.media.isEmpty == true {
                 self?.isRemovingPage = false
                 completion?()
             } else {
@@ -101,6 +101,14 @@ class IFPageViewController: UIPageViewController {
         invalidateDataSource()
     }
     
+    func pauseMedia() {
+        visibleViewController?.pauseMedia()
+    }
+    
+    func playMedia() {
+        visibleViewController?.playMedia()
+    }
+    
     /// Disable the gesture-based navigation.
     private func invalidateDataSource() {
         dataSource = nil
@@ -111,8 +119,8 @@ class IFPageViewController: UIPageViewController {
     }
     
     private func reloadDataSourceIfNeeded(forImageAt index: Int) {
-        switch (visibleViewController?.displayingImageIndex, index) {
-        case (0, _), (imageManager.images.count - 1, _), (_, 0), (_, imageManager.images.count - 1):
+        switch (visibleViewController?.displayingMediaIndex, index) {
+        case (0, _), (mediaManager.media.count - 1, _), (_, 0), (_, mediaManager.media.count - 1):
             invalidateDataSource()
         default:
             break
@@ -128,7 +136,7 @@ class IFPageViewController: UIPageViewController {
             self?.handleContentOffset(in: scrollView, oldValue: oldValue)
         }
         
-        let initialViewController = IFImageViewController(imageManager: imageManager)
+        let initialViewController = IFMediaViewController(mediaManager: mediaManager)
         setViewControllers([initialViewController], direction: .forward, animated: false)
     }
     
@@ -149,20 +157,20 @@ class IFPageViewController: UIPageViewController {
             
             let direction: NavigationDirection = progress < 0 ? .reverse : .forward
             if !isRemovingPage {
-                progressDelegate?.pageViewController(self, didScrollFrom: imageManager.displayingImageIndex, direction: direction, progress: normalizedProgress)
+                progressDelegate?.pageViewController(self, didScrollFrom: mediaManager.displayingMediaIndex, direction: direction, progress: normalizedProgress)
             }
             
             switch (oldNormalizedProgress, normalizedProgress) {
             case (CGFloat(0.nextUp)..<0.5, 0.5..<1):
                 let index: Int
                 if isRemovingPage {
-                    index = imageManager.displayingImageIndex
+                    index = mediaManager.displayingMediaIndex
                 } else {
-                    index = direction == .forward ? imageManager.displayingImageIndex + 1 : imageManager.displayingImageIndex - 1
+                    index = direction == .forward ? mediaManager.displayingMediaIndex + 1 : mediaManager.displayingMediaIndex - 1
                 }
                 progressDelegate?.pageViewController(self, didUpdatePage: index)
             case (CGFloat(0.5.nextUp)..<1, CGFloat(0.nextUp)...0.5):
-                progressDelegate?.pageViewController(self, didUpdatePage: imageManager.displayingImageIndex)
+                progressDelegate?.pageViewController(self, didUpdatePage: mediaManager.displayingMediaIndex)
             default:
                 break
             }
@@ -172,16 +180,16 @@ class IFPageViewController: UIPageViewController {
 
 extension IFPageViewController: UIPageViewControllerDataSource {
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
-        let previousIndex = imageManager.displayingImageIndex - 1
-        guard imageManager.images.indices.contains(previousIndex) else { return nil }
-        beforeViewController = IFImageViewController(imageManager: imageManager, displayingImageIndex: previousIndex)
+        let previousIndex = mediaManager.displayingMediaIndex - 1
+        guard mediaManager.media.indices.contains(previousIndex) else { return nil }
+        beforeViewController = IFMediaViewController(mediaManager: mediaManager, displayingMediaIndex: previousIndex)
         return beforeViewController
     }
     
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
-        let nextIndex = imageManager.displayingImageIndex + 1
-        guard imageManager.images.indices.contains(nextIndex) else { return nil }
-        afterViewController = IFImageViewController(imageManager: imageManager, displayingImageIndex: nextIndex)
+        let nextIndex = mediaManager.displayingMediaIndex + 1
+        guard mediaManager.media.indices.contains(nextIndex) else { return nil }
+        afterViewController = IFMediaViewController(mediaManager: mediaManager, displayingMediaIndex: nextIndex)
         return afterViewController
     }
 }
@@ -190,8 +198,9 @@ extension IFPageViewController: UIPageViewControllerDelegate {
     func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
         guard
             completed,
-            let previousViewController = previousViewControllers.first as? IFImageViewController,
-            let visibleViewController = visibleViewController else { return }
+            let previousViewController = previousViewControllers.first as? IFMediaViewController,
+            let visibleViewController = visibleViewController
+        else { return }
         
         switch visibleViewController {
         case afterViewController:
@@ -201,6 +210,7 @@ extension IFPageViewController: UIPageViewControllerDelegate {
         default:
             break
         }
-        imageManager.updatedisplayingImage(index: visibleViewController.displayingImageIndex)
+        
+        mediaManager.updatedisplayingMedia(index: visibleViewController.displayingMediaIndex)
     }
 }

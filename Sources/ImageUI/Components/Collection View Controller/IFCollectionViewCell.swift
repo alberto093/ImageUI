@@ -27,14 +27,46 @@ import Nuke
 import NukeExtensions
 
 class IFCollectionViewCell: UICollectionViewCell {
+    private enum Constants {
+        static let videoIndicatorWidth: CGFloat = 2
+        static let videoIndicatorBorderWidth: CGFloat = 0.75
+        static let videoAutoplayThumbnailWidth: CGFloat = 50
+        #warning("Missing algorithm to calculate dynamic aspect ratio")
+        static let videoPlayThumbnailAspectRatio: CGFloat = 1.65
+        static let videoThumbnailTransitionDuration: TimeInterval = 0.22
+    }
+    
     // MARK: - View
-    private let imageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.clipsToBounds = true
-        imageView.contentMode = .scaleAspectFill
-        return imageView
+    private let stackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        stackView.axis = .horizontal
+        stackView.distribution = .fillEqually
+        stackView.spacing = 0
+        return stackView
     }()
+    
+    private let videoIndicatorView: UIView = {
+        let view = UIView(frame: CGRect(x: 0, y: Constants.videoIndicatorBorderWidth / 2, width: Constants.videoIndicatorWidth, height: 0))
+        view.backgroundColor = .white
+        view.layer.cornerRadius = Constants.videoIndicatorWidth / 2
+        return view
+    }()
+    
+    private let videoIndicatorViewBorderLayer: CALayer = {
+        let layer = CALayer()
+        layer.frame = CGRect(
+            x: -Constants.videoIndicatorBorderWidth,
+            y: -Constants.videoIndicatorBorderWidth,
+            width: Constants.videoIndicatorWidth + 2 * Constants.videoIndicatorBorderWidth,
+            height: 0)
+        layer.borderColor = UIColor.black.withAlphaComponent(0.6).cgColor
+        layer.borderWidth = Constants.videoIndicatorBorderWidth
+        layer.cornerRadius = Constants.videoIndicatorWidth
+        return layer
+    }()
+    
+    private(set) var videoStatus: IFVideo.Status?
     
     // MARK: - Lifecycle
     override init(frame: CGRect) {
@@ -51,31 +83,101 @@ class IFCollectionViewCell: UICollectionViewCell {
         super.prepareForReuse()
         imageContainerView.alpha = 1
         imageContainerView.transform = .identity
+        stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        videoIndicatorView.isHidden = true
+        videoIndicatorView.frame.origin.x =  -videoIndicatorView.frame.size.width / 2.0
+        videoStatus = nil
+    }
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        videoIndicatorView.frame.size.height = bounds.height - Constants.videoIndicatorBorderWidth
+        videoIndicatorViewBorderLayer.frame.size.height = bounds.height + Constants.videoIndicatorBorderWidth
     }
     
     override func preferredLayoutAttributesFitting(_ layoutAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutAttributes {
-        guard let image = imageView.image else { return layoutAttributes }
-        let imageRatio = image.size.width / image.size.height
-        layoutAttributes.size.width = layoutAttributes.size.height * imageRatio
+        switch videoStatus {
+        case .autoplay:
+            layoutAttributes.size.width = Constants.videoAutoplayThumbnailWidth * 2
+        case .play, .pause:
+            let thumbWidth = layoutAttributes.size.height * Constants.videoPlayThumbnailAspectRatio
+            layoutAttributes.size.width = thumbWidth * CGFloat(stackView.arrangedSubviews.count)
+        case .autoplayPause, .autoplayEnded, .none:
+            if let image = (stackView.arrangedSubviews.first as? UIImageView)?.image, image.size.height != 0 {
+                let imageRatio = image.size.width / image.size.height
+                layoutAttributes.size.width = layoutAttributes.size.height * imageRatio
+            }
+        }
+        
         return layoutAttributes
     }
     
     // MARK: - Style
     private func setup() {
-        clipsToBounds = true
-        contentView.clipsToBounds = false
-        contentView.addSubview(imageView)
+        clipsToBounds = false
+        contentView.clipsToBounds = true
+        contentView.addSubview(stackView)
+        addSubview(videoIndicatorView)
+        
+        videoIndicatorView.isHidden = true
+        videoIndicatorView.layer.addSublayer(videoIndicatorViewBorderLayer)
+        
         NSLayoutConstraint.activate([
-            imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            imageView.topAnchor.constraint(equalTo: contentView.topAnchor)])
+            stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            stackView.topAnchor.constraint(equalTo: contentView.topAnchor)])
+    }
+    
+    private func prepareStackView(numberOfImages: Int) {
+        let imageView = {
+            let imageView = UIImageView()
+            imageView.clipsToBounds = true
+            imageView.contentMode = .scaleAspectFill
+            return imageView
+        }
+        
+        if stackView.arrangedSubviews.count < numberOfImages {
+            (stackView.arrangedSubviews.count..<numberOfImages).forEach { _ in
+                let imageView = imageView()
+                imageView.image = (stackView.arrangedSubviews[safe: stackView.arrangedSubviews.count] as? UIImageView)?.image
+                stackView.addArrangedSubview(imageView)
+            }
+        } else if stackView.arrangedSubviews.count > numberOfImages {
+            stackView.arrangedSubviews[numberOfImages...].forEach { $0.removeFromSuperview() }
+        }
+    }
+    
+    func configureVideo(thumbnails: [UIImage], videoStatus: IFVideo.Status) {
+        prepareStackView(numberOfImages: thumbnails.count)
+        
+        thumbnails.enumerated().forEach { tuple in
+            guard let imageView = stackView.arrangedSubviews[safe: tuple.offset] as? UIImageView else { return }
+            
+            UIView.transition(
+                with: imageView,
+                duration: Constants.videoThumbnailTransitionDuration,
+                options: .transitionCrossDissolve,
+                animations: {
+                    imageView.image = tuple.element
+                },
+                completion: nil)
+        }
+        
+        self.videoStatus = videoStatus
+    }
+    
+    func configureVideoIndicator(progress: Double, isHidden: Bool) {
+        videoIndicatorView.frame.origin.x = bounds.width * CGFloat(progress) - videoIndicatorView.frame.size.width / 2
+        videoIndicatorView.isHidden = isHidden
     }
 }
 
 extension IFCollectionViewCell: Nuke_ImageDisplaying {
     func nuke_display(image: Nuke.PlatformImage?, data: Data?) {
-        imageView.image = image
+        prepareStackView(numberOfImages: 1)
+        (stackView.arrangedSubviews.first as? UIImageView)?.image = image
+        videoIndicatorView.isHidden = true
     }
 }
 

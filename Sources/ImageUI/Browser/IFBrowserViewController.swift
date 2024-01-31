@@ -23,6 +23,10 @@
 //
 
 import UIKit
+import Combine
+import AVFoundation
+
+#warning("Disable sound buttons (enabledSound and disabledSound) if video doesn't contains audio track")
 
 public protocol IFBrowserViewControllerDelegate: AnyObject {
     func browserViewController(_ browserViewController: IFBrowserViewController, didSelectActionWith identifier: String, forImageAt index: Int)
@@ -43,6 +47,10 @@ public extension IFBrowserViewControllerDelegate {
 open class IFBrowserViewController: UIViewController {
     private struct Constants {
         static let toolbarContentInset = UIEdgeInsets(top: -1, left: 0, bottom: 0, right: 0)
+        static let soundButtonToolbarWidth: CGFloat = 40
+        static let soundButtonNavigationBarWidth: CGFloat = 52
+        static let playPauseButtonToolbarWidth: CGFloat = 30
+        static let playPauseButtonNavigationWidth: CGFloat = 42
     }
     
     // MARK: - View
@@ -70,12 +78,17 @@ open class IFBrowserViewController: UIViewController {
         return view
     }()
     
+    private lazy var playButton = UIBarButtonItem(image: UIImage(systemName: "play.fill"), style: .plain, target: self, action: #selector(playButtonDidTap))
+    private lazy var pauseButton = UIBarButtonItem(image: UIImage(systemName: "pause.fill"), style: .plain, target: self, action: #selector(pauseButtonDidTap))
+    private lazy var disabledSoundButton = UIBarButtonItem(image: UIImage(systemName: "speaker.slash.fill"), style: .plain, target: self, action: #selector(disabledSoundButtonDidTap))
+    private lazy var enabledSoundButton = UIBarButtonItem(image: UIImage(systemName: "speaker.wave.2.fill"), style: .plain, target: self, action: #selector(enabledSoundButtonDidTap))
+    
     // MARK: - Public properties
     public weak var delegate: IFBrowserViewControllerDelegate?
     public var configuration = Configuration() {
         didSet {
-            imageManager.prefersAspectFillZoom = configuration.prefersAspectFillZoom
-            setupBars()
+            mediaManager.prefersAspectFillZoom = configuration.prefersAspectFillZoom
+            setupBars(mediaIndex: mediaManager.displayingMediaIndex)
             updateBars(toggle: false)
         }
     }
@@ -89,7 +102,7 @@ open class IFBrowserViewController: UIViewController {
     }
     
     // MARK: - Accessory properties
-    private let imageManager: IFImageManager
+    private let mediaManager: IFMediaManager
     private var shouldUpdateTitle = true
     
     private lazy var tapGesture = UITapGestureRecognizer(target: self, action: #selector(gestureRecognizerDidChange))
@@ -99,18 +112,21 @@ open class IFBrowserViewController: UIViewController {
         return gesture
     }()
     private lazy var pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(gestureRecognizerDidChange))
-    private lazy var pageViewController = IFPageViewController(imageManager: imageManager)
-    private lazy var collectionViewController = IFCollectionViewController(imageManager: imageManager)
+    private lazy var pageViewController = IFPageViewController(mediaManager: mediaManager)
+    private lazy var collectionViewController = IFCollectionViewController(mediaManager: mediaManager)
     
     private var shouldResetBarStatus = false
     private var isFullScreenMode = false
+    
+    private var soundVolumeObservation: NSKeyValueObservation?
+    private var bag: Set<AnyCancellable> = []
     
     private var shouldShowCancelButton: Bool {
         navigationController.map { $0.presentingViewController != nil && $0.viewControllers.first === self } ?? false
     }
     
     private var isCollectionViewEnabled: Bool {
-        imageManager.images.count > 1
+        mediaManager.media.count > 1
     }
     
     private var isNavigationBarEnabled: Bool {
@@ -135,13 +151,13 @@ open class IFBrowserViewController: UIViewController {
     }
     
     // MARK: - Initializer
-    public init(images: [IFImage], initialImageIndex: Int = 0) {
-        imageManager = IFImageManager(images: images, initialImageIndex: initialImageIndex)
+    public init(media: [IFMedia], initialIndex: Int = 0) {
+        mediaManager = IFMediaManager(media: media, initialIndex: initialIndex)
         super.init(nibName: nil, bundle: nil)
     }
     
     public required init?(coder: NSCoder) {
-        imageManager = IFImageManager(images: [])
+        mediaManager = IFMediaManager(media: [])
         super.init(coder: coder)
     }
     
@@ -169,8 +185,8 @@ open class IFBrowserViewController: UIViewController {
     open override func viewDidLoad() {
         super.viewDidLoad()
         setup()
-        updateTitleIfNeeded()
-        setupBars()
+        updateTitleIfNeeded(imageIndex: mediaManager.displayingMediaIndex)
+        setupBars(mediaIndex: mediaManager.displayingMediaIndex)
     }
     
     open override func willMove(toParent parent: UIViewController?) {
@@ -201,7 +217,8 @@ open class IFBrowserViewController: UIViewController {
     open override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         if traitCollection.verticalSizeClass != previousTraitCollection?.verticalSizeClass {
-            setupBars()
+            setupBars(mediaIndex: mediaManager.displayingMediaIndex)
+            collectionToolbar.invalidateIntrinsicContentSize()
             updateBars(toggle: false)
         }
     }
@@ -218,13 +235,13 @@ open class IFBrowserViewController: UIViewController {
             $0.delegate = self
             view.addGestureRecognizer($0)
         }
-
+        
         if let customShadow = navigationController?.toolbar.shadowImage(forToolbarPosition: .bottom) {
             collectionToolbar.setShadowImage(customShadow, forToolbarPosition: .bottom)
         }
         navigationController?.toolbar.setShadowImage(UIImage(), forToolbarPosition: .bottom)
         collectionToolbar.barTintColor = navigationController?.toolbar.barTintColor
-
+        
         addChild(pageViewController)
         pageViewController.progressDelegate = self
         pageContainerView.addSubview(pageViewController.view)
@@ -236,15 +253,60 @@ open class IFBrowserViewController: UIViewController {
         collectionContainerView.addSubview(collectionViewController.view)
         collectionViewController.view.frame = collectionContainerView.bounds
         collectionViewController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                
+        let audioSession = AVAudioSession.sharedInstance()
+        try? audioSession.setCategory(.playback)
+        try? audioSession.setActive(true)
+    
+        soundVolumeObservation = audioSession.observe(\.outputVolume, options: [.old, .new]) { [weak self] _, changes in
+            guard let self, let newValue = changes.newValue, let oldValue = changes.oldValue else { return }
+                
+            switch self.mediaManager.soundStatus.value {
+            case .disabled:
+                self.mediaManager.soundStatus.value.toggle()
+            case .enabled:
+                break
+            case .muted:
+                if newValue >= oldValue {
+                    self.mediaManager.soundStatus.value.toggle()
+                }
+            }
+        }
+        
+        mediaManager.videoStatus
+            .combineLatest(mediaManager.soundStatus)
+            .dropFirst()
+            .removeDuplicates { ($0.0, $0.1) == ($1.0, $1.1) }
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.setupBars(mediaIndex: self.mediaManager.displayingMediaIndex, animated: false)
+            }
+            .store(in: &bag)
     }
         
-    private func setupBars() {
+    private func setupBars(mediaIndex: Int, animated: Bool = true) {
         guard isViewLoaded else { return }
         
-        let barButtonItems = configuration.actions.map { $0.barButtonItem(target: self, action: #selector(actionButtonDidTap)) }
+        var barButtonItems = configuration.actions.map { $0.barButtonItem(target: self, action: #selector(actionButtonDidTap)) }
+        
+        if mediaManager.media[mediaIndex].mediaType.isVideo {
+            barButtonItems.insert(mediaManager.soundStatus.value.isEnabled ? enabledSoundButton : disabledSoundButton, at: barButtonItems.count / 2)
+            
+            switch mediaManager.videoStatus.value {
+            case .autoplay, .play:
+                barButtonItems.insert(pauseButton, at: barButtonItems.count / 2)
+            case .autoplayPause, .autoplayEnded, .pause:
+                barButtonItems.insert(playButton, at: barButtonItems.count / 2)
+            }
+        }
         
         if isToolbarEnabled {
-            navigationItem.setRightBarButtonItems([], animated: true)
+            enabledSoundButton.width = Constants.soundButtonToolbarWidth
+            disabledSoundButton.width = Constants.soundButtonToolbarWidth
+            playButton.width = Constants.playPauseButtonToolbarWidth
+            pauseButton.width = Constants.playPauseButtonToolbarWidth
+            
+            navigationItem.setRightBarButtonItems([], animated: animated)
             
             let toolbarItems: [UIBarButtonItem]
             
@@ -263,13 +325,16 @@ open class IFBrowserViewController: UIViewController {
                 }
             }
 
-            setToolbarItems(toolbarItems, animated: true)
+            setToolbarItems(toolbarItems, animated: animated)
         } else {
-            navigationItem.setRightBarButtonItems(barButtonItems.reversed(), animated: true)
-            setToolbarItems([], animated: true)
+            enabledSoundButton.width = Constants.soundButtonNavigationBarWidth
+            disabledSoundButton.width = Constants.soundButtonNavigationBarWidth
+            playButton.width = Constants.playPauseButtonNavigationWidth
+            pauseButton.width = Constants.playPauseButtonNavigationWidth
+            
+            navigationItem.setRightBarButtonItems(barButtonItems.reversed(), animated: animated)
+            setToolbarItems([], animated: animated)
         }
-        
-        collectionToolbar.invalidateIntrinsicContentSize()
     }
     
     private func updateBars(toggle: Bool) {
@@ -355,9 +420,15 @@ open class IFBrowserViewController: UIViewController {
         }
     }
     
-    private func updateTitleIfNeeded(imageIndex: Int? = nil) {
+    private func updateTitleIfNeeded(imageIndex: Int) {
         guard shouldUpdateTitle else { return }
-        title = imageManager.images[safe: imageIndex ?? imageManager.displayingImageIndex]?.title
+        title = mediaManager.media[safe: imageIndex]?.title
+    }
+    
+    private func updateVideoStatusIfNeeded(mediaIndex: Int) {
+        if mediaManager.media[mediaIndex].mediaType.isVideo {
+            mediaManager.videoStatus.value = .autoplay
+        }
     }
     
     private func updateToolbarMask() {
@@ -370,7 +441,7 @@ open class IFBrowserViewController: UIViewController {
     }
     
     private func presentShareViewController(sender: UIBarButtonItem) {
-        imageManager.sharingImage(forImageAt: imageManager.displayingImageIndex) { [weak self] result in
+        mediaManager.sharingMedia(at: mediaManager.displayingMediaIndex) { [weak self] result in
             guard case .success(let sharingImage) = result else { return }
             let viewController = UIActivityViewController(activityItems: [sharingImage], applicationActivities: nil)
             viewController.modalPresentationStyle = .popover
@@ -380,21 +451,21 @@ open class IFBrowserViewController: UIViewController {
     }
     
     private func handleRemove() {
-        let removingIndex = imageManager.displayingImageIndex
-        imageManager.removeDisplayingImage()
+        let removingIndex = mediaManager.displayingMediaIndex
+        mediaManager.removeDisplayingMedia()
         
         let group = DispatchGroup()
         group.enter()
-        pageViewController.removeDisplayingImage { group.leave() }
+        pageViewController.removeDisplayingMedia { group.leave() }
         group.enter()
-        collectionViewController.removeDisplayingImage { group.leave() }
+        collectionViewController.removeDisplayingMedia { group.leave() }
         
         let view = navigationController?.view ?? self.view
         view?.isUserInteractionEnabled = false
         group.notify(queue: .main) { [weak self, weak view] in
             view?.isUserInteractionEnabled = true
             if let self = self {
-                self.delegate?.browserViewController(self, didDeleteItemAt: removingIndex, isEmpty: self.imageManager.images.isEmpty)
+                self.delegate?.browserViewController(self, didDeleteItemAt: removingIndex, isEmpty: self.mediaManager.media.isEmpty)
             }
         }
     }
@@ -425,7 +496,7 @@ open class IFBrowserViewController: UIViewController {
         }
         
         guard let actionIndex = senderIndex, let action = configuration.actions[safe: actionIndex] else { return }
-        collectionViewController.scrollToDisplayingImageIndex()
+        collectionViewController.scrollToDisplayingMediaIndex()
         pageViewController.invalidateDataSourceIfNeeded()
         
         switch action {
@@ -433,7 +504,7 @@ open class IFBrowserViewController: UIViewController {
             presentShareViewController(sender: sender)
         case .delete:
             if let delegate = delegate {
-                delegate.browserViewController(self, willDeleteItemAt: imageManager.displayingImageIndex) { [weak self]  shouldRemove in
+                delegate.browserViewController(self, willDeleteItemAt: mediaManager.displayingMediaIndex) { [weak self]  shouldRemove in
                     guard shouldRemove else { return }
                     self?.handleRemove()
                 }
@@ -441,8 +512,24 @@ open class IFBrowserViewController: UIViewController {
                 handleRemove()
             }
         case .custom(let identifier, _, _):
-            delegate?.browserViewController(self, didSelectActionWith: identifier, forImageAt: imageManager.displayingImageIndex)
+            delegate?.browserViewController(self, didSelectActionWith: identifier, forImageAt: mediaManager.displayingMediaIndex)
         }
+    }
+    
+    @objc private func playButtonDidTap() {
+        mediaManager.videoStatus.value.toggle()
+    }
+    
+    @objc private func pauseButtonDidTap() {
+        mediaManager.videoStatus.value.toggle()
+    }
+    
+    @objc private func disabledSoundButtonDidTap() {
+        mediaManager.soundStatus.value.toggle()
+    }
+    
+    @objc private func enabledSoundButtonDidTap() {
+        mediaManager.soundStatus.value.toggle()
     }
 }
 
@@ -473,13 +560,16 @@ extension IFBrowserViewController: IFPageViewControllerDelegate {
     
     func pageViewController(_ pageViewController: IFPageViewController, didUpdatePage index: Int) {
         updateTitleIfNeeded(imageIndex: index)
+        updateVideoStatusIfNeeded(mediaIndex: index)
+        setupBars(mediaIndex: index, animated: false)
         delegate?.browserViewController(self, willDisplayImageAt: index)
     }
     
     func pageViewControllerDidResetScroll(_ pageViewController: IFPageViewController) {
-        collectionViewController.scrollToDisplayingImageIndex()
-        updateTitleIfNeeded(imageIndex: imageManager.displayingImageIndex)
-        delegate?.browserViewController(self, willDisplayImageAt: imageManager.displayingImageIndex)
+        collectionViewController.scrollToDisplayingMediaIndex()
+        updateTitleIfNeeded(imageIndex: mediaManager.displayingMediaIndex)
+        setupBars(mediaIndex: mediaManager.displayingMediaIndex, animated: false)
+        delegate?.browserViewController(self, willDisplayImageAt: mediaManager.displayingMediaIndex)
     }
 }
 
@@ -487,11 +577,25 @@ extension IFBrowserViewController: IFCollectionViewControllerDelegate {
     func collectionViewController(_ collectionViewController: IFCollectionViewController, didSelectItemAt index: Int) {
         pageViewController.updateVisibleImage(index: index)
         updateTitleIfNeeded(imageIndex: index)
+        setupBars(mediaIndex: index, animated: false)
         delegate?.browserViewController(self, willDisplayImageAt: index)
     }
     
     func collectionViewControllerWillBeginScrolling(_ collectionViewController: IFCollectionViewController) {
         pageViewController.invalidateDataSourceIfNeeded()
+    }
+    
+    func collectionViewControllerWillBeginSeekVideo(_ collectionViewController: IFCollectionViewController) {
+        pageViewController.pauseMedia()
+    }
+    
+    func collectionViewControllerDidEndSeekVideo(_ collectionViewController: IFCollectionViewController) {
+        switch mediaManager.videoStatus.value {
+        case .autoplay, .play:
+            pageViewController.playMedia()
+        default:
+            break
+        }
     }
 }
 

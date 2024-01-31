@@ -1,16 +1,14 @@
 {
-  "object": {
-    "pins": [
-      {
-        "package": "Nuke",
-        "repositoryURL": "https://github.com/kean/Nuke.git",
-        "state": {
-          "branch": null,
-          "revision": "0d8a0dc3cca7432a6772ec546a7e5e1b20103bda",
-          "version": "11.3.0"
-        }
+  "pins" : [
+    {
+      "identity" : "nuke",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kean/Nuke.git",
+      "state" : {
+        "revision" : "15fde63470d782c897816a74bdd516a907e33147",
+        "version" : "12.3.0"
       }
-    ]
-  },
-  "version": 1
+    }
+  ],
+  "version" : 2
 }

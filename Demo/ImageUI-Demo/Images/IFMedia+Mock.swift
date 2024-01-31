@@ -1,5 +1,5 @@
 //
-//  IFImage+Mock.swift
+//  IFMedia+Mock.swift
 //  ImageUI-Demo
 //
 //  Created by Alberto Saltarelli on 12/05/2020.
@@ -10,8 +10,20 @@ import UIKit
 import ImageUI
 import Photos
 
-extension IFImage {
-    static let mock: [IFImage] = [localImages, remoteImages, memoryImages, imageAssets].flatMap { $0 }.shuffled()
+extension IFMedia {
+    static let mock: [IFMedia] = {
+        let localImages = IFMedia.localImages.enumerated().map { IFMedia(title: "Local file \($0.offset + 1)", mediaType: .image($0.element)) }
+        let remoteImages = IFMedia.remoteImages.enumerated().map { IFMedia(title: "Remote image \($0.offset + 1)", mediaType: .image($0.element)) }
+        let memoryImages = IFMedia.memoryImages.enumerated().map { IFMedia(title: "In-memory image \($0.offset + 1)", mediaType: .image($0.element)) }
+        let imageAssets = IFMedia.imageAssets.enumerated().map { IFMedia(title: "Photo asset \($0.offset + 1)", mediaType: .image($0.element)) }
+        
+        let remoteVideos = IFMedia.remoteVideos.enumerated().map { IFMedia(title: "Remote video \($0.offset + 1)", mediaType: .video($0.element)) }
+//        return (localImages + remoteImages + memoryImages + imageAssets).shuffled()
+        
+        return (remoteVideos + localImages).shuffled()
+    }()
+    
+    // MARK: - Images
 
     private static let localImages = [
         Bundle.main.path(forResource: "Image1", ofType: "jpeg")!,
@@ -19,7 +31,7 @@ extension IFImage {
         Bundle.main.path(forResource: "Image3", ofType: "jpeg")!,
         Bundle.main.path(forResource: "Image4", ofType: "jpeg")!,
         Bundle.main.path(forResource: "Image5", ofType: "jpeg")!
-        ].enumerated().map { IFImage(title: "Local file \($0.offset + 1)", path: $0.element) }
+    ].map { IFImage(original: .url(URL(fileURLWithPath: $0))) }
 
     private static let remoteImages: [IFImage] = [
         "https://i.imgur.com/GJoXDDu.jpg",
@@ -114,18 +126,36 @@ extension IFImage {
         "https://i.imgur.com/LHDhBwR.jpg",
         "https://i.imgur.com/XawVasr.jpeg",
         "https://i.imgur.com/3xDRjrW.jpeg"
-        ].enumerated().map {
-            var image = IFImage(title: "Remote image \($0.offset + 1)", url: URL(string: $0.element)!)
-            image.placeholder = UIImage(color: UIColor(white: 0.9, alpha: 0.5))
-            return image
+        ].map {
+            IFImage(
+                original: .url(URL(string: $0)!),
+                placeholder: UIImage(color: UIColor(white: 0.9, alpha: 0.5))
+            )
     }
 
     private static let memoryImages = [UIImage(named: "photo1")!, UIImage(named: "photo2")!]
-        .enumerated()
-        .map { IFImage(title: "In-memory image \($0.offset + 1)", original: .image($0.element)) }
+        .map { IFImage(original: .image($0)) }
     
     private static let imageAssets: [IFImage] = {
         let result = PHAsset.fetchAssets(with: .image, options: nil)
-        return (0..<result.count).map { IFImage(title: "Photo asset \($0 + 1)", photoAsset: result.object(at: $0)) }
+        return (0..<result.count).map { IFImage(original: .asset(result.object(at: $0))) }
     }()
+    
+    // MARK: - Videos
+    
+    private static let remoteVideos: [IFVideo] = [
+        "https://kean.github.io/videos/cat_video.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4"
+    ].map {
+        IFVideo(media: .url(URL(string: $0)!))
+    }
 }

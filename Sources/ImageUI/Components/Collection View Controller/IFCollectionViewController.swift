@@ -25,10 +25,13 @@
 import UIKit
 import Nuke
 import Photos
+import Combine
 
 protocol IFCollectionViewControllerDelegate: AnyObject {
     func collectionViewController(_ collectionViewController: IFCollectionViewController, didSelectItemAt index: Int)
     func collectionViewControllerWillBeginScrolling(_ collectionViewController: IFCollectionViewController)
+    func collectionViewControllerWillBeginSeekVideo(_ collectionViewController: IFCollectionViewController)
+    func collectionViewControllerDidEndSeekVideo(_ collectionViewController: IFCollectionViewController)
 }
 
 class IFCollectionViewController: UIViewController {
@@ -37,6 +40,7 @@ class IFCollectionViewController: UIViewController {
         static let carouselTransitionDuration: TimeInterval = 0.16
         static let carouselSelectionDuration: TimeInterval = 0.22
         static let flowTransitionDuration: TimeInterval = 0.24
+        static let videoScrollingDampingFactor: CGFloat = 0.5
     }
     
     enum PendingInvalidation {
@@ -45,9 +49,9 @@ class IFCollectionViewController: UIViewController {
     }
     
     // MARK: - View
-    private lazy var collectionView: IFCollectionView = {
-        let initialIndexPath = IndexPath(item: imageManager.displayingImageIndex, section: 0)
-        let layout = IFCollectionViewFlowLayout(centerIndexPath: initialIndexPath, needsInitialContentOffset: true)
+    private lazy var collectionView: UICollectionView = {
+        let initialIndexPath = IndexPath(item: mediaManager.displayingMediaIndex, section: 0)
+        let layout = IFCollectionViewFlowLayout(mediaManager: mediaManager, centerIndexPath: initialIndexPath, needsInitialContentOffset: true)
         let view = IFCollectionView(frame: .zero, collectionViewLayout: layout)
         view.backgroundColor = .clear
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -58,12 +62,17 @@ class IFCollectionViewController: UIViewController {
     
     // MARK: - Public properties
     weak var delegate: IFCollectionViewControllerDelegate?
-    let imageManager: IFImageManager
+    let mediaManager: IFMediaManager
     
     // MARK: - Accessory properties
     private let prefetcher = ImagePrefetcher()
     private let bouncer = IFScrollViewBouncingManager()
     private var pendingInvalidation: PendingInvalidation?
+    private lazy var videoHandler = IFCollectionViewPanGestureHandler(collectionView: collectionView)
+    
+    private var autoplayThumbObservation: AnyCancellable?
+    private var videoPlayThumbObservation: AnyCancellable?
+    private var bag: Set<AnyCancellable> = []
     
     private var collectionViewLayout: IFCollectionViewFlowLayout {
         // swiftlint:disable:next force_cast
@@ -71,13 +80,13 @@ class IFCollectionViewController: UIViewController {
     }
     
     // MARK: - Initializer
-    init(imageManager: IFImageManager) {
-        self.imageManager = imageManager
+    init(mediaManager: IFMediaManager) {
+        self.mediaManager = mediaManager
         super.init(nibName: nil, bundle: nil)
     }
     
     required init?(coder: NSCoder) {
-        self.imageManager = IFImageManager(images: [])
+        self.mediaManager = IFMediaManager(media: [])
         super.init(coder: coder)
     }
     
@@ -122,24 +131,51 @@ class IFCollectionViewController: UIViewController {
     // MARK: - Public methods
     func scroll(toItemAt index: Int, progress: CGFloat) {
         guard isViewLoaded else { return }
+
+        let transitionIndexPath = IndexPath(item: index, section: 0)
         
         if collectionView.isDecelerating {
             updateCollectionViewLayout(style: .carousel)
         } else {
-            let transitionIndexPath = IndexPath(item: index, section: 0)
-            updateCollectionViewLayout(transitionIndexPath: transitionIndexPath, progress: progress)
+            let isPlayingVideo = collectionViewLayout.isPlayingVideo
+            let isTransitioningToVideo = mediaManager.media[safe: index]?.mediaType.isVideo
+            
+            switch (isPlayingVideo, isTransitioningToVideo) {
+            case (false, false), (false, .none): // image -> image, image -> out of bounds
+                updateCollectionViewLayout(transitionIndexPath: transitionIndexPath, progress: progress)
+            case (false, true): // image -> video
+                if progress < 0.5 || collectionViewLayout.transition.progress != 1 {
+                    updateCollectionViewLayout(transitionIndexPath: transitionIndexPath, progress: progress >= 0.5 ? 1 : progress)
+                }
+            case (true, false): // video -> image
+                if progress >= 0.5 || collectionViewLayout.transition.progress != 0 {
+                    updateCollectionViewLayout(transitionIndexPath: transitionIndexPath, progress: progress >= 0.5 ? progress : 0)
+                    collectionView.reloadItems(at: [collectionViewLayout.centerIndexPath])
+                }
+            case (true, true): // video -> video
+                if (progress < 0.5 && collectionViewLayout.transition.progress != 1) || (progress >= 0.5 && collectionViewLayout.transition.progress != 0) {
+                    let centerIndexPath = collectionViewLayout.centerIndexPath
+                    
+                    updateCollectionViewLayout(transitionIndexPath: transitionIndexPath, progress: progress >= 0.5 ? 1 : 0)
+                    if progress >= 0.5 {
+                        collectionView.reloadItems(at: [transitionIndexPath, centerIndexPath])
+                    }
+                }
+            default:
+                break
+            }
         }
     }
     
-    func scrollToDisplayingImageIndex() {
-        guard collectionViewLayout.isTransitioning || collectionViewLayout.centerIndexPath.item != imageManager.displayingImageIndex else { return }
+    func scrollToDisplayingMediaIndex() {
+        guard collectionViewLayout.isTransitioning || collectionViewLayout.centerIndexPath.item != mediaManager.displayingMediaIndex else { return }
         updateCollectionViewLayout(style: .carousel)
     }
     
-    func removeDisplayingImage(completion: (() -> Void)? = nil) {
+    func removeDisplayingMedia(completion: (() -> Void)? = nil) {
         guard let cell = collectionView.cellForItem(at: collectionViewLayout.centerIndexPath) else { return }
         let currentIndexPath = collectionViewLayout.centerIndexPath
-        collectionViewLayout.update(centerIndexPath: IndexPath(item: imageManager.displayingImageIndex, section: 0))
+        collectionViewLayout.update(centerIndexPath: IndexPath(item: mediaManager.displayingMediaIndex, section: 0))
         
         let removingAnimation = {
             self.collectionView.performBatchUpdates({
@@ -153,7 +189,7 @@ class IFCollectionViewController: UIViewController {
         
         if let cell = cell as? IFImageContainerProvider {
             cell.prepareForRemove {
-                if self.imageManager.images.isEmpty {
+                if self.mediaManager.media.isEmpty {
                     completion?()
                 } else {
                     removingAnimation()
@@ -174,8 +210,58 @@ class IFCollectionViewController: UIViewController {
         collectionView.delegate = self
         collectionView.alwaysBounceHorizontal = true
         collectionView.panGestureRecognizer.addTarget(self, action: #selector(pangestureDidChange))
+        videoHandler.dataSource = self
+        
         bouncer.startObserving(scrollView: collectionView, bouncingDirections: [.left, .right])
         bouncer.delegate = self
+        
+        mediaManager.videoStatus
+            .dropFirst()
+            .scan(nil) { (oldValue: $0?.1, newValue: $1) }
+            .compactMap { $0 }
+            .filter { [weak self] _ in
+                guard let self else { return false }
+                return self.collectionViewLayout.isPlayingVideo
+            }
+            .sink { [weak self] status in
+                guard let self else { return }
+                
+                if status.newValue.isAutoplay || (status.newValue == .play && status.oldValue != .pause) || (status.newValue == .pause && status.oldValue != .play) {
+                    self.collectionView.performBatchUpdates(
+                        {
+                            self.collectionView.reloadItems(at: [self.collectionViewLayout.centerIndexPath, self.collectionViewLayout.transition.indexPath])
+                        }, completion: { _ in
+                            self.videoHandler.invalidateDataSource()
+                        }
+                    )
+                } else if status.newValue.isAutoplay {
+                    self.collectionViewLayout.update(centerIndexPath: self.collectionViewLayout.centerIndexPath, shouldInvalidate: true)
+                }
+            }
+            .store(in: &bag)
+        
+        mediaManager.videoPlayback
+            .combineLatest(mediaManager.videoStatus) { (playback: $0, status: $1) }
+            .sink { [weak self] video in
+                guard
+                    let self,
+                    let cell = self.collectionView.cellForItem(at: self.collectionViewLayout.centerIndexPath) as? IFCollectionViewCell,
+                    self.collectionViewLayout.isPlayingVideo
+                else { return }
+                
+                if let playback = video.playback {
+                    let progress = playback.currentTime.seconds / playback.totalDuration.seconds
+                    let isTransitioning = self.collectionViewLayout.transition.indexPath != self.collectionViewLayout.centerIndexPath && self.collectionViewLayout.transition.progress >= 0.5
+                    
+                    #warning("When status == .play || .pause, add video indicator in the middle of collection view to avoid flickering by moving cell's video indicator")
+                    cell.configureVideoIndicator(progress: progress, isHidden: video.status == .autoplayEnded || video.status == .autoplayPause || isTransitioning)
+                    
+                    if video.status == .play, !self.collectionView.isDragging, !self.collectionView.isDecelerating {
+                        self.collectionViewLayout.setupCellWidthAutoScroll(progress: progress)
+                    }
+                }
+            }
+            .store(in: &bag)
     }
     
     private func update() {
@@ -188,17 +274,17 @@ class IFCollectionViewController: UIViewController {
         }
     }
     
-    @discardableResult private func updatedisplayingImageIndexIfNeeded(with index: Int) -> Bool {
-        guard imageManager.displayingImageIndex != index else { return false }
-        imageManager.updatedisplayingImage(index: index)
+    @discardableResult private func updatedisplayingMediaIndexIfNeeded(with index: Int) -> Bool {
+        guard mediaManager.displayingMediaIndex != index else { return false }
+        mediaManager.updatedisplayingMedia(index: index)
         collectionViewLayout.update(centerIndexPath: IndexPath(item: index, section: 0))
         delegate?.collectionViewController(self, didSelectItemAt: index)
         return true
     }
 
     private func updateCollectionViewLayout(style: IFCollectionViewFlowLayout.Style) {
-        let indexPath = IndexPath(item: imageManager.displayingImageIndex, section: 0)
-        let layout = IFCollectionViewFlowLayout(style: style, centerIndexPath: indexPath)
+        let indexPath = IndexPath(item: mediaManager.displayingMediaIndex, section: 0)
+        let layout = IFCollectionViewFlowLayout(mediaManager: mediaManager, style: style, centerIndexPath: indexPath)
         let duration: TimeInterval
         
         switch pendingInvalidation {
@@ -209,25 +295,31 @@ class IFCollectionViewController: UIViewController {
         }
         
         pendingInvalidation = nil
+        mediaManager.allowsMediaPlay = style == .carousel
+        
         UIView.transition(
             with: collectionView,
             duration: duration,
             options: .curveEaseOut,
             animations: {
-                if #available(iOS 13.0, *) {
+                if style == .flow {
+                    let contentOffset = self.collectionView.contentOffset
                     self.collectionView.setCollectionViewLayout(layout, animated: true)
+                    let updatedContentOffset = self.collectionView.contentOffset
+                    self.collectionView.panGestureRecognizer.setTranslation(CGPoint(x: contentOffset.x - updatedContentOffset.x, y: 0), in: self.collectionView)
+                    self.delegate?.collectionViewControllerWillBeginScrolling(self)
                 } else {
                     self.collectionView.setCollectionViewLayout(layout, animated: true)
-                    self.collectionView.layoutIfNeeded()
                 }
         })
     }
     
     private func updateCollectionViewLayout(transitionIndexPath: IndexPath, progress: CGFloat) {
-        let indexPath = IndexPath(item: imageManager.displayingImageIndex, section: 0)
-        let layout = IFCollectionViewFlowLayout(centerIndexPath: indexPath)
+        let indexPath = IndexPath(item: mediaManager.displayingMediaIndex, section: 0)
+        let layout = IFCollectionViewFlowLayout(mediaManager: mediaManager, centerIndexPath: indexPath)
         layout.style = collectionViewLayout.style
         layout.setupTransition(to: transitionIndexPath, progress: progress)
+        
         collectionView.setCollectionViewLayout(layout, animated: false)
     }
     
@@ -239,37 +331,126 @@ class IFCollectionViewController: UIViewController {
         updateCollectionViewLayout(style: .carousel)
     }
     
+    private func beginSeekVideo(gestureLocation: CGPoint? = nil) {
+        guard
+            collectionViewLayout.isPlayingVideo,
+            let cell = collectionView.cellForItem(at: collectionViewLayout.centerIndexPath)
+        else { return }
+        
+        if let gestureLocation, cell.frame.containsIncludingBorders(gestureLocation), mediaManager.videoStatus.value == .autoplay {
+            mediaManager.videoStatus.value = .play
+        }
+        
+        delegate?.collectionViewControllerWillBeginSeekVideo(self)
+    }
+    
     @objc private func pangestureDidChange(_ sender: UIPanGestureRecognizer) {
         switch sender.state {
-        case .cancelled,
-             .ended where pendingInvalidation == nil:
-            updateCollectionViewLayout(style: .carousel)
+        case .began:
+            if collectionViewLayout.isTransitioning {
+                updateCollectionViewLayout(style: .carousel)
+                delegate?.collectionViewControllerWillBeginScrolling(self)
+            } else if collectionViewLayout.isPlayingVideo {
+                beginSeekVideo(gestureLocation: sender.location(in: collectionView))
+            }
+        case .cancelled, .ended:
+            if !collectionViewLayout.isPlayingVideo, pendingInvalidation == nil {
+                updateCollectionViewLayout(style: .carousel)
+            }
         default:
             break
         }
     }
 }
 
+// MARK: - UICollectionViewDataSource
 extension IFCollectionViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        imageManager.images.count
+        mediaManager.media.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: IFCollectionViewCell.identifier, for: indexPath)
+        
         if let cell = cell as? IFCollectionViewCell {
-            imageManager.loadImage(
-                at: indexPath.item,
-                options: IFImage.LoadOptions(preferredSize: collectionViewLayout.itemSize, kind: .thumbnail),
-                sender: cell) { [weak self] result in
-                    guard let self = self, case .success = result else { return }
-                    self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
+            
+            switch mediaManager.media[indexPath.item].mediaType {
+            case .image:
+                mediaManager.loadImage(
+                    at: indexPath.item,
+                    options: IFImage.LoadOptions(preferredSize: collectionViewLayout.itemSize, kind: .thumbnail),
+                    sender: cell) { [weak self] result in
+                        guard let self = self, case .success = result else { return }
+                        self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
+                    }
+            case .video:
+                mediaManager.loadVideoCover(at: indexPath.item) { [weak self, weak cell] image in
+                    cell?.nuke_display(image: image, data: nil)
+                    self?.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
+                }
+                
+                if indexPath == collectionViewLayout.centerIndexPath, collectionViewLayout.isPlayingVideo {
+                    mediaManager.videoThumbnailGenerator(at: indexPath.item) { [weak self] generator in
+                        guard let self else { return }
+
+                        switch self.mediaManager.videoStatus.value {
+                        case .autoplay:
+                            if let generator {
+                                generator.generateAutoplayLastThumbnail()
+                                self.autoplayThumbObservation = generator.autoplayLastThumbnail
+                                    .sink { [weak self] thumb in
+                                        self?.mediaManager.loadVideoCover(at: indexPath.item) { [weak cell] cover in
+                                            guard let self, let cell else { return }
+                                            cell.configureVideo(thumbnails: [cover, thumb ?? cover], videoStatus: self.mediaManager.videoStatus.value)
+                                            self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
+                                        }
+                                    }
+                            } else {
+                                self.mediaManager.loadVideoCover(at: indexPath.item) { [weak self, weak cell] image in
+                                    guard let self, let cell else { return }
+                                    cell.configureVideo(thumbnails: [image, image], videoStatus: self.mediaManager.videoStatus.value)
+                                    self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
+                                }
+                            }
+                        case .autoplayPause, .autoplayEnded:
+                            self.mediaManager.loadVideoCover(at: indexPath.item) { [weak self, weak cell] cover in
+                                guard let self, let cell else { return }
+                                
+                                cell.configureVideo(thumbnails: [cover], videoStatus: self.mediaManager.videoStatus.value)
+                                self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
+                            }
+                        case .play, .pause:
+                            self.mediaManager.loadVideoCover(at: indexPath.item) { [weak self, weak cell] cover in
+                                guard let self else { return }
+                                if let generator {
+                                    generator.generateImages(currentTime: .zero)
+                                    self.videoPlayThumbObservation = generator.thumbnails
+                                        .sink { [weak self, weak cell] thumbnails in
+                                            guard let self, let cell else { return }
+                                            let thumbnails = (0..<generator.numberOfThumbnails).map { thumbnails[$0] ?? cover }
+                                            
+                                            
+                                            cell.configureVideo(thumbnails: thumbnails, videoStatus: self.mediaManager.videoStatus.value)
+                                            self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
+                                        }
+                                } else if let cell {
+                                    cell.configureVideo(thumbnails: [cover, cover].compactMap { $0 }, videoStatus: self.mediaManager.videoStatus.value)
+                                    self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
+                                }
+                            }
+                        }
+                    }
+                }
+            case .pdf:
+                break
             }
+            
         }
         return cell
     }
 }
 
+// MARK: - UICollectionViewDataSourcePrefetching
 extension IFCollectionViewController: UICollectionViewDataSourcePrefetching {
     func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
         guard collectionView.isDragging || collectionView.isDecelerating else { return }
@@ -277,19 +458,29 @@ extension IFCollectionViewController: UICollectionViewDataSourcePrefetching {
         var assets: [PHAsset] = []
         
         for indexPath in indexPaths {
-            guard let image = imageManager.images[safe: indexPath.item] else { continue }
+            guard let media = mediaManager.media[safe: indexPath.item] else { continue }
             
-            if case .asset(let asset) = image.original {
-                assets.append(asset)
-            } else if case .url(let url) = image.thumbnail {
-                urls.append(url)
+            switch media.mediaType {
+            case .image(let image):
+                switch image[.thumbnail] {
+                case .asset(let asset):
+                    assets.append(asset)
+                case .url(let url):
+                    urls.append(url)
+                case .image:
+                    break
+                }
+            case .video:
+                mediaManager.loadVideoCover(at: indexPath.item)
+            case .pdf:
+                break
             }
         }
         
         let request = PHImageRequestOptions()
         request.isNetworkAccessAllowed = true
         
-        imageManager.photosManager.startCachingImages(for: assets, targetSize: collectionViewLayout.itemSize, contentMode: .aspectFit, options: request)
+        mediaManager.photosManager.startCachingImages(for: assets, targetSize: collectionViewLayout.itemSize, contentMode: .aspectFit, options: request)
         prefetcher.startPrefetching(with: urls)
     }
     
@@ -298,46 +489,77 @@ extension IFCollectionViewController: UICollectionViewDataSourcePrefetching {
         var assets: [PHAsset] = []
         
         for indexPath in indexPaths {
-            guard let image = imageManager.images[safe: indexPath.item] else { continue }
+            guard let media = mediaManager.media[safe: indexPath.item] else { continue }
             
-            if case .asset(let asset) = image.original {
-                assets.append(asset)
-            } else if case .url(let url) = image.thumbnail {
-                urls.append(url)
+            switch media.mediaType {
+            case .image(let image):
+                switch image[.thumbnail] {
+                case .asset(let asset):
+                    assets.append(asset)
+                case .url(let url):
+                    urls.append(url)
+                case .image:
+                    break
+                }
+            case .video:
+                break
+            case .pdf:
+                break
             }
         }
         
         let request = PHImageRequestOptions()
         request.isNetworkAccessAllowed = true
         
-        imageManager.photosManager.stopCachingImages(for: assets, targetSize: collectionViewLayout.itemSize, contentMode: .aspectFit, options: request)
+        mediaManager.photosManager.stopCachingImages(for: assets, targetSize: collectionViewLayout.itemSize, contentMode: .aspectFit, options: request)
         prefetcher.stopPrefetching(with: urls)
     }
 }
 
-extension IFCollectionViewController: IFCollectionViewDelegate {
+// MARK: - UICollectionViewDelegate
+extension IFCollectionViewController: UICollectionViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        guard scrollView.isDragging, !collectionViewLayout.isTransitioning else { return }
-        let centerIndexPath = collectionViewLayout.indexPath(forContentOffset: collectionView.contentOffset)
-        guard
-            updatedisplayingImageIndexIfNeeded(with: centerIndexPath.item),
+        guard !collectionViewLayout.isTransitioning else { return }
+        
+        if collectionViewLayout.isPlayingVideo {
+            if videoHandler.isInvalidated {
+                if let centerIndexPath = collectionView.indexPathForItem(at: CGPoint(x: collectionView.bounds.midX, y: collectionView.bounds.midY)), centerIndexPath.item != mediaManager.displayingMediaIndex {
+                    collectionView.reloadItems(at: [collectionViewLayout.centerIndexPath])
+                    updatedisplayingMediaIndexIfNeeded(with: centerIndexPath.item)
+                    mediaManager.videoStatus.value = .autoplay
+                    updateCollectionViewLayout(style: .flow)
+                } else {
+                    videoHandler.isInvalidated = false
+                }
+            } else if let playback = mediaManager.videoPlayback.value, !mediaManager.videoStatus.value.isAutoplay {
+                let videoFrame = collectionView.cellForItem(at: collectionViewLayout.centerIndexPath)!.frame
+                let cursor = collectionView.contentOffset.x + collectionView.frame.width / 2
+                let progress = ((cursor - videoFrame.minX) / (videoFrame.maxX - videoFrame.minX)).clamped(to: 0...1)
+                mediaManager.videoPlayback.value?.currentTime = CMTimeMultiplyByFloat64(playback.totalDuration, multiplier: Float64(progress))
+            }
+        } else if
+            collectionView.isDragging,
+            let centerIndexPath = collectionView.indexPathForItem(at: CGPoint(x: collectionView.bounds.midX, y: collectionView.bounds.midY)),
+            updatedisplayingMediaIndexIfNeeded(with: centerIndexPath.item),
             case .dragging(let targetIndexPath) = pendingInvalidation,
-            targetIndexPath == centerIndexPath else { return }
-        updateCollectionViewLayout(style: .carousel)
+            targetIndexPath == centerIndexPath {
+            
+            updateCollectionViewLayout(style: .carousel)
+            videoHandler.isInvalidated = true
+        }
     }
     
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         pendingInvalidation = nil
-        guard collectionViewLayout.style == .carousel else { return }
-        let contentOffset = collectionView.contentOffset
-        updateCollectionViewLayout(style: .flow)
-        let updatedContentOffset = collectionView.contentOffset
-        collectionView.panGestureRecognizer.setTranslation(CGPoint(x: contentOffset.x - updatedContentOffset.x, y: 0), in: collectionView)
-        delegate?.collectionViewControllerWillBeginScrolling(self)
+
+        
+        if !collectionViewLayout.isPlayingVideo, collectionViewLayout.style == .carousel {
+            updateCollectionViewLayout(style: .flow)
+        }
     }
     
     func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
-        guard velocity.x != 0 else { return }
+        guard !collectionViewLayout.isPlayingVideo, velocity.x != 0 else { return }
         let minimumContentOffsetX = -scrollView.contentInset.left.rounded(.up)
         let maximumContentOffsetX = (scrollView.contentSize.width - scrollView.bounds.width + scrollView.contentInset.right).rounded(.down)
         if targetContentOffset.pointee.x > minimumContentOffsetX, targetContentOffset.pointee.x < maximumContentOffsetX {
@@ -349,45 +571,73 @@ extension IFCollectionViewController: IFCollectionViewDelegate {
     }
     
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-        guard pendingInvalidation != nil else { return }
+        defer { delegate?.collectionViewControllerDidEndSeekVideo(self) }
+        guard !collectionViewLayout.isPlayingVideo, pendingInvalidation != nil else { return }
+        
         let centerIndexPath = collectionViewLayout.indexPath(forContentOffset: collectionView.contentOffset)
-        updatedisplayingImageIndexIfNeeded(with: centerIndexPath.item)
+        updatedisplayingMediaIndexIfNeeded(with: centerIndexPath.item)
         updateCollectionViewLayout(style: .carousel)
     }
     
-    func collectionView(_ collectionView: UICollectionView, touchBegan itemIndexPath: IndexPath?) {
-        guard collectionViewLayout.isTransitioning else { return }
-        updateCollectionViewLayout(style: .carousel)
-        delegate?.collectionViewControllerWillBeginScrolling(self)
+    func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
+        delegate?.collectionViewControllerDidEndSeekVideo(self)
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard updatedisplayingImageIndexIfNeeded(with: indexPath.item) else { return }
+        guard updatedisplayingMediaIndexIfNeeded(with: indexPath.item) else { return }
 
         UIView.transition(
             with: collectionView,
             duration: Constants.carouselSelectionDuration,
             options: .curveEaseOut,
             animations: {
-                self.collectionViewLayout.setupTransition(to: indexPath)
+                self.collectionViewLayout.setupTransition(to: indexPath, progress: 1)
                 self.collectionViewLayout.invalidateLayout()
                 self.collectionView.layoutIfNeeded()
             })
     }
 }
 
+// MARK: - IFScrollViewBouncingDelegate
 extension IFCollectionViewController: IFScrollViewBouncingDelegate {
     func scrollView(_ scrollView: UIScrollView, didReverseBouncing direction: UIScrollView.BouncingDirection) {
+        guard !collectionViewLayout.isPlayingVideo else { return }
+        
         let indexPath: IndexPath
+        
         switch direction {
         case .left:
             indexPath = IndexPath(item: 0, section: 0)
         case .right:
-            indexPath = IndexPath(item: imageManager.images.count - 1, section: 0)
+            indexPath = IndexPath(item: mediaManager.media.count - 1, section: 0)
         default:
             return
         }
-        updatedisplayingImageIndexIfNeeded(with: indexPath.item)
+        updatedisplayingMediaIndexIfNeeded(with: indexPath.item)
         updateCollectionViewLayout(style: .carousel)
+    }
+}
+
+// MARK: - IFCollectionViewPanGestureHandlerDataSource
+extension IFCollectionViewController: IFCollectionViewPanGestureHandlerDataSource {
+    func collectionViewPanGestureHandlerRubberBounds(_ collectionViewPanGestureHandler: IFCollectionViewPanGestureHandler) -> CGRect? {
+        guard 
+            collectionViewLayout.isPlayingVideo,
+            !mediaManager.videoStatus.value.isAutoplay,
+            let cell = collectionView.cellForItem(at: collectionViewLayout.centerIndexPath)
+        else { return nil }
+        
+        return CGRect(
+            x: cell.frame.origin.x - collectionView.frame.width / 2,
+            y: 0,
+            width: cell.frame.width,
+            height: collectionView.frame.height
+        )
+    }
+}
+
+extension IFCollectionViewController: IFCollectionViewDelegate {
+    func collectionView(_ collectionView: UICollectionView, didTap location: CGPoint) {
+        beginSeekVideo(gestureLocation: location)
     }
 }

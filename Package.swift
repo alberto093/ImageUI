@@ -1,4 +1,5 @@
-// swift-tools-version:5.1
+// swift-tools-version: 5.6
+// The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
@@ -11,15 +12,20 @@ let package = Package(
         .library(name: "ImageUI", targets: ["ImageUI"])
     ],
     dependencies: [
-        .package(url: "https://github.com/kean/Nuke.git", .exact("12.1.6"))
+        .package(url: "https://github.com/kean/Nuke", exact: "12.3.0"),
     ],
     targets: [
         .target(
             name: "ImageUI",
-            dependencies: ["Nuke", "NukeUI", "NukeExtensions"],
+            dependencies: [
+                "Nuke",
+                .product(name: "NukeExtensions", package: "Nuke"),
+                .product(name: "NukeUI", package: "Nuke"),
+                .product(name: "NukeVideo", package: "Nuke")],
             path: "",
             exclude: ["Demo"],
-            sources: ["Sources"]
+            sources: ["Sources"],
+            resources: [.process("Resources"), .process("README.md")]
         )
     ]
 )

@@ -1,5 +1,5 @@
 //
-//  IFSharingImage.swift
+//  IFMediaActivityItem.swift
 //
 //  Copyright © 2020 ImageUI - Alberto Saltarelli
 //
@@ -29,39 +29,42 @@ import LinkPresentation
 import Photos
 #endif
 
-class IFSharingImage: NSObject, UIActivityItemSource {
-    let container: IFImage
-    let image: UIImage
+class IFMediaActivityItem: NSObject, UIActivityItemSource {
+    let media: IFMedia
+//    let image: UIImage
     
+    @available(iOS 13.0, *)
     private lazy var metadata: LPLinkMetadata? = nil
     
-    init(container: IFImage, image: UIImage) {
-        self.container = container
-        self.image = image
+    init(media: IFMedia/*, image: UIImage*/) {
+        self.media = media
+//        self.image = image
     }
     
     func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
-        UIImage()
+//        UIImage()
+        return media
     }
     
     func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
-        image
+//        image
+        return media
     }
     
-    func activityViewController(_ activityViewController: UIActivityViewController, dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?) -> String {
-        let uti = image.cgImage?.utType ?? kUTTypeImage
-        return uti as String
-    }
-
-    func activityViewController(_ activityViewController: UIActivityViewController, thumbnailImageForActivityType activityType: UIActivity.ActivityType?, suggestedSize size: CGSize) -> UIImage? {
-        image.resizedToFill(size: size)
-    }
+//    func activityViewController(_ activityViewController: UIActivityViewController, dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?) -> String {
+//        let uti = image.cgImage?.utType ?? kUTTypeImage
+//        return uti as String
+//    }
+//
+//    func activityViewController(_ activityViewController: UIActivityViewController, thumbnailImageForActivityType activityType: UIActivity.ActivityType?, suggestedSize size: CGSize) -> UIImage? {
+//        image.resizedToFill(size: size)
+//    }
 }
 
 @available(iOS 13.0, *)
-extension IFSharingImage {
-    convenience init(container: IFImage, image: UIImage, metadata: LPLinkMetadata? = nil) {
-        self.init(container: container, image: image)
+extension IFMediaActivityItem {
+    convenience init(media: IFMedia/*, image: UIImage*/, metadata: LPLinkMetadata? = nil) {
+        self.init(media: media/*, image: image*/)
         self.metadata = metadata
     }
     
@@ -70,14 +73,14 @@ extension IFSharingImage {
             return metadata
         } else {
             let metadata = LPLinkMetadata()
-            metadata.title = container.title
-            if case .url(let url) = container.original {
-                metadata.originalURL = url
-            }
-
-            let provider = NSItemProvider(object: image)
-            metadata.imageProvider = provider
-            metadata.iconProvider = provider
+            metadata.title = media.title
+//            if case .url(let url) = container.original {
+//                metadata.originalURL = url
+//            }
+//
+//            let provider = NSItemProvider(object: image)
+//            metadata.imageProvider = provider
+//            metadata.iconProvider = provider
             return metadata
         }
     }

@@ -27,23 +27,25 @@ import SwiftUI
 
 @available(iOS 13.0, *)
 public struct IFBrowserView: UIViewControllerRepresentable {
-    public typealias ImageAction = (_ identifier: String) -> Void
-    private let images: [IFImage]
+    public typealias MediaAction = (_ identifier: String) -> Void
+    
+    private let media: [IFMedia]
+    
     @Binding private var selectedIndex: Int
-    private let imageAction: ImageAction?
+    private let mediaAction: MediaAction?
     
     public init(
-        images: [IFImage],
+        media: [IFMedia],
         selectedIndex: Binding<Int>,
         configuration: IFBrowserViewController.Configuration = IFBrowserViewController.Configuration(),
-        action: ImageAction? = nil) {
-        self.images = images
+        action: MediaAction? = nil) {
+        self.media = media
         self._selectedIndex = selectedIndex
-        self.imageAction = action
+        self.mediaAction = action
     }
     
     public func makeUIViewController(context: Context) -> IFBrowserViewController {
-        let viewController = IFBrowserViewController(images: images, initialImageIndex: selectedIndex)
+        let viewController = IFBrowserViewController(media: media, initialIndex: selectedIndex)
         viewController.delegate = context.coordinator
         return viewController
     }
@@ -67,7 +69,7 @@ public extension IFBrowserView {
         }
         
         public func browserViewController(_ browserViewController: IFBrowserViewController, didSelectActionWith identifier: String, forImageAt index: Int) {
-            sourceView.imageAction?(identifier)
+            sourceView.mediaAction?(identifier)
         }
     }
 }

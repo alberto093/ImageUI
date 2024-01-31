@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 52;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -17,7 +17,7 @@
 		D32A8393246B05B600118BE7 /* Image2.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = D32A838E246B05B500118BE7 /* Image2.jpeg */; };
 		D32A8394246B05B600118BE7 /* Image1.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = D32A838F246B05B600118BE7 /* Image1.jpeg */; };
 		D32A8395246B05B600118BE7 /* Image4.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = D32A8390246B05B600118BE7 /* Image4.jpeg */; };
-		D32A8397246B05C700118BE7 /* IFImage+Mock.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32A8396246B05C700118BE7 /* IFImage+Mock.swift */; };
+		D32A8397246B05C700118BE7 /* IFMedia+Mock.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32A8396246B05C700118BE7 /* IFMedia+Mock.swift */; };
 		D3CA5F9B246B498C000217ED /* ImageUI in Frameworks */ = {isa = PBXBuildFile; productRef = D3CA5F9A246B498C000217ED /* ImageUI */; };
 /* End PBXBuildFile section */
 
@@ -34,7 +34,7 @@
 		D32A838E246B05B500118BE7 /* Image2.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Image2.jpeg; sourceTree = "<group>"; };
 		D32A838F246B05B600118BE7 /* Image1.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Image1.jpeg; sourceTree = "<group>"; };
 		D32A8390246B05B600118BE7 /* Image4.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Image4.jpeg; sourceTree = "<group>"; };
-		D32A8396246B05C700118BE7 /* IFImage+Mock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IFImage+Mock.swift"; sourceTree = "<group>"; };
+		D32A8396246B05C700118BE7 /* IFMedia+Mock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IFMedia+Mock.swift"; sourceTree = "<group>"; };
 		D3CA5F99246B4984000217ED /* ImageUI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ImageUI; path = ..; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -94,7 +94,7 @@
 				D32A838C246B05B500118BE7 /* Image3.jpeg */,
 				D32A8390246B05B600118BE7 /* Image4.jpeg */,
 				D32A838D246B05B500118BE7 /* Image5.jpeg */,
-				D32A8396246B05C700118BE7 /* IFImage+Mock.swift */,
+				D32A8396246B05C700118BE7 /* IFMedia+Mock.swift */,
 			);
 			path = Images;
 			sourceTree = "<group>";
@@ -212,7 +212,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D3122635246B025500FD2B69 /* ViewController.swift in Sources */,
-				D32A8397246B05C700118BE7 /* IFImage+Mock.swift in Sources */,
+				D32A8397246B05C700118BE7 /* IFMedia+Mock.swift in Sources */,
 				D3122631246B025500FD2B69 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -358,6 +358,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = V7CZ6GM767;
 				INFOPLIST_FILE = "ImageUI-Demo/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -376,6 +377,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = V7CZ6GM767;
 				INFOPLIST_FILE = "ImageUI-Demo/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (

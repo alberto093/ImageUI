@@ -1,5 +1,5 @@
 //
-//  IFImage.swift
+//  AVPlayer+.swift
 //
 //  Copyright © 2020 ImageUI - Alberto Saltarelli
 //
@@ -22,23 +22,11 @@
 //  THE SOFTWARE.
 //
 
-import Photos
-import UIKit
+import AVFoundation
 
-public struct IFImage {
-    public enum Source {
-        case url(_ url: URL)
-        case image(UIImage)
-        case asset(PHAsset)
-    }
-
-    public let original: Source
-    public let thumbnail: Source?
-    public let placeholder: UIImage?
-    
-    public init(original: Source, thumbnail: Source? = nil, placeholder: UIImage? = nil) {
-        self.original = original
-        self.thumbnail = thumbnail
-        self.placeholder = placeholder
+extension AVPlayer {
+    var isAtEnd: Bool {
+        guard let item = currentItem else { return false }
+        return currentTime() >= item.duration
     }
 }

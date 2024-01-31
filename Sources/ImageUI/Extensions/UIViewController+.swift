@@ -1,5 +1,5 @@
 //
-//  IFImage.swift
+//  UIViewController+.swift
 //
 //  Copyright © 2020 ImageUI - Alberto Saltarelli
 //
@@ -22,23 +22,10 @@
 //  THE SOFTWARE.
 //
 
-import Photos
 import UIKit
 
-public struct IFImage {
-    public enum Source {
-        case url(_ url: URL)
-        case image(UIImage)
-        case asset(PHAsset)
-    }
-
-    public let original: Source
-    public let thumbnail: Source?
-    public let placeholder: UIImage?
-    
-    public init(original: Source, thumbnail: Source? = nil, placeholder: UIImage? = nil) {
-        self.original = original
-        self.thumbnail = thumbnail
-        self.placeholder = placeholder
+extension UIViewController {
+    static var identifier: String {
+        String(describing: self)
     }
 }
