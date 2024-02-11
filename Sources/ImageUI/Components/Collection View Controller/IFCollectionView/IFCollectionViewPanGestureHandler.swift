@@ -12,12 +12,17 @@ protocol IFCollectionViewPanGestureHandlerDataSource: AnyObject {
     func collectionViewPanGestureHandlerRubberBounds(_ collectionViewPanGestureHandler: IFCollectionViewPanGestureHandler) -> CGRect?
 }
 
+protocol IFCollectionViewPanGestureHandlerDelegate: AnyObject {
+    func collectionViewPanGestureHandlerDidEndDecelerating(_ collectionViewPanGestureHandler: IFCollectionViewPanGestureHandler)
+}
+
 class IFCollectionViewPanGestureHandler {
     private struct Constants {
         static let minimumDistanceToInvalidate: CGFloat = 15
     }
     
     weak var dataSource: IFCollectionViewPanGestureHandlerDataSource?
+    weak var delegate: IFCollectionViewPanGestureHandlerDelegate?
     
     private weak var collectionView: UICollectionView?
     
@@ -86,9 +91,13 @@ class IFCollectionViewPanGestureHandler {
                 collectionView?.contentOffset.x = parameters.value(at: time).x
             },
             completion: { [weak self] finished in
+                guard let self else { return }
+                
                 if finished, intersection != nil {
                     let velocity = parameters.velocity(at: duration)
-                    self?.bounce(velocity: velocity)
+                    self.bounce(velocity: velocity)
+                } else {
+                    self.delegate?.collectionViewPanGestureHandlerDidEndDecelerating(self)
                 }
             })
     }
@@ -111,6 +120,10 @@ class IFCollectionViewPanGestureHandler {
             duration: parameters.duration,
             animations: { [weak collectionView] _, time in
                 collectionView?.contentOffset.x = (restOffset + parameters.value(at: time)).x
+            },
+            completion: { [weak self] _ in
+                guard let self else { return }
+                self.delegate?.collectionViewPanGestureHandlerDidEndDecelerating(self)
             })
     }
     

@@ -68,7 +68,14 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     var isPlayingVideo: Bool {
-        style == .carousel && mediaManager.media[centerIndexPath.item].mediaType.isVideo
+        guard style == .carousel && mediaManager.media[centerIndexPath.item].mediaType.isVideo else { return false }
+        
+        switch mediaManager.videoStatus.value {
+        case .autoplay, .play, .pause:
+            return true
+        case .autoplayEnded, .autoplayPause:
+            return false
+        }
     }
     
     // MARK: - Accessory properties
@@ -193,11 +200,7 @@ extension IFCollectionViewFlowLayout {
     override func layoutAttributesForElements(in rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
         guard let collectionView else { return nil }
         
-        var attributes: [UICollectionViewLayoutAttributes] = [UICollectionViewLayoutAttributes(forCellWith: centerIndexPath)]
-        
-        if centerIndexPath != transition.indexPath {
-            attributes.append(UICollectionViewLayoutAttributes(forCellWith: transition.indexPath))
-        }
+        var indexPaths: Set<IndexPath> = [centerIndexPath, transition.indexPath]
         
         let minimumPreviewingIndexPath = min(centerIndexPath, transition.indexPath)
         let maximumPreviewingIndexPath = max(centerIndexPath, transition.indexPath)
@@ -205,11 +208,11 @@ extension IFCollectionViewFlowLayout {
         
         if numberOfMiddleItems > 0 {
             for item in 1...numberOfMiddleItems {
-                attributes.append(UICollectionViewLayoutAttributes(forCellWith: IndexPath(item: minimumPreviewingIndexPath.item + item, section: 0)))
+                indexPaths.insert(IndexPath(item: minimumPreviewingIndexPath.item + item, section: 0))
             }
         }
 
-        let cellsWidth = min(attributes.reduce(0) { $0 + size(forItemAt: $1.indexPath).width }, collectionView.bounds.width / 2)
+        let cellsWidth = min(indexPaths.reduce(0) { $0 + size(forItemAt: $1).width }, collectionView.bounds.width / 2)
                 
         let numberOfNormalAttributes = (collectionView.bounds.width - cellsWidth) / itemSize.width
         
@@ -218,21 +221,20 @@ extension IFCollectionViewFlowLayout {
             let rightItem = maximumPreviewingIndexPath.item + item
             
             if leftItem >= 0 {
-                attributes.append(UICollectionViewLayoutAttributes(forCellWith: IndexPath(item: leftItem, section: 0)))
+                indexPaths.insert(IndexPath(item: leftItem, section: 0))
             }
             
             if rightItem < collectionView.numberOfItems(inSection: 0) {
-                attributes.append(UICollectionViewLayoutAttributes(forCellWith: IndexPath(item: rightItem, section: 0)))
+                indexPaths.insert(IndexPath(item: rightItem, section: 0))
             }
         }
         
-        for attribute in attributes {
-            attribute.size = size(forItemAt: attribute.indexPath)
-            attribute.frame.origin = CGPoint(x: originX(forItemAt: attribute.indexPath), y: verticalPadding)
+        return indexPaths.map {
+            let attribute = UICollectionViewLayoutAttributes(forCellWith: $0)
+            attribute.size = size(forItemAt: $0)
+            attribute.frame.origin = CGPoint(x: originX(forItemAt: $0), y: verticalPadding)
+            return attribute
         }
-        
-        return attributes
-        
         
 //        guard var superAttributes = super.layoutAttributesForElements(in: rect) else { return nil }
 //        
@@ -460,6 +462,8 @@ private extension IFCollectionViewFlowLayout {
         guard style == .carousel, indexPath >= minimumPreviewingIndexPath else { // before
             return CGFloat(indexPath.item) * minimumLineSpacing + CGFloat(indexPath.item) * itemSize.width + sectionInset.left
         }
+        
+        let maximumLineSpacing = isPlayingVideo ? playingVideoLineSpacing : maximumLineSpacing
 
         let centerIndexLineSpacing = minimumLineSpacing + (maximumLineSpacing - minimumLineSpacing) * (1 - transition.progress)
         let transitionIndexLineSpacing = minimumLineSpacing + (maximumLineSpacing - minimumLineSpacing) * transition.progress
@@ -506,6 +510,8 @@ private extension IFCollectionViewFlowLayout {
                 return originX(forItemAt: indexPath)
         }
         
+        let maximumLineSpacing = isPlayingVideo ? playingVideoLineSpacing : maximumLineSpacing
+        
         switch indexPath {
         case deletingIndexPath:
             let defaultOriginX = originX(forItemAt: indexPath)
@@ -543,7 +549,7 @@ private extension IFCollectionViewFlowLayout {
         case .flow:
             return previousItemOffset + minimumLineSpacing + itemSize.width / 2
         case .carousel:
-            return previousItemOffset + maximumLineSpacing + preferredSize(forItemAt: indexPath).width / 2
+            return previousItemOffset + (isPlayingVideo ? playingVideoLineSpacing : maximumLineSpacing) + preferredSize(forItemAt: indexPath).width / 2
         }
     }
     

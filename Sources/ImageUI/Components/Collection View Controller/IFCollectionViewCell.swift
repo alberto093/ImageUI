@@ -85,7 +85,7 @@ class IFCollectionViewCell: UICollectionViewCell {
         imageContainerView.transform = .identity
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         videoIndicatorView.isHidden = true
-        videoIndicatorView.frame.origin.x =  -videoIndicatorView.frame.size.width / 2.0
+        videoIndicatorView.frame.origin.x = -videoIndicatorView.frame.size.width / 2.0
         videoStatus = nil
     }
     

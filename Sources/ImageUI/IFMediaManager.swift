@@ -235,7 +235,7 @@ extension IFMediaManager {
                 placeholder: image.placeholder,
                 transition: .fadeIn(duration: 0.1, options: .curveEaseOut))
             loadingOptions.pipeline = imagesPipeline
-
+                
             NukeExtensions.loadImage(with: request, options: loadingOptions, into: sender, completion: { result in
                 completion?(result.map { (options.kind, $0.image) }.mapError { $0 })
             })

@@ -40,7 +40,10 @@ public final class IFVideo {
     }
     
     public let media: Source
+    
+    /// Cover should have the same size as media in width/height pixels
     public internal(set) var cover: Cover
+    
     public let placeholder: UIImage?
     
     public init(media: Source, cover: Cover = .seek(), placeholder: UIImage? = nil) {
@@ -84,6 +87,10 @@ extension IFVideo {
     struct Playback {
         var currentTime: CMTime
         let totalDuration: CMTime
+        
+        var progress: Double {
+            currentTime.seconds / totalDuration.seconds
+        }
     }
     
     enum AudioStatus {

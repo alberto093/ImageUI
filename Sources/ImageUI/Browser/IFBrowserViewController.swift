@@ -426,7 +426,7 @@ open class IFBrowserViewController: UIViewController {
     }
     
     private func updateVideoStatusIfNeeded(mediaIndex: Int) {
-        if mediaManager.media[mediaIndex].mediaType.isVideo {
+        if mediaManager.media[safe: mediaIndex]?.mediaType.isVideo == true {
             mediaManager.videoStatus.value = .autoplay
         }
     }
@@ -555,7 +555,7 @@ extension IFBrowserViewController: UIGestureRecognizerDelegate {
 extension IFBrowserViewController: IFPageViewControllerDelegate {
     func pageViewController(_ pageViewController: IFPageViewController, didScrollFrom startIndex: Int, direction: UIPageViewController.NavigationDirection, progress: CGFloat) {
         let endIndex = direction == .forward ? startIndex + 1 : startIndex - 1
-        collectionViewController.scroll(toItemAt: endIndex, progress: progress)
+        collectionViewController.scroll(from: startIndex, to: endIndex, progress: progress)
     }
     
     func pageViewController(_ pageViewController: IFPageViewController, didUpdatePage index: Int) {

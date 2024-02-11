@@ -80,8 +80,6 @@ class IFMediaViewController: UIViewController {
         case .video:
             if let image = imageView.image {
                 return image.size
-            } else if let asset = videoPlayerView.asset, let size = asset.tracks(withMediaType: .video).first?.naturalSize {
-                return size
             }
         case .pdf:
             return .zero
@@ -252,19 +250,17 @@ class IFMediaViewController: UIViewController {
                 }
             case .video:
                 imageView.image = nil
+                mediaManager.loadVideoCover(at: displayingMediaIndex) { [weak self] cover in
+                    self?.imageView.image = cover
+                    self?.updateScrollView()
+                }
+                
                 mediaManager.loadVideo(at: displayingMediaIndex) { [weak self] videoAsset in
                     self?.videoPlayerView.asset = videoAsset
 
                     if self?.viewDidAppear == true {
                         self?.mediaManager.videoStatus.value = .autoplay
                     }
-                    
-                    self?.updateScrollView()
-                }
-                
-                mediaManager.loadVideoCover(at: displayingMediaIndex) { [weak self] cover in
-                    self?.imageView.image = cover
-                    self?.updateScrollView()
                 }
             case .pdf:
                 break
