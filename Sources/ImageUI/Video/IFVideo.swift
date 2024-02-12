@@ -89,7 +89,7 @@ extension IFVideo {
         let totalDuration: CMTime
         
         var progress: Double {
-            currentTime.seconds / totalDuration.seconds
+            (currentTime.seconds / totalDuration.seconds).clamped(to: 0...1)
         }
     }
     

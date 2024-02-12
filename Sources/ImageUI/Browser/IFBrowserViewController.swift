@@ -51,6 +51,7 @@ open class IFBrowserViewController: UIViewController {
         static let soundButtonNavigationBarWidth: CGFloat = 52
         static let playPauseButtonToolbarWidth: CGFloat = 30
         static let playPauseButtonNavigationWidth: CGFloat = 42
+        static let videoPlaybackLabelBottomPadding: CGFloat = 6
     }
     
     // MARK: - View
@@ -142,14 +143,6 @@ open class IFBrowserViewController: UIViewController {
         }
     }
     
-    private var defaultBackgroundColor: UIColor {
-        if #available(iOS 13.0, *) {
-            return .systemBackground
-        } else {
-            return .white
-        }
-    }
-    
     // MARK: - Initializer
     public init(media: [IFMedia], initialIndex: Int = 0) {
         mediaManager = IFMediaManager(media: media, initialIndex: initialIndex)
@@ -164,9 +157,9 @@ open class IFBrowserViewController: UIViewController {
     // MARK: - Lifecycle
     public override func loadView() {
         view = UIView()
-        view.backgroundColor = defaultBackgroundColor
+        view.backgroundColor = .systemBackground
         
-        [pageContainerView, collectionToolbar, collectionContainerView].forEach(view.addSubview)
+        [pageContainerView, collectionToolbar, collectionContainerView, mediaManager.videoPlaybackLabel].forEach(view.addSubview)
         
         NSLayoutConstraint.activate([
             pageContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -221,6 +214,17 @@ open class IFBrowserViewController: UIViewController {
             collectionToolbar.invalidateIntrinsicContentSize()
             updateBars(toggle: false)
         }
+    }
+    
+    open override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        let videoPlaybackLabelOrigin = CGPoint(
+            x: view.frame.midX - mediaManager.videoPlaybackLabel.frame.width / 2,
+            y: collectionContainerView.frame.minY - Constants.videoPlaybackLabelBottomPadding - mediaManager.videoPlaybackLabel.frame.height)
+        
+        mediaManager.videoPlaybackLabel.defaultOrigin = videoPlaybackLabelOrigin
+        mediaManager.videoPlaybackLabel.frame.origin = videoPlaybackLabelOrigin
     }
     
     // MARK: - Style
@@ -339,23 +343,23 @@ open class IFBrowserViewController: UIViewController {
     
     private func updateBars(toggle: Bool) {
         guard isViewLoaded else { return }
-        guard !toggle else {
+        
+        if toggle {
             animateBarsToggling()
-            return
-        }
-        
-        let shouldHideToolbar = !isToolbarEnabled || isFullScreenMode
-        navigationController?.setToolbarHidden(shouldHideToolbar, animated: false)
-        
-        if !isCollectionViewEnabled, !collectionContainerView.isHidden {
-            updateToolbarMask()
-            UIView.animate(
-                withDuration: TimeInterval(UINavigationController.hideShowBarDuration),
-                animations: { [weak self] in [self?.collectionToolbar, self?.collectionContainerView].forEach { $0?.alpha = 0 } },
-                completion: { [weak self] _ in
-                    [self?.collectionToolbar, self?.collectionContainerView].forEach { $0?.isHidden = true }
-                    self?.collectionToolbar.layer.mask = nil
-            })
+        } else {
+            let shouldHideToolbar = !isToolbarEnabled || isFullScreenMode
+            navigationController?.setToolbarHidden(shouldHideToolbar, animated: false)
+            
+            if !isCollectionViewEnabled, !collectionContainerView.isHidden {
+                updateToolbarMask()
+                UIView.animate(
+                    withDuration: TimeInterval(UINavigationController.hideShowBarDuration),
+                    animations: { [weak self] in [self?.collectionToolbar, self?.collectionContainerView, self?.mediaManager.videoPlaybackLabel].forEach { $0?.alpha = 0 } },
+                    completion: { [weak self] _ in
+                        [self?.collectionToolbar, self?.collectionContainerView, self?.mediaManager.videoPlaybackLabel].forEach { $0?.isHidden = true }
+                        self?.collectionToolbar.layer.mask = nil
+                })
+            }
         }
     }
     
@@ -369,11 +373,12 @@ open class IFBrowserViewController: UIViewController {
         }
         
         if isToolbarEnabled, isToolbarHidden {
+            mediaManager.videoPlaybackLabel.alpha = 1
             navigationController?.isToolbarHidden = false
         }
         
         if isCollectionViewEnabled, isCollectionViewHidden {
-            [collectionToolbar, collectionContainerView].forEach {
+            [collectionToolbar, collectionContainerView, mediaManager.videoPlaybackLabel].forEach {
                 $0.isHidden = false
                 $0.alpha = 0
             }
@@ -390,14 +395,14 @@ open class IFBrowserViewController: UIViewController {
             UIView.animate(
             withDuration: TimeInterval(UINavigationController.hideShowBarDuration),
             animations: {
-                self.view.backgroundColor = self.isFullScreenMode ? .black : self.defaultBackgroundColor
+                self.view.backgroundColor = self.isFullScreenMode ? .black : .systemBackground
                 self.navigationController?.navigationBar.alpha = self.isFullScreenMode && self.isNavigationBarEnabled ? 0 : 1
                 if self.isToolbarEnabled {
                     self.navigationController?.toolbar.alpha = isToolbarHidden ? 1 : 0
                 }
                 
                 if self.isCollectionViewEnabled {
-                    [self.collectionToolbar, self.collectionContainerView].forEach { $0.alpha = isCollectionViewHidden ? 1 : 0 }
+                    [self.collectionToolbar, self.collectionContainerView, self.mediaManager.videoPlaybackLabel].forEach { $0.alpha = isCollectionViewHidden ? 1 : 0 }
                 }
                 
                 self.setNeedsStatusBarAppearanceUpdate()
@@ -413,7 +418,7 @@ open class IFBrowserViewController: UIViewController {
                 }
                 
                 if self.isCollectionViewEnabled {
-                    [self.collectionToolbar, self.collectionContainerView].forEach { $0.isHidden = !isCollectionViewHidden }
+                    [self.collectionToolbar, self.collectionContainerView, self.mediaManager.videoPlaybackLabel].forEach { $0.isHidden = !isCollectionViewHidden }
                     self.collectionToolbar.layer.mask = nil
                 }
             })

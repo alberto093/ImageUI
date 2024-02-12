@@ -69,6 +69,7 @@ class IFCollectionViewController: UIViewController {
     private let bouncer = IFScrollViewBouncingManager()
     private var pendingInvalidation: PendingInvalidation?
     private lazy var videoHandler = IFCollectionViewPanGestureHandler(collectionView: collectionView)
+    private var isSeekingVideo = false
     
     private var autoplayThumbObservation: AnyCancellable?
     private var videoPlayThumbObservation: AnyCancellable?
@@ -272,14 +273,13 @@ class IFCollectionViewController: UIViewController {
                 else { return }
                 
                 if let playback = video.playback {
-                    let progress = playback.progress
-                    let isTransitioning = self.collectionViewLayout.transition.indexPath != self.collectionViewLayout.centerIndexPath && self.collectionViewLayout.transition.progress >= 0.5
-                    
-                    #warning("When status == .play || .pause, add video indicator in the middle of collection view to avoid flickering by moving cell's video indicator")
-                    cell.configureVideoIndicator(progress: progress, isHidden: video.status == .autoplayEnded || video.status == .autoplayPause || isTransitioning)
+                    cell.configureVideo(
+                        playback: playback,
+                        showVideoIndicator: video.status != .autoplayEnded && video.status != .autoplayPause,
+                        showPlaybackTime: self.isSeekingVideo)
                     
                     if video.status == .play, !self.collectionView.isDragging, !self.collectionView.isDecelerating {
-                        self.collectionViewLayout.setupCellWidthAutoScroll(progress: progress)
+                        self.collectionViewLayout.setupCellWidthAutoScroll(progress: playback.progress)
                     }
                 }
             }
@@ -358,7 +358,7 @@ class IFCollectionViewController: UIViewController {
     private func beginSeekVideo(gestureLocation: CGPoint) {
         guard
             collectionViewLayout.isPlayingVideo,
-            let cell = collectionView.cellForItem(at: collectionViewLayout.centerIndexPath)
+            let cell = collectionView.cellForItem(at: collectionViewLayout.centerIndexPath) as? IFCollectionViewCell
         else { return }
         
         if cell.frame.containsIncludingBorders(gestureLocation) {
@@ -367,6 +367,15 @@ class IFCollectionViewController: UIViewController {
             }
         } else if mediaManager.videoStatus.value.isAutoplay {
             videoHandler.isInvalidated = true
+        }
+        
+        isSeekingVideo = true
+        
+        if let playback = mediaManager.videoPlayback.value {
+            cell.configureVideo(
+                playback: playback,
+                showVideoIndicator: mediaManager.videoStatus.value != .autoplayEnded && mediaManager.videoStatus.value != .autoplayPause,
+                showPlaybackTime: true)
         }
         
         delegate?.collectionViewControllerWillBeginSeekVideo(self)
@@ -401,6 +410,7 @@ extension IFCollectionViewController: UICollectionViewDataSource {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: IFCollectionViewCell.identifier, for: indexPath)
         
         if let cell = cell as? IFCollectionViewCell {
+            cell.mediaManager = mediaManager
             
             switch mediaManager.media[indexPath.item].mediaType {
             case .image:
@@ -563,10 +573,16 @@ extension IFCollectionViewController: UICollectionViewDelegate {
                 videoCell.videoStatus?.isAutoplay == false,
                 !mediaManager.videoStatus.value.isAutoplay
             {
-                let videoFrame = videoCell.frame
                 let cursor = collectionView.contentOffset.x + collectionView.frame.width / 2
-                let progress = ((cursor - videoFrame.minX) / (videoFrame.maxX - videoFrame.minX)).clamped(to: 0...1)
+                let progress = ((cursor - videoCell.frame.minX) / (videoCell.frame.maxX - videoCell.frame.minX)).clamped(to: 0...1)
                 mediaManager.videoPlayback.value?.currentTime = CMTimeMultiplyByFloat64(playback.totalDuration, multiplier: Float64(progress))
+                
+                if progress == 0 || progress == 1 {
+                    let cellBouncingDistance = (progress == 0 ? videoCell.frame.minX : videoCell.frame.maxX) - collectionView.frame.width / 2 - collectionView.contentOffset.x
+                    mediaManager.videoPlaybackLabel.frame.origin.x = mediaManager.videoPlaybackLabel.defaultOrigin.x + cellBouncingDistance
+                } else {
+                    mediaManager.videoPlaybackLabel.resetToDefaultPosition()
+                }
             }
         } else if
             collectionView.isDragging,
@@ -597,6 +613,7 @@ extension IFCollectionViewController: UICollectionViewDelegate {
             videoHandler.isInvalidated = false
             
             if velocity.x == 0 {
+                isSeekingVideo = false
                 delegate?.collectionViewControllerDidEndSeekVideo(self)
             }
         } else if velocity.x != 0 {
@@ -620,6 +637,7 @@ extension IFCollectionViewController: UICollectionViewDelegate {
     }
     
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
+        isSeekingVideo = false
         delegate?.collectionViewControllerDidEndSeekVideo(self)
     }
     
@@ -678,13 +696,45 @@ extension IFCollectionViewController: IFCollectionViewPanGestureHandlerDataSourc
 
 extension IFCollectionViewController: IFCollectionViewPanGestureHandlerDelegate {
     func collectionViewPanGestureHandlerDidEndDecelerating(_ collectionViewPanGestureHandler: IFCollectionViewPanGestureHandler) {
-        guard collectionViewLayout.isPlayingVideo else { return }
+        guard 
+            collectionViewLayout.isPlayingVideo,
+            let cell = collectionView.cellForItem(at: collectionViewLayout.centerIndexPath) as? IFCollectionViewCell
+        else { return }
+        
+        isSeekingVideo = false
+        
+        if let playback = mediaManager.videoPlayback.value {
+            cell.configureVideo(
+                playback: playback,
+                showVideoIndicator: mediaManager.videoStatus.value != .autoplayEnded && mediaManager.videoStatus.value != .autoplayPause,
+                showPlaybackTime: false)
+        }
+        
         delegate?.collectionViewControllerDidEndSeekVideo(self)
     }
 }
 
 extension IFCollectionViewController: IFCollectionViewDelegate {
-    func collectionView(_ collectionView: UICollectionView, didTap location: CGPoint) {
+    func collectionView(_ collectionView: UICollectionView, touchesBegan location: CGPoint) {
         beginSeekVideo(gestureLocation: location)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, touchesEnded location: CGPoint) {
+        guard
+            collectionViewLayout.isPlayingVideo,
+            let cell = collectionView.cellForItem(at: collectionViewLayout.centerIndexPath) as? IFCollectionViewCell,
+            cell.frame.containsIncludingBorders(location)
+        else { return }
+
+        isSeekingVideo = false
+        
+        if let playback = mediaManager.videoPlayback.value {
+            cell.configureVideo(
+                playback: playback,
+                showVideoIndicator: mediaManager.videoStatus.value != .autoplayEnded && mediaManager.videoStatus.value != .autoplayPause,
+                showPlaybackTime: false)
+        }
+        
+        delegate?.collectionViewControllerDidEndSeekVideo(self)
     }
 }

@@ -34,6 +34,9 @@ class IFCollectionViewCell: UICollectionViewCell {
         #warning("Missing algorithm to calculate dynamic aspect ratio")
         static let videoPlayThumbnailAspectRatio: CGFloat = 1.65
         static let videoThumbnailTransitionDuration: TimeInterval = 0.22
+        static let videoPlaybackLabelShowTransitionDuration: TimeInterval = 0.1
+        static let videoPlaybackLabelHideTransitionDuration: TimeInterval = 0.24
+        static let videoPlaybackLabelHideTransitionDelay: TimeInterval = 0.5
     }
     
     // MARK: - View
@@ -66,6 +69,9 @@ class IFCollectionViewCell: UICollectionViewCell {
         return layer
     }()
     
+    var mediaManager: IFMediaManager?
+    private var isAnimatingPlaybackLabelHidden = (isAnimating: false, hidden: false)
+    private var needsVideoPlaybackLayout = true
     private(set) var videoStatus: IFVideo.Status?
     
     // MARK: - Lifecycle
@@ -87,6 +93,9 @@ class IFCollectionViewCell: UICollectionViewCell {
         videoIndicatorView.isHidden = true
         videoIndicatorView.frame.origin.x = -videoIndicatorView.frame.size.width / 2.0
         videoStatus = nil
+        isAnimatingPlaybackLabelHidden = (false, false)
+        needsVideoPlaybackLayout = true
+        mediaManager?.videoPlaybackLabel.alpha = 0
     }
     
     override func layoutSubviews() {
@@ -167,9 +176,47 @@ class IFCollectionViewCell: UICollectionViewCell {
         self.videoStatus = videoStatus
     }
     
-    func configureVideoIndicator(progress: Double, isHidden: Bool) {
-        videoIndicatorView.frame.origin.x = bounds.width * CGFloat(progress) - videoIndicatorView.frame.size.width / 2
-        videoIndicatorView.isHidden = isHidden
+    func configureVideo(playback: IFVideo.Playback, showVideoIndicator: Bool, showPlaybackTime: Bool) {
+        let progress = CGFloat(playback.progress)
+        
+        if let mediaManager, needsVideoPlaybackLayout {
+            mediaManager.videoPlaybackLabel.text = playback.totalDuration.formattedProgress
+            let videoPlaybackLabelIntrinsicSize = mediaManager.videoPlaybackLabel.intrinsicContentSize
+            let videoPlaybackLabelInsets = UIEdgeInsets(top: 2, left: 12, bottom: 2, right: 12)
+            
+            let videoPlaybackLabelSize = CGSize(
+                width: videoPlaybackLabelIntrinsicSize.width + videoPlaybackLabelInsets.left + videoPlaybackLabelInsets.right,
+                height: videoPlaybackLabelIntrinsicSize.height + videoPlaybackLabelInsets.top + videoPlaybackLabelInsets.bottom
+            )
+            
+            mediaManager.videoPlaybackLabel.frame = CGRect(
+                x: mediaManager.videoPlaybackLabel.frame.origin.x + mediaManager.videoPlaybackLabel.frame.width / 2 - videoPlaybackLabelSize.width / 2,
+                y: mediaManager.videoPlaybackLabel.frame.origin.y + mediaManager.videoPlaybackLabel.frame.height - videoPlaybackLabelSize.height,
+                width: videoPlaybackLabelSize.width,
+                height: videoPlaybackLabelSize.height)
+            
+            needsVideoPlaybackLayout = false
+        }
+        
+        let videoProgressCenterX = bounds.width * progress
+        videoIndicatorView.frame.origin.x = videoProgressCenterX - videoIndicatorView.frame.width / 2
+        videoIndicatorView.isHidden = !showVideoIndicator
+        mediaManager?.videoPlaybackLabel.text = playback.currentTime.formattedProgress
+        
+        if !isAnimatingPlaybackLabelHidden.isAnimating || isAnimatingPlaybackLabelHidden.hidden == showPlaybackTime {
+            isAnimatingPlaybackLabelHidden = (true, !showPlaybackTime)
+            self.mediaManager?.videoPlaybackLabel.layer.removeAllAnimations()
+
+            UIView.animate(
+                withDuration: showPlaybackTime ? Constants.videoPlaybackLabelShowTransitionDuration : Constants.videoPlaybackLabelHideTransitionDuration,
+                delay: showPlaybackTime ? 0 : Constants.videoPlaybackLabelHideTransitionDelay,
+                animations: { [weak self] in
+                    self?.mediaManager?.videoPlaybackLabel.alpha = showPlaybackTime ? 1 : 0
+                }, completion: { [weak self] _ in
+                    self?.isAnimatingPlaybackLabelHidden = (false, !showPlaybackTime)
+                }
+            )
+        }
     }
 }
 

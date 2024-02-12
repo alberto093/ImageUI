@@ -90,10 +90,10 @@ class IFCollectionViewPanGestureHandler {
             animations: { [weak collectionView] _, time in
                 collectionView?.contentOffset.x = parameters.value(at: time).x
             },
-            completion: { [weak self] finished in
-                guard let self else { return }
+            completion: { [weak self] completed in
+                guard let self, completed else { return }
                 
-                if finished, intersection != nil {
+                if intersection != nil {
                     let velocity = parameters.velocity(at: duration)
                     self.bounce(velocity: velocity)
                 } else {
@@ -121,8 +121,8 @@ class IFCollectionViewPanGestureHandler {
             animations: { [weak collectionView] _, time in
                 collectionView?.contentOffset.x = (restOffset + parameters.value(at: time)).x
             },
-            completion: { [weak self] _ in
-                guard let self else { return }
+            completion: { [weak self] completed in
+                guard let self, completed else { return }
                 self.delegate?.collectionViewPanGestureHandlerDidEndDecelerating(self)
             })
     }

@@ -38,6 +38,18 @@ class IFMediaManager {
     
     private let imagesPipeline: ImagePipeline
     
+    let videoPlaybackLabel: IFVideoPlaybackLabel = {
+        let label = IFVideoPlaybackLabel()
+        label.alpha = 0
+        label.clipsToBounds = true
+        label.textAlignment = .center
+        label.font = .systemFont(ofSize: 11)
+        label.textColor = .label
+        label.layer.cornerRadius = 3
+        label.backgroundColor = .systemBackground.withAlphaComponent(0.8)
+        return label
+    }()
+    
     let photosManager = PHCachingImageManager()
     
     var prefersAspectFillZoom = false

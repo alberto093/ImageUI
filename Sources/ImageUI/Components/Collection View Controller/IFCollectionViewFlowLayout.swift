@@ -167,7 +167,6 @@ extension IFCollectionViewFlowLayout {
         let progress = progress.clamped(to: 0...1)
         
         if progress == 1 {
-            #warning("should invalidate?")
             update(centerIndexPath: indexPath)
         } else {
             transition = Transition(indexPath: indexPath, progress: progress)
