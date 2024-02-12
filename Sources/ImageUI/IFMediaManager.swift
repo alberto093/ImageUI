@@ -72,6 +72,7 @@ class IFMediaManager {
         didSet { oldValue.map(photosManager.cancelImageRequest) }
     }
     
+    private let imagePipelineDelegate = ImagePipelineDefaultDelegate()
     private let videoGeneratorCache = IFVideoThumbnailGeneratorCache()
     private var bag: Set<AnyCancellable> = []
     
@@ -80,9 +81,9 @@ class IFMediaManager {
         self.placeholder = placeholder
         self.displayingMediaIndex = min(max(initialIndex, 0), media.count - 1)
         
-        self.imagesPipeline = ImagePipeline { configuration in
+        self.imagesPipeline = ImagePipeline(delegate: ImagePipelineDefaultDelegate()) { configuration in
             let registry = ImageDecoderRegistry()
-            registry.register(ImageDecoders.Video.init)
+            registry.register(ImageDecoders.AVAsset.init)
             
             configuration.makeImageDecoder = {
                 registry.decoder(for: $0)
@@ -290,12 +291,18 @@ extension IFMediaManager {
             if let cachedVideo = imagesPipeline.cache[url], let asset = cachedVideo.userInfo[.videoAssetKey] as? AVAsset {
                 completion(asset)
             } else {
-                DispatchQueue.global(qos: index == displayingMediaIndex ? .userInitiated : .userInteractive).async {
-                    let asset = AVAsset(url: url)
-                    DispatchQueue.main.async { [weak self] in
-                        self?.imagesPipeline.cache[url] = ImageContainer(image: UIImage(), userInfo: [.videoAssetKey: asset])
-                        completion(asset)
-                    }
+                let priority: ImageRequest.Priority
+                
+                if index == displayingMediaIndex {
+                    priority = .veryHigh
+                } else {
+                    priority = .normal
+                }
+                
+                let request = ImageRequest(url: url, priority: priority, userInfo: [.videoUrlKey: url])
+                
+                imagesPipeline.loadImage(with: request) { result in
+                    completion((try? result.get())?.container.userInfo[.videoAssetKey] as? AVAsset)
                 }
             }
         case .video(let avAsset):
@@ -416,3 +423,13 @@ extension IFMediaManager {
         self.displayingLinkMetadata = metadata
     }
 }
+
+private final class ImagePipelineDefaultDelegate: ImagePipelineDelegate {
+    private let dataLoader = LazyDataLoader()
+    
+    func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> DataLoading {
+        dataLoader.request = request
+        return dataLoader
+    }
+}
+
