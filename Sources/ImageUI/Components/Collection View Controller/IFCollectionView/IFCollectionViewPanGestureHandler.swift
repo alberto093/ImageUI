@@ -32,6 +32,7 @@ class IFCollectionViewPanGestureHandler {
     private var lastPanGestureDate: Date?
     
     var isInvalidated = false
+    private var allowsAutoInvalidation = true
     
     private var contentOffsetAnimation: IFTimerAnimation? {
         didSet {
@@ -54,6 +55,7 @@ class IFCollectionViewPanGestureHandler {
         contentOffsetAnimation = nil
         initialContentOffset = collectionView.contentOffset
         rubberBounds = dataSource?.collectionViewPanGestureHandlerRubberBounds(self)
+        allowsAutoInvalidation = true
     }
     
     private func completeGesture(velocity: CGPoint) {
@@ -141,8 +143,17 @@ class IFCollectionViewPanGestureHandler {
                 
                 let autoInvalidationFrame = rubberBounds.insetBy(dx: Constants.minimumDistanceToInvalidate, dy: 0)
                 
-                if !autoInvalidationFrame.containsIncludingBorders(initialContentOffset) || autoInvalidationFrame.contains(translation) {
-                    isInvalidated = true
+                if allowsAutoInvalidation {
+                    if initialContentOffset.x < autoInvalidationFrame.minX, translation.x > 0 {
+                        isInvalidated = true
+                    } else if initialContentOffset.x > autoInvalidationFrame.maxX, translation.x < 0 {
+                        isInvalidated = true
+                    } else {
+                        allowsAutoInvalidation = false
+                        isInvalidated = false
+                    }
+                } else {
+                    isInvalidated = false
                 }
                 
                 if !isInvalidated {

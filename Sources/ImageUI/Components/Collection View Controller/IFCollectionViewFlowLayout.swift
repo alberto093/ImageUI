@@ -167,6 +167,7 @@ extension IFCollectionViewFlowLayout {
         let progress = progress.clamped(to: 0...1)
         
         if progress == 1 {
+            #warning("should invalidate?")
             update(centerIndexPath: indexPath)
         } else {
             transition = Transition(indexPath: indexPath, progress: progress)
@@ -234,30 +235,6 @@ extension IFCollectionViewFlowLayout {
             attribute.frame.origin = CGPoint(x: originX(forItemAt: $0), y: verticalPadding)
             return attribute
         }
-        
-//        guard var superAttributes = super.layoutAttributesForElements(in: rect) else { return nil }
-//        
-//        var exclusiveAttributeIndexPaths: Set<IndexPath> = [centerIndexPath, transition.indexPath]
-//        
-//        for superAttribute in superAttributes {
-//            if exclusiveAttributeIndexPaths.contains(superAttribute.indexPath) {
-//                exclusiveAttributeIndexPaths.remove(superAttribute.indexPath)
-//            }
-//        }
-//        
-//        exclusiveAttributeIndexPaths.forEach {
-//            superAttributes.append(UICollectionViewLayoutAttributes(forCellWith: $0))
-//        }
-//        
-//        var layoutAttributes: [UICollectionViewLayoutAttributes] = []
-//        for superAttribute in superAttributes {
-//            guard let layoutAttribute = superAttribute.copy() as? UICollectionViewLayoutAttributes else { continue }
-//            layoutAttribute.size = size(forItemAt: layoutAttribute.indexPath)
-//            layoutAttribute.frame.origin = CGPoint(x: originX(forItemAt: layoutAttribute.indexPath), y: verticalPadding)
-//            layoutAttributes.append(layoutAttribute)
-//        }
-//        
-//        return layoutAttributes
     }
     
     override func layoutAttributesForItem(at indexPath: IndexPath) -> UICollectionViewLayoutAttributes? {

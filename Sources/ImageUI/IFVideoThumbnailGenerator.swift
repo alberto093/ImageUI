@@ -37,8 +37,8 @@ class IFVideoThumbnailGenerator {
     let assetDuration: CMTime
     let thumbnailDuration: CMTime
     
-    private(set) var autoplayLastThumbnail = CurrentValueSubject<UIImage?, Never>(nil)
-    private(set) var thumbnails = CurrentValueSubject<[Int: UIImage], Never>([:])
+    private var autoplayLastThumbnail: UIImage?
+    private var thumbnails: [Int: UIImage] = [:]
     
     private let imageGenerator: AVAssetImageGenerator
     private var thumbnailTimes: [NSValue]?
@@ -66,31 +66,34 @@ class IFVideoThumbnailGenerator {
         imageGenerator.cancelAllCGImageGeneration()
     }
     
-    func generateAutoplayLastThumbnail() {
-        guard autoplayLastThumbnail.value == nil else { return }
-        
-        imageGenerator.cancelAllCGImageGeneration()
-        
-        var time = assetDuration
-        time.value /= 2
-        
-        imageGenerator.generateCGImagesAsynchronously(forTimes: [NSValue(time: time)]) { [weak self] _, cgImage, _, result, _ in
-            switch result {
-            case .succeeded:
-                let image = cgImage.map(UIImage.init)
-                
-                DispatchQueue.main.async {
-                    self?.autoplayLastThumbnail.value = image
+    func generateAutoplayLastThumbnail(completion: @escaping (UIImage?) -> Void) {
+        if let autoplayLastThumbnail {
+            completion(autoplayLastThumbnail)
+        } else {
+            imageGenerator.cancelAllCGImageGeneration()
+            
+            var time = assetDuration
+            time.value /= 2
+            
+            imageGenerator.generateCGImagesAsynchronously(forTimes: [NSValue(time: time)]) { [weak self] _, cgImage, _, result, _ in
+                switch result {
+                case .succeeded:
+                    let image = cgImage.map(UIImage.init)
+                    
+                    DispatchQueue.main.async {
+                        self?.autoplayLastThumbnail = image
+                        completion(image)
+                    }
+                case .cancelled:
+                    self?.generateAutoplayLastThumbnail(completion: completion)
+                default:
+                    break
                 }
-            case .cancelled:
-                self?.generateAutoplayLastThumbnail()
-            default:
-                break
             }
         }
     }
     
-    func generateImages(currentTime: CMTime) {
+    func generateImages(currentTime: CMTime, completion: @escaping ([Int: UIImage]) -> Void) {
         imageGenerator.cancelAllCGImageGeneration()
         
         if thumbnailTimes == nil {
@@ -101,7 +104,7 @@ class IFVideoThumbnailGenerator {
         }
         
         thumbnailTimes = thumbnailTimes!.enumerated().compactMap {
-            thumbnails.value[$0.offset] == nil ? $0.element : nil
+            thumbnails[$0.offset] == nil ? $0.element : nil
         }
         
         let currentTime = currentTime.convertScale(thumbnailDuration.timescale, method: .quickTime)
@@ -140,7 +143,8 @@ class IFVideoThumbnailGenerator {
             let image = UIImage(cgImage: cgImage)
             
             DispatchQueue.main.async {
-                self?.thumbnails.value[thumbnailIndex] = image
+                self?.thumbnails[thumbnailIndex] = image
+                completion(self?.thumbnails ?? [:])
             }
         }
     }

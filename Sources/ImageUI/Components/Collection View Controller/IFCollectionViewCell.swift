@@ -69,7 +69,7 @@ class IFCollectionViewCell: UICollectionViewCell {
         return layer
     }()
     
-    var mediaManager: IFMediaManager?
+    weak var mediaManager: IFMediaManager?
     private var isAnimatingPlaybackLabelHidden = (isAnimating: false, hidden: false)
     private var needsVideoPlaybackLayout = true
     private(set) var videoStatus: IFVideo.Status?
@@ -167,8 +167,8 @@ class IFCollectionViewCell: UICollectionViewCell {
                 with: imageView,
                 duration: Constants.videoThumbnailTransitionDuration,
                 options: .transitionCrossDissolve,
-                animations: {
-                    imageView.image = tuple.element
+                animations: { [weak imageView] in
+                    imageView?.image = tuple.element
                 },
                 completion: nil)
         }
@@ -205,7 +205,7 @@ class IFCollectionViewCell: UICollectionViewCell {
         
         if !isAnimatingPlaybackLabelHidden.isAnimating || isAnimatingPlaybackLabelHidden.hidden == showPlaybackTime {
             isAnimatingPlaybackLabelHidden = (true, !showPlaybackTime)
-            self.mediaManager?.videoPlaybackLabel.layer.removeAllAnimations()
+            mediaManager?.videoPlaybackLabel.layer.removeAllAnimations()
 
             UIView.animate(
                 withDuration: showPlaybackTime ? Constants.videoPlaybackLabelShowTransitionDuration : Constants.videoPlaybackLabelHideTransitionDuration,
