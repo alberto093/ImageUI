@@ -279,9 +279,21 @@ class IFMediaViewController: UIViewController {
         guard contentSize.width > 0, contentSize.height > 0 else {
             return
         }
+
+        let safeAreaFrame = view.safeAreaLayoutGuide.layoutFrame
+        let horizontalSafeAreaInsets = view.safeAreaInsets.left + view.safeAreaInsets.right
+        let verticalSafeAreaInsets = view.safeAreaInsets.top + view.safeAreaInsets.bottom
         
-        let aspectFitZoom = min(view.frame.width / contentSize.width, view.frame.height / contentSize.height)
-        aspectFillZoom = max(view.frame.width / contentSize.width, view.frame.height / contentSize.height)
+        let aspectFitZoom: CGFloat
+
+        if verticalSafeAreaInsets > horizontalSafeAreaInsets {
+            aspectFitZoom = min(view.frame.width / contentSize.width, safeAreaFrame.height / contentSize.height)
+            aspectFillZoom = max(view.frame.width / contentSize.width, safeAreaFrame.height / contentSize.height)
+        } else {
+            aspectFitZoom = min(safeAreaFrame.width / contentSize.width, view.frame.height / contentSize.height)
+            aspectFillZoom = max(safeAreaFrame.width / contentSize.width, view.frame.height / contentSize.height)
+        }
+
         let zoomMultiplier = (scrollView.zoomScale - scrollView.minimumZoomScale) / (scrollView.maximumZoomScale - scrollView.minimumZoomScale)
 
         let minimumZoomScale: CGFloat
@@ -391,12 +403,17 @@ class IFMediaViewController: UIViewController {
         case .play:
             mediaManager.videoStatus.value = .pause
         default:
-            fatalError()
+            break
         }
     }
     
     @objc private func applicationWillEnterForeground() {
-        videoPlayerView.playerLayer.player?.play()
+        switch mediaManager.videoStatus.value {
+        case .autoplay, .play:
+            videoPlayerView.playerLayer.player?.play()
+        default:
+            break
+        }
     }
 }
 
