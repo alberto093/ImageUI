@@ -12,7 +12,7 @@ let package = Package(
         .library(name: "ImageUI", targets: ["ImageUI"])
     ],
     dependencies: [
-        .package(url: "https://github.com/kean/Nuke", exact: "12.3.0"),
+        .package(url: "https://github.com/kean/Nuke", exact: "12.4.0"),
     ],
     targets: [
         .target(

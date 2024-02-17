@@ -14,6 +14,13 @@ protocol IFCollectionViewDelegate: UICollectionViewDelegate {
 }
 
 class IFCollectionView: UICollectionView {
+    
+    private(set) lazy var videoHandler = IFCollectionViewPanGestureHandler(collectionView: self)
+
+    override var isDecelerating: Bool {
+        super.isDecelerating || videoHandler.isDecelerating
+    }
+    
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesBegan(touches, with: event)
 

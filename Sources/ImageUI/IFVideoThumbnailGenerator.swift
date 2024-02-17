@@ -148,4 +148,8 @@ class IFVideoThumbnailGenerator {
             }
         }
     }
+    
+    func cancelAllImageGeneration() {
+        imageGenerator.cancelAllCGImageGeneration()
+    }
 }

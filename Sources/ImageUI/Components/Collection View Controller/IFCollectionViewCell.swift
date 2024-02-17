@@ -73,6 +73,7 @@ class IFCollectionViewCell: UICollectionViewCell {
     private var isAnimatingPlaybackLabelHidden = (isAnimating: false, hidden: false)
     private var needsVideoPlaybackLayout = true
     private(set) var videoStatus: IFVideo.Status?
+    private var boundsObservation: NSKeyValueObservation?
     
     // MARK: - Lifecycle
     override init(frame: CGRect) {
@@ -83,6 +84,10 @@ class IFCollectionViewCell: UICollectionViewCell {
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setup()
+    }
+    
+    deinit {
+        boundsObservation?.invalidate()
     }
     
     override func prepareForReuse() {
@@ -100,6 +105,7 @@ class IFCollectionViewCell: UICollectionViewCell {
     
     override func layoutSubviews() {
         super.layoutSubviews()
+        
         videoIndicatorView.frame.size.height = bounds.height - Constants.videoIndicatorBorderWidth
         videoIndicatorViewBorderLayer.frame.size.height = bounds.height + Constants.videoIndicatorBorderWidth
     }
@@ -136,6 +142,19 @@ class IFCollectionViewCell: UICollectionViewCell {
             stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             stackView.topAnchor.constraint(equalTo: contentView.topAnchor)])
+        
+        boundsObservation = observe(\.bounds, options: [.old, .new]) { [weak self] _, change in
+            guard 
+                let self,
+                let progress = self.mediaManager?.videoPlayback.value?.progress,
+                let oldWidth = change.oldValue?.width,
+                let newWidth = change.newValue?.width,
+                oldWidth != newWidth 
+            else { return }
+            
+            let videoProgressCenterX = bounds.width * CGFloat(progress)
+            self.videoIndicatorView.frame.origin.x = videoProgressCenterX - self.videoIndicatorView.frame.width / 2
+        }
     }
     
     private func prepareStackView(numberOfImages: Int) {
@@ -225,6 +244,7 @@ extension IFCollectionViewCell: Nuke_ImageDisplaying {
         prepareStackView(numberOfImages: 1)
         (stackView.arrangedSubviews.first as? UIImageView)?.image = image
         videoIndicatorView.isHidden = true
+        videoStatus = nil
     }
 }
 

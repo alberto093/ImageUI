@@ -18,7 +18,7 @@ protocol IFCollectionViewPanGestureHandlerDelegate: AnyObject {
 
 class IFCollectionViewPanGestureHandler {
     private struct Constants {
-        static let minimumDistanceToInvalidate: CGFloat = 15
+        static let autoInvalidationInset: CGFloat = 10
     }
     
     weak var dataSource: IFCollectionViewPanGestureHandlerDataSource?
@@ -33,6 +33,10 @@ class IFCollectionViewPanGestureHandler {
     
     var isInvalidated = false
     private var allowsAutoInvalidation = true
+    
+    var isDecelerating: Bool {
+        contentOffsetAnimation?.isRunning == true
+    }
     
     private var contentOffsetAnimation: IFTimerAnimation? {
         didSet {
@@ -137,29 +141,37 @@ class IFCollectionViewPanGestureHandler {
         switch sender.state {
         case .began:
             invalidateDataSource()
+            
+            if let rubberBounds {
+                isInvalidated = initialContentOffset.x < rubberBounds.minX || initialContentOffset.x > rubberBounds.maxX
+            } else {
+                isInvalidated = true
+            }
         case .changed:
             if let rubberBounds {
                 let translation = sender.translation(in: collectionView)
-                
-                let autoInvalidationFrame = rubberBounds.insetBy(dx: Constants.minimumDistanceToInvalidate, dy: 0)
+                let proposedContentOffset = CGPoint(x: initialContentOffset.x - translation.x, y: initialContentOffset.y)
+                let autoInvalidationFrame = rubberBounds.insetBy(dx: Constants.autoInvalidationInset, dy: 0)
                 
                 if allowsAutoInvalidation {
-                    if initialContentOffset.x < autoInvalidationFrame.minX, translation.x > 0 {
+                    if initialContentOffset.x < autoInvalidationFrame.minX, proposedContentOffset.x < autoInvalidationFrame.minX {
                         isInvalidated = true
-                    } else if initialContentOffset.x > autoInvalidationFrame.maxX, translation.x < 0 {
+                    } else if initialContentOffset.x > autoInvalidationFrame.maxX, proposedContentOffset.x > autoInvalidationFrame.maxX {
                         isInvalidated = true
                     } else {
                         allowsAutoInvalidation = false
-                        isInvalidated = false
+                        isInvalidated = initialContentOffset.x < rubberBounds.minX || initialContentOffset.x > rubberBounds.maxX
                     }
                 } else {
-                    isInvalidated = false
+                    isInvalidated = initialContentOffset.x < rubberBounds.minX || initialContentOffset.x > rubberBounds.maxX
                 }
                 
                 if !isInvalidated {
                     let rubberBand = IFRubberBand(dims: rubberBounds.size, bounds: rubberBounds)
-                    collectionView.contentOffset.x = rubberBand.clamp(CGPoint(x: initialContentOffset.x - translation.x, y: initialContentOffset.y)).x
+                    collectionView.contentOffset.x = rubberBand.clamp(proposedContentOffset).x
                 }
+            } else {
+                isInvalidated = true
             }
         case .ended, .cancelled:
             if !isInvalidated {
@@ -170,8 +182,6 @@ class IFCollectionViewPanGestureHandler {
                 
                 completeGesture(velocity: -velocity)
             }
-            
-            isInvalidated = false
         case  .possible, .failed, .recognized:
             break
         @unknown default:

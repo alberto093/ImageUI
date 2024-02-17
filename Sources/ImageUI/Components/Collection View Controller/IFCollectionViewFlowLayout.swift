@@ -48,8 +48,8 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     var verticalPadding: CGFloat = 1
     var minimumItemWidthMultiplier: CGFloat = 0.5
     var maximumItemWidthMultiplier: CGFloat = 34 / 9
-    var maximumLineSpacingMultiplier: CGFloat = 0.26
-    var playingVideoLineSpacingMultiplier: CGFloat = 1.85
+    var maximumLineSpacingMultiplier: CGFloat = 0.28
+    var playingVideoLineSpacing: CGFloat = 21
     
     var maximumItemWidth: CGFloat {
         itemSize.width * maximumItemWidthMultiplier
@@ -80,13 +80,11 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     
     // MARK: - Accessory properties
     private(set) var transition: Transition
-    private var videoAutoScrollFrame: CGRect?
     private var animatedLayoutAttributes: [IndexPath: UICollectionViewLayoutAttributes] = [:]
     private var deletingIndexPath: IndexPath?
     private var centerIndexPathBeforeUpdate: IndexPath?
     private var preferredItemsRatio: [IndexPath: CGFloat] = [:]
     private lazy var maximumLineSpacing = minimumLineSpacing
-    private lazy var playingVideoLineSpacing = maximumLineSpacing
     private var needsInitialContentOffset: Bool
     
     override var collectionViewContentSize: CGSize {
@@ -149,7 +147,6 @@ extension IFCollectionViewFlowLayout {
     func update(centerIndexPath: IndexPath, shouldInvalidate: Bool = false) {
         self.centerIndexPath = centerIndexPath
         self.transition = Transition(indexPath: centerIndexPath)
-        self.videoAutoScrollFrame = nil
         updatePreferredItemSize()
         
         guard shouldInvalidate else { return }
@@ -176,15 +173,25 @@ extension IFCollectionViewFlowLayout {
     }
     
     func setupCellWidthAutoScroll(progress: Double) {
-        guard let collectionView else { return }
-        
-        if videoAutoScrollFrame == nil {
-            let itemSize = size(forItemAt: centerIndexPath)
-            videoAutoScrollFrame = CGRect(origin: CGPoint(x: contentOffsetX(forItemAt: centerIndexPath), y: verticalPadding), size: itemSize)
+        collectionView?.contentOffset.x = contentOffsetX(forItemAt: centerIndexPath)
+    }
+    
+    func contentOffsetX(forItemAt indexPath: IndexPath) -> CGFloat {
+        let previousItemOffset = CGFloat(indexPath.item) * itemSize.width + CGFloat(indexPath.item - 1) * minimumLineSpacing
+
+        switch style {
+        case .flow:
+            return previousItemOffset + minimumLineSpacing + itemSize.width / 2
+        case .carousel:
+            let itemOriginX = previousItemOffset + (isPlayingVideo ? playingVideoLineSpacing : maximumLineSpacing)
+            let itemWidth = preferredSize(forItemAt: indexPath).width
+            
+            if mediaManager.videoStatus.value == .play || mediaManager.videoStatus.value == .pause, let videoProgress = mediaManager.videoPlayback.value?.progress {
+                return itemOriginX + itemWidth * videoProgress
+            } else {
+                return itemOriginX + itemWidth / 2
+            }
         }
-        
-        let x = videoAutoScrollFrame!.origin.x - videoAutoScrollFrame!.width / 2 + videoAutoScrollFrame!.width * progress
-        collectionView.setContentOffset(CGPoint(x: x, y: collectionView.contentOffset.y), animated: false)
     }
 }
 
@@ -518,17 +525,6 @@ private extension IFCollectionViewFlowLayout {
         }
     }
     
-    func contentOffsetX(forItemAt indexPath: IndexPath) -> CGFloat {
-        let previousItemOffset = CGFloat(indexPath.item) * itemSize.width + CGFloat(indexPath.item - 1) * minimumLineSpacing
-
-        switch style {
-        case .flow:
-            return previousItemOffset + minimumLineSpacing + itemSize.width / 2
-        case .carousel:
-            return previousItemOffset + (isPlayingVideo ? playingVideoLineSpacing : maximumLineSpacing) + preferredSize(forItemAt: indexPath).width / 2
-        }
-    }
-    
     func update() {
         guard let collectionView = collectionView else { return }
         let height = collectionView.bounds.height - verticalPadding * 2
@@ -536,7 +532,6 @@ private extension IFCollectionViewFlowLayout {
         let horizontalPadding = collectionView.bounds.width / 2
         sectionInset = UIEdgeInsets(top: verticalPadding, left: horizontalPadding, bottom: verticalPadding, right: horizontalPadding)
         maximumLineSpacing = height * maximumLineSpacingMultiplier
-        playingVideoLineSpacing = maximumLineSpacing * playingVideoLineSpacingMultiplier
     }
     
     func setInitialContentOffsetIfNeeded() {

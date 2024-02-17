@@ -8,7 +8,6 @@
 import Foundation
 import AVFoundation
 
-#warning("limitare semplicemente la cache contenendo al massimo X thumbnailGenerator")
 class IFVideoThumbnailGeneratorCache {
     typealias Completion = (IFVideoThumbnailGenerator) -> Void
     private let queue = DispatchQueue(label: "IFVideoThumbnailGeneratorQueue", qos: .userInteractive)
