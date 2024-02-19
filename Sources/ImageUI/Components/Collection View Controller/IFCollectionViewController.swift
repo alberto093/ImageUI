@@ -251,22 +251,17 @@ class IFCollectionViewController: UIViewController {
                 guard let self else { return }
                 
                 if status.newValue.isAutoplay || (status.newValue == .play && status.oldValue != .pause) || (status.newValue == .pause && status.oldValue != .play) {
-                    self.collectionView.performBatchUpdates(
-                        {
-                            self.updateVideoCell(at: self.collectionViewLayout.centerIndexPath)
-                            
-                            if status.newValue.isAutoplay {
-                                self.collectionViewLayout.update(centerIndexPath: self.collectionViewLayout.centerIndexPath, shouldInvalidate: true)
-                            } else if let cell = self.collectionView.cellForItem(at: self.collectionViewLayout.centerIndexPath) {
-                                let contentOffsetX = self.collectionViewLayout.contentOffsetX(forItemAt: self.collectionViewLayout.centerIndexPath)
-                                let playbackOffsetX = contentOffsetX + cell.frame.width * (self.mediaManager.videoPlayback.value?.progress ?? 0)
-                                
-                                self.collectionView.setContentOffset(CGPoint(x: contentOffsetX + playbackOffsetX, y: self.collectionView.contentOffset.y), animated: true)
-                            }
-                        }, completion: { _ in
-                            self.collectionView.videoHandler.invalidateDataSource()
-                        }
-                    )
+                    self.updateVideoCell(at: self.collectionViewLayout.centerIndexPath)
+                    
+                    if status.newValue.isAutoplay {
+                        self.collectionViewLayout.update(centerIndexPath: self.collectionViewLayout.centerIndexPath, shouldInvalidate: true)
+                    } else if let cell = self.collectionView.cellForItem(at: self.collectionViewLayout.centerIndexPath) {
+                        let contentOffsetX = self.collectionViewLayout.contentOffsetX(forItemAt: self.collectionViewLayout.centerIndexPath)
+                        let playbackOffsetX = contentOffsetX + cell.frame.width * (self.mediaManager.videoPlayback.value?.progress ?? 0)
+                        
+                        self.collectionView.setContentOffset(CGPoint(x: contentOffsetX + playbackOffsetX, y: self.collectionView.contentOffset.y), animated: true)
+                    }
+                    self.collectionView.videoHandler.invalidateDataSource()
                 } 
                 
                 if (status.newValue == .play && status.oldValue == .pause) || (status.newValue == .pause && status.oldValue == .play) {
@@ -581,7 +576,6 @@ extension IFCollectionViewController: UICollectionViewDelegate {
                 let videoIndexPath = collectionViewLayout.centerIndexPath
                 updatedisplayingMediaIndexIfNeeded(with: centerIndexPath.item)
                 updateCollectionViewLayout(style: .flow)
-                mediaManager.videoStatus.value = .autoplay
                 updateVideoCell(at: videoIndexPath)
             } else if
                 let playback = mediaManager.videoPlayback.value,
@@ -654,6 +648,8 @@ extension IFCollectionViewController: UICollectionViewDelegate {
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let centerIndexPath = collectionViewLayout.centerIndexPath
+        
         guard updatedisplayingMediaIndexIfNeeded(with: indexPath.item) else { return }
 
         UIView.transition(
@@ -661,6 +657,7 @@ extension IFCollectionViewController: UICollectionViewDelegate {
             duration: Constants.carouselSelectionDuration,
             options: .curveEaseOut,
             animations: {
+                self.updateVideoCell(at: centerIndexPath)
                 self.collectionViewLayout.setupTransition(to: indexPath, progress: 1)
                 self.collectionViewLayout.invalidateLayout()
                 self.collectionView.layoutIfNeeded()

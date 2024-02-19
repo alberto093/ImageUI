@@ -121,10 +121,6 @@ class IFMediaViewController: UIViewController {
         viewDidAppear = true
         
         mediaManager.updatedisplayingMedia(index: displayingMediaIndex)
-        
-        if mediaManager.media[displayingMediaIndex].mediaType.isVideo {
-            mediaManager.videoStatus.value = .autoplay
-        }
     }
     
     override func viewDidDisappear(_ animated: Bool) {

@@ -107,6 +107,8 @@ class IFMediaManager {
     func updatedisplayingMedia(index: Int) {
         guard media.indices.contains(index) else { return }
         displayingMediaIndex = index
+        videoStatus.value = .autoplay
+        videoPlayback.value?.currentTime.value = 0
         
         if #available(iOS 13.0, *) {
             prepareDisplayingMetadata()

@@ -430,12 +430,6 @@ open class IFBrowserViewController: UIViewController {
         title = mediaManager.media[safe: imageIndex]?.title
     }
     
-    private func updateVideoStatusIfNeeded(mediaIndex: Int) {
-        if mediaManager.media[safe: mediaIndex]?.mediaType.isVideo == true {
-            mediaManager.videoStatus.value = .autoplay
-        }
-    }
-    
     private func updateToolbarMask() {
         toolbarMaskLayer.frame = CGRect(
             x: Constants.toolbarContentInset.left,
@@ -565,7 +559,6 @@ extension IFBrowserViewController: IFPageViewControllerDelegate {
     
     func pageViewController(_ pageViewController: IFPageViewController, didUpdatePage index: Int) {
         updateTitleIfNeeded(imageIndex: index)
-        updateVideoStatusIfNeeded(mediaIndex: index)
         setupBars(mediaIndex: index, animated: false)
         delegate?.browserViewController(self, willDisplayImageAt: index)
     }
