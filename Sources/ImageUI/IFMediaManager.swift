@@ -227,7 +227,7 @@ extension IFMediaManager {
             
             if PHAssetResource.assetResources(for: asset).contains(where: { $0.uniformTypeIdentifier == kUTTypeGIF as String }) {
                 requestID = photosManager.requestImageDataAndOrientation(for: asset, options: request) { data, _, _, userInfo in
-                    let isCancelled = (userInfo?[PHImageResultIsDegradedKey] as? NSNumber)?.boolValue == true
+                    let isCancelled = (userInfo?[PHImageCancelledKey] as? NSNumber)?.boolValue == true
                     
                     guard !isCancelled else { return }
                     let image = data.flatMap(UIImage.init)
@@ -238,7 +238,7 @@ extension IFMediaManager {
                 }
             } else {
                 requestID = photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { image, userInfo in
-                    let isCancelled = (userInfo?[PHImageResultIsDegradedKey] as? NSNumber)?.boolValue == true
+                    let isCancelled = (userInfo?[PHImageCancelledKey] as? NSNumber)?.boolValue == true
                     
                     guard !isCancelled else { return }
 
@@ -337,7 +337,11 @@ extension IFMediaManager {
             completion(avAsset)
             return nil
         case .asset(let phAsset):
-            let requestID = photosManager.requestAVAsset(forVideo: phAsset, options: nil) { avAsset, _, _ in
+            let requestID = photosManager.requestAVAsset(forVideo: phAsset, options: nil) { avAsset, _, userInfo in
+                let isCancelled = (userInfo?[PHImageCancelledKey] as? NSNumber)?.boolValue == true
+                
+                guard !isCancelled else { return }
+
                 DispatchQueue.main.async {
                     completion(avAsset)
                 }
