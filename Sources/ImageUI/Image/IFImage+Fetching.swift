@@ -57,6 +57,4 @@ extension IFImage {
             self.deliveryMode = deliveryMode
         }
     }
-    
-    typealias Result = Swift.Result<(kind: Kind, resource: UIImage), Error>
 }

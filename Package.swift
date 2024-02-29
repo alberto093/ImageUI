@@ -13,12 +13,14 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/kean/Nuke", exact: "12.4.0"),
+        .package(url: "https://github.com/Flipboard/FLAnimatedImage", exact: "1.0.17")
     ],
     targets: [
         .target(
             name: "ImageUI",
             dependencies: [
                 "Nuke",
+                "FLAnimatedImage",
                 .product(name: "NukeExtensions", package: "Nuke"),
                 .product(name: "NukeUI", package: "Nuke"),
                 .product(name: "NukeVideo", package: "Nuke")],

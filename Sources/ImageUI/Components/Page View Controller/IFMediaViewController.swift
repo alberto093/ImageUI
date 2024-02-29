@@ -27,6 +27,7 @@ import AVFoundation
 import UIKit
 import NukeVideo
 import PDFKit
+import FLAnimatedImage
 
 class IFMediaViewController: UIViewController {
     private struct Constants {
@@ -37,7 +38,7 @@ class IFMediaViewController: UIViewController {
     
     @IBOutlet private weak var scrollView: UIScrollView!
     @IBOutlet private weak var contentView: IFMediaContentView!
-    @IBOutlet private weak var imageView: UIImageView!
+    @IBOutlet private weak var imageView: FLAnimatedImageView!
     @IBOutlet private weak var videoPlayerView: VideoPlayerView!
     @IBOutlet private weak var pdfView: PDFView!
     
@@ -135,7 +136,6 @@ class IFMediaViewController: UIViewController {
         if needsFirstLayout {
             needsFirstLayout = false
             updateScrollView()
-//            updatePDFView()
         }
     }
     
@@ -178,6 +178,7 @@ class IFMediaViewController: UIViewController {
         scrollView.contentInsetAdjustmentBehavior = .never
         
         pdfView.backgroundColor = .clear
+        pdfView.autoScales = true
         
         videoPlayerView.isLooping = false
         videoPlayerView.animatesFrameChanges = false
@@ -239,9 +240,23 @@ class IFMediaViewController: UIViewController {
         timeObserver = nil
         videoPlayerView.asset = nil
         UIView.performWithoutAnimation {
+            if case .pdf = mediaManager.media[safe: displayingMediaIndex]?.mediaType {
+                scrollView.isHidden = true
+                pdfView.isHidden = false
+            } else {
+                scrollView.isHidden = false
+                pdfView.isHidden = true
+            }
+            
             switch mediaManager.media[safe: displayingMediaIndex]?.mediaType {
             case .image:
-                mediaManager.loadImage(at: displayingMediaIndex, options: IFImage.LoadOptions(kind: .original), sender: imageView) { [weak self] _ in
+                mediaManager.loadImage(at: displayingMediaIndex, options: IFImage.LoadOptions(kind: .original)) { [weak self] container in
+                    self?.imageView.image = container.image
+                    
+                    if container.type == .gif, let data = container.data {
+                        self?.imageView.animatedImage = FLAnimatedImage(animatedGIFData: data)
+                    }
+
                     self?.updateScrollView()
                 }
             case .video:
@@ -259,7 +274,10 @@ class IFMediaViewController: UIViewController {
                     }
                 }
             case .pdf:
-                break
+                mediaManager.loadPDF(at: displayingMediaIndex) { [weak self] document in
+                    self?.pdfView.document = document
+                    self?.updateScrollView()
+                }
             case .none:
                 break
             }

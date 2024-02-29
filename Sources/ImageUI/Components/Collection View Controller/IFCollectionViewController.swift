@@ -159,7 +159,7 @@ class IFCollectionViewController: UIViewController {
                     if progress < 0.5 {
                         updateCollectionViewLayout(transitionIndexPath: sourceIndexPath, progress: progress, animated: true)
                         collectionViewLayout.update(centerIndexPath: sourceIndexPath)
-                        updateVideoCell(at: destinationIndexPath)
+                        configureCell(at: destinationIndexPath)
                     }
                 } else {
                     updateCollectionViewLayout(transitionIndexPath: destinationIndexPath, progress: progress > 0.5 ? 1 : progress, animated: progress > 0.5)
@@ -171,7 +171,7 @@ class IFCollectionViewController: UIViewController {
                     if progress > 0.5 {
                         updateCollectionViewLayout(transitionIndexPath: destinationIndexPath, progress: progress, animated: true)
                         collectionViewLayout.update(centerIndexPath: destinationIndexPath)
-                        updateVideoCell(at: sourceIndexPath)
+                        configureCell(at: sourceIndexPath)
                     }
                 } else {
                     updateCollectionViewLayout(transitionIndexPath: sourceIndexPath, progress: progress < 0.5 ? 1 : (1 - progress), animated: progress < 0.5)
@@ -179,10 +179,10 @@ class IFCollectionViewController: UIViewController {
             case (true, true): // video -> video
                 if progress > 0.5, collectionViewLayout.centerIndexPath.item != destinationIndex {
                     updateCollectionViewLayout(transitionIndexPath: destinationIndexPath, progress: 1, animated: true)
-                    updateVideoCell(at: sourceIndexPath)
+                    configureCell(at: sourceIndexPath)
                 } else if progress < 0.5, collectionViewLayout.centerIndexPath.item != sourceIndex {
                     updateCollectionViewLayout(transitionIndexPath: sourceIndexPath, progress: 1, animated: true)
-                    updateVideoCell(at: destinationIndexPath)
+                    configureCell(at: destinationIndexPath)
                 }
             default:
                 return
@@ -251,7 +251,7 @@ class IFCollectionViewController: UIViewController {
                 guard let self else { return }
                 
                 if status.newValue.isAutoplay || (status.newValue == .play && status.oldValue != .pause) || (status.newValue == .pause && status.oldValue != .play) {
-                    self.updateVideoCell(at: self.collectionViewLayout.centerIndexPath)
+                    self.configureCell(at: self.collectionViewLayout.centerIndexPath)
                     
                     if status.newValue.isAutoplay {
                         self.collectionViewLayout.update(centerIndexPath: self.collectionViewLayout.centerIndexPath, shouldInvalidate: true)
@@ -333,7 +333,7 @@ class IFCollectionViewController: UIViewController {
             options: .curveEaseOut,
             animations: {
                 if style == .flow, self.collectionViewLayout.isPlayingVideo {
-                    self.updateVideoCell(at: self.collectionViewLayout.centerIndexPath)
+                    self.configureCell(at: self.collectionViewLayout.centerIndexPath)
                     self.collectionView.videoHandler.invalidateDataSource()
                 }
                 
@@ -418,85 +418,26 @@ extension IFCollectionViewController: UICollectionViewDataSource {
         if let cell = cell as? IFCollectionViewCell {
             cell.mediaManager = mediaManager
             
-            switch mediaManager.media[indexPath.item].mediaType {
-            case .image:
-                mediaManager.loadImage(
-                    at: indexPath.item,
-                    options: IFImage.LoadOptions(preferredSize: collectionViewLayout.itemSize, kind: .thumbnail),
-                    sender: cell) { [weak self] result in
-                        guard let self = self, case .success = result else { return }
-                        self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
-                    }
-            case .video:
-                configureVideoCell(cell, indexPath: indexPath)
-            case .pdf:
-                break
-            }
-            
+            configureCell(cell, indexPath: indexPath)
         }
         
         return cell
     }
     
-    func configureVideoCell(_ cell: IFCollectionViewCell, indexPath: IndexPath) {
-        mediaManager.videoThumbnailGenerator(at: indexPath.item) { [weak self] generator in
-            guard let self else { return }
-            
-            if indexPath == collectionViewLayout.centerIndexPath, collectionViewLayout.style == .carousel {
-                
-                switch self.mediaManager.videoStatus.value {
-                case .autoplay:
-                    if let generator {
-                        generator.generateAutoplayLastThumbnail { [weak self, weak cell] thumb in
-                            self?.mediaManager.loadVideoCover(at: indexPath.item) { [weak cell] cover in
-                                guard let self, let cell else { return }
-                                cell.configureVideo(thumbnails: [cover, thumb ?? cover], videoStatus: self.mediaManager.videoStatus.value)
-                                self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
-                            }
-                        }
-                    } else {
-                        self.mediaManager.loadVideoCover(at: indexPath.item) { [weak self, weak cell] image in
-                            guard let self, let cell else { return }
-                            cell.configureVideo(thumbnails: [image, image], videoStatus: self.mediaManager.videoStatus.value)
-                            self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
-                        }
-                    }
-                case .autoplayPause, .autoplayEnded:
-                    generator?.cancelAllImageGeneration()
-                    self.mediaManager.loadVideoCover(at: indexPath.item) { [weak self, weak cell] image in
-                        cell?.nuke_display(image: image, data: nil)
-                        self?.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
-                    }
-                case .play, .pause:
-                    self.mediaManager.loadVideoCover(at: indexPath.item) { [weak self, weak cell] cover in
-                        guard let self else { return }
-                        if let generator {
-                            generator.generateImages(currentTime: .zero) { [weak self, weak cell] thumbnails in
-                                guard let self, let cell else { return }
-                                let thumbnails = (0..<generator.numberOfThumbnails).map { thumbnails[$0] ?? cover }
-                                cell.configureVideo(thumbnails: thumbnails, videoStatus: self.mediaManager.videoStatus.value)
-                                self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
-                            }
-                        } else if let cell {
-                            cell.configureVideo(thumbnails: [cover, cover].compactMap { $0 }, videoStatus: self.mediaManager.videoStatus.value)
-                            self.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
-                        }
-                    }
-                }
-            } else {
-                generator?.cancelAllImageGeneration()
-                
-                mediaManager.loadVideoCover(at: indexPath.item) { [weak self, weak cell] image in
-                    cell?.nuke_display(image: image, data: nil)
-                    self?.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
-                }
+    func configureCell(_ cell: IFCollectionViewCell, indexPath: IndexPath) {
+        cell.loadMedia(
+            at: indexPath.item,
+            itemSize: collectionViewLayout.itemSize,
+            isPreview: indexPath == collectionViewLayout.centerIndexPath && collectionViewLayout.style == .carousel,
+            completion: { [weak self] in
+                self?.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
             }
-        }
+        )
     }
     
-    func updateVideoCell(at indexPath: IndexPath) {
-        guard let cell = collectionView.cellForItem(at: indexPath) as? IFCollectionViewCell, mediaManager.media[indexPath.item].mediaType.isVideo else { return }
-        configureVideoCell(cell, indexPath: indexPath)
+    func configureCell(at indexPath: IndexPath) {
+        guard let cell = collectionView.cellForItem(at: indexPath) as? IFCollectionViewCell else { return }
+        configureCell(cell, indexPath: indexPath)
     }
 }
 
@@ -576,7 +517,7 @@ extension IFCollectionViewController: UICollectionViewDelegate {
                 let videoIndexPath = collectionViewLayout.centerIndexPath
                 updatedisplayingMediaIndexIfNeeded(with: centerIndexPath.item)
                 updateCollectionViewLayout(style: .flow)
-                updateVideoCell(at: videoIndexPath)
+                configureCell(at: videoIndexPath)
             } else if
                 let playback = mediaManager.videoPlayback.value,
                 let videoCell = collectionView.cellForItem(at: collectionViewLayout.centerIndexPath) as? IFCollectionViewCell,
@@ -657,7 +598,7 @@ extension IFCollectionViewController: UICollectionViewDelegate {
             duration: Constants.carouselSelectionDuration,
             options: .curveEaseOut,
             animations: {
-                self.updateVideoCell(at: centerIndexPath)
+                self.configureCell(at: centerIndexPath)
                 self.collectionViewLayout.setupTransition(to: indexPath, progress: 1)
                 self.collectionViewLayout.invalidateLayout()
                 self.collectionView.layoutIfNeeded()

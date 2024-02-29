@@ -27,6 +27,8 @@ import Nuke
 import NukeUI
 import NukeExtensions
 import Photos
+import PDFKit
+import CoreServices
 
 #if canImport(LinkPresentation)
 import LinkPresentation
@@ -68,10 +70,6 @@ class IFMediaManager {
     
     private lazy var displayingLinkMetadata: LPLinkMetadata? = nil
     
-    private var assetHighQualityRequestID: PHImageRequestID? {
-        didSet { oldValue.map(photosManager.cancelImageRequest) }
-    }
-    
     private let imagePipelineDelegate = ImagePipelineDefaultDelegate()
     private let videoGeneratorCache = IFVideoThumbnailGeneratorCache()
     private var bag: Set<AnyCancellable> = []
@@ -84,7 +82,8 @@ class IFMediaManager {
         self.imagesPipeline = ImagePipeline(delegate: ImagePipelineDefaultDelegate()) { configuration in
             let registry = ImageDecoderRegistry()
             registry.register(ImageDecoders.AVAsset.init)
-            
+            registry.register(ImageDecoders.PDFDocument.init)
+
             configuration.makeImageDecoder = {
                 registry.decoder(for: $0)
             }
@@ -178,60 +177,80 @@ class IFMediaManager {
 
 // MARK: - Image
 extension IFMediaManager {
-    @MainActor
+    
+    @discardableResult
     func loadImage(
         at index: Int,
         options: IFImage.LoadOptions,
-        sender: ImageDisplayingView,
-        completion: ((IFImage.Result) -> Void)? = nil) {
+        completion: ((ImageContainer) -> Void)? = nil
+    ) -> Nuke.Cancellable? {
         
         guard
             let media = media[safe: index],
             case .image(let image) = media.mediaType
-        else { return }
+        else { return nil }
+        
+        let preferredSize = options.preferredSize.map { CGSize(width: $0.width * UIScreen.main.scale, height: $0.height * UIScreen.main.scale) }
         
         switch image[options.kind] {
         case .image(let image):
-            sender.nuke_display(image: image, data: nil)
+            let state = CancellableState()
+            
+            if let preferredSize = preferredSize {
+                DispatchQueue.global(qos: .userInteractive).async {
+                    let image = image.resizedToFill(size: preferredSize)
+                    DispatchQueue.main.async {
+                        if !state.isCancelled {
+                            completion?(ImageContainer(image: image))
+                        }
+                    }
+                }
+            } else {
+                completion?(ImageContainer(image: image))
+            }
 
-            completion?(.success((options.kind, image)))
-
+            return state
         case .asset(let asset):
-            // Required
-            let preferredSize = options.preferredSize.map { CGSize(width: $0.width * UIScreen.main.scale, height: $0.height * UIScreen.main.scale) }
             let size = preferredSize ?? CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
             let request = PHImageRequestOptions()
 
-            if options.preferredSize == nil {
+            if preferredSize == nil {
                 request.resizeMode = .none
             }
             
             request.deliveryMode = options.deliveryMode
             request.isNetworkAccessAllowed = true
 
-            let requestID = self.photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { [weak sender] image, userInfo in
-                if let image = image {
-                    sender?.nuke_display(image: image, data: nil)
-
-                    if (userInfo?[PHImageResultIsDegradedKey] as? NSNumber)?.boolValue == true {
-                        completion?(.success((kind: .thumbnail, resource: image)))
-                    } else {
-                        completion?(.success((kind: .original, resource: image)))
+            
+            let placeholder = image.placeholder ?? placeholder.image
+            let requestID: PHImageRequestID
+            
+            if PHAssetResource.assetResources(for: asset).contains(where: { $0.uniformTypeIdentifier == kUTTypeGIF as String }) {
+                requestID = photosManager.requestImageDataAndOrientation(for: asset, options: request) { data, _, _, userInfo in
+                    let isCancelled = (userInfo?[PHImageResultIsDegradedKey] as? NSNumber)?.boolValue == true
+                    
+                    guard !isCancelled else { return }
+                    let image = data.flatMap(UIImage.init)
+                    
+                    DispatchQueue.main.async {
+                        completion?(ImageContainer(image: image ?? placeholder, type: .gif, data: data))
                     }
-                } else {
-                    if (userInfo?[PHImageCancelledKey] as? NSNumber)?.boolValue == true {
-                        completion?(.failure(IFError.cancelled))
-                    } else if let error = userInfo?[PHImageErrorKey] as? Error {
-                        completion?(.failure(error))
-                    } else {
-                        completion?(.failure(IFError.failed))
+                }
+            } else {
+                requestID = photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { image, userInfo in
+                    let isCancelled = (userInfo?[PHImageResultIsDegradedKey] as? NSNumber)?.boolValue == true
+                    
+                    guard !isCancelled else { return }
+
+                    DispatchQueue.main.async {
+                        completion?(ImageContainer(image: image ?? placeholder))
                     }
                 }
             }
             
-            if options.kind == .original {
-                assetHighQualityRequestID = requestID
-            }
+            
+            
+            return PHImageTask(manager: photosManager, requestID: requestID)
         case .url(let url):
             let priority: ImageRequest.Priority
             
@@ -243,55 +262,62 @@ extension IFMediaManager {
 
             let request = ImageRequest(
                 url: url,
-                processors: options.preferredSize.map { [ImageProcessors.Resize(size: $0)] } ?? [],
+                processors: preferredSize.map { [ImageProcessors.Resize(size: $0)] } ?? [],
                 priority: priority)
-
-            var loadingOptions = ImageLoadingOptions(
-                placeholder: image.placeholder,
-                transition: .fadeIn(duration: 0.1, options: .curveEaseOut))
-            loadingOptions.pipeline = imagesPipeline
-                
-            NukeExtensions.loadImage(with: request, options: loadingOptions, into: sender, completion: { result in
-                completion?(result.map { (options.kind, $0.image) }.mapError { $0 })
-            })
+            
+            return imagesPipeline.loadImage(with: request) { [weak self] result in
+                guard let self else { return }
+                let placeholder = image.placeholder ?? self.placeholder.image
+          
+                let container = (try? result.get())?.container ?? ImageContainer(image: placeholder)
+                DispatchQueue.main.async {
+                    completion?(container)
+                }
+            }
         }
     }
 }
 
 // MARK: - Video
 extension IFMediaManager {
-    func videoThumbnailGenerator(at index: Int, completion: @escaping (IFVideoThumbnailGenerator?) -> Void) {
-        loadVideo(at: index) { [weak self] asset in
+    
+    @discardableResult
+    func videoThumbnailGenerator(at index: Int, completion: @escaping (IFVideoThumbnailGenerator?) -> Void) -> Nuke.Cancellable {
+        let nestedTask = NestedTask()
+        
+        let videoTask = loadVideo(at: index) { [weak self] asset in
             if let asset {
                 self?.videoGeneratorCache.createGenerator(at: index, asset: asset) { generator in
-                    DispatchQueue.main.async {
-                        completion(generator)
+                    if !nestedTask.isCancelled {
+                        DispatchQueue.main.async {
+                            completion(generator)
+                        }
                     }
                 }
             } else {
                 completion(nil)
             }
         }
+        
+        if let videoTask {
+            nestedTask.addSubtask(videoTask)
+        }
+        
+        return nestedTask
     }
     
-    func loadVideo(at index: Int, completion: @escaping ((AVAsset?) -> Void)) {
+    @discardableResult
+    func loadVideo(at index: Int, completion: @escaping (AVAsset?) -> Void) -> Nuke.Cancellable? {
         guard
             let media = media[safe: index],
             case .video(let video) = media.mediaType
-        else { return }
-        
-        let completion: (AVAsset?) -> Void = { [weak self] asset in
-            if self?.displayingMediaIndex == index, let asset {
-                self?.videoGeneratorCache.createGenerator(at: index, asset: asset)
-            }
-            
-            completion(asset)
-        }
+        else { return nil }
         
         switch video.media {
         case .url(let url):
             if let cachedVideo = imagesPipeline.cache[url], let asset = cachedVideo.userInfo[.videoAssetKey] as? AVAsset {
                 completion(asset)
+                return nil
             } else {
                 let priority: ImageRequest.Priority
                 
@@ -303,68 +329,259 @@ extension IFMediaManager {
                 
                 let request = ImageRequest(url: url, priority: priority, userInfo: [.videoUrlKey: url])
                 
-                imagesPipeline.loadImage(with: request) { result in
+                return imagesPipeline.loadImage(with: request) { result in
                     completion((try? result.get())?.container.userInfo[.videoAssetKey] as? AVAsset)
                 }
             }
         case .video(let avAsset):
             completion(avAsset)
+            return nil
         case .asset(let phAsset):
-            photosManager.requestAVAsset(forVideo: phAsset, options: nil) { avAsset, _, _ in
+            let requestID = photosManager.requestAVAsset(forVideo: phAsset, options: nil) { avAsset, _, _ in
                 DispatchQueue.main.async {
                     completion(avAsset)
                 }
             }
+            
+            return PHImageTask(manager: photosManager, requestID: requestID)
         }
     }
     
-    #warning("Add preferredSize and scaling image not in main thread")
-    func loadVideoCover(at index: Int, completion: ((UIImage) -> Void)? = nil) {
+    @discardableResult
+    func loadVideoCover(at index: Int, preferredSize: CGSize? = nil, completion: ((UIImage) -> Void)? = nil) -> Nuke.Cancellable? {
         guard
             let media = media[safe: index],
             case .video(let video) = media.mediaType
-        else { return }
+        else { return nil }
+        
+        let preferredSize = preferredSize.map { CGSize(width: $0.width * UIScreen.main.scale, height: $0.height * UIScreen.main.scale) }
         
         switch video.cover {
         case .image(let source):
             switch source {
             case .image(let image):
-                completion?(image)
-            case .asset(let asset):
-                let size = CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
-                let request = PHImageRequestOptions()
-                request.resizeMode = .none
-                request.isNetworkAccessAllowed = true
+                let state = CancellableState()
                 
-                photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { [weak self] image, userInfo in
-                    guard let self else { return }
-                    completion?(image ?? video.placeholder ?? self.placeholder.video)
+                if let preferredSize {
+                    DispatchQueue.global(qos: .userInteractive).async {
+                        let image = image.resizedToFill(size: preferredSize)
+                        DispatchQueue.main.async {
+                            if !state.isCancelled {
+                                completion?(image)
+                            }
+                        }
+                    }
+                } else {
+                    completion?(image)
                 }
-            case .url(let url):
-                imagesPipeline.loadImage(with: url) { [weak self] result in
+
+                return state
+            case .asset(let asset):
+                let size = preferredSize ?? CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
+                let request = PHImageRequestOptions()
+
+                if preferredSize == nil {
+                    request.resizeMode = .none
+                }
+                
+                request.isNetworkAccessAllowed = true
+
+                let requestID = photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { [weak self] requestedImage, _ in
                     guard let self else { return }
-                    let image = try? result.get().image
-                    completion?(image ?? video.placeholder ?? self.placeholder.video)
+                    let image = requestedImage ?? video.placeholder ?? self.placeholder.video
+                    completion?(image)
+                }
+                
+                return PHImageTask(manager: photosManager, requestID: requestID)
+            case .url(let url):
+                let request = ImageRequest(
+                    url: url,
+                    processors: preferredSize.map { [ImageProcessors.Resize(size: $0)] } ?? [],
+                    priority: index == displayingMediaIndex ? .high : .normal)
+                
+                return imagesPipeline.loadImage(with: request) { [weak self] result in
+                    guard let self else { return }
+                    let image = (try? result.get())?.image ?? video.placeholder ?? self.placeholder.video
+                    DispatchQueue.main.async {
+                        completion?(image)
+                    }
                 }
             }
         case .seek(let time):
-            loadVideo(at: index) { asset in
-                guard let asset else { return }
+            let nestedTask = NestedTask()
+            let videoTask = loadVideo(at: index) { [weak self] asset in
+                let placeholder = video.placeholder ?? self?.placeholder.video ?? UIImage()
+                
+                guard let asset else {
+                    completion?(placeholder)
+                    return
+                }
                 
                 DispatchQueue.global(qos: .userInteractive).async {
                     let generator = AVAssetImageGenerator(asset: asset)
                     generator.appliesPreferredTrackTransform = true
-                    generator.generateCGImagesAsynchronously(forTimes: [NSValue(time: time)]) { [weak self] _, cgImage, _, _, _ in
-                        guard let self else { return }
+                    generator.generateCGImagesAsynchronously(forTimes: [NSValue(time: time)]) { _, cgImage, _, _, _ in
+                        let originalImage = cgImage.map(UIImage.init) ?? placeholder
+                        let scaledImage = preferredSize.map { originalImage.resizedToFill(size: $0) } ?? originalImage
                         
-                        let image = cgImage.map(UIImage.init) ?? video.placeholder ?? self.placeholder.video
                         DispatchQueue.main.async {
-                            video.cover = .image(.image(image))
+                            video.cover = .image(.image(originalImage))
+                            
+                            if !nestedTask.isCancelled {
+                                completion?(scaledImage)
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if let videoTask {
+                nestedTask.addSubtask(videoTask)
+            }
+            
+            return nestedTask
+        }
+    }
+}
+
+// MARK: - PDF
+extension IFMediaManager {
+    
+    @discardableResult
+    func loadPDF(at index: Int, completion: @escaping (PDFDocument?) -> Void) -> Nuke.Cancellable? {
+        guard
+            let media = media[safe: index],
+            case .pdf(let pdf) = media.mediaType
+        else { return nil }
+        
+        switch pdf.media {
+        case .url(let url):
+            if let cachedDocument = imagesPipeline.cache[url], let document = cachedDocument.userInfo[.pdfAssetKey] as? PDFDocument {
+                completion(document)
+                return nil
+            } else {
+                let priority: ImageRequest.Priority
+                
+                if index == displayingMediaIndex {
+                    priority = .veryHigh
+                } else {
+                    priority = .normal
+                }
+                
+                let request = ImageRequest(url: url, priority: priority, userInfo: [.pdfAssetKey: url])
+                
+                return imagesPipeline.loadImage(with: request) { result in
+                    completion((try? result.get())?.container.userInfo[.pdfAssetKey] as? PDFDocument)
+                }
+            }
+        case .data(let data):
+            let state = CancellableState()
+            
+            DispatchQueue.global(qos: .userInteractive).async {
+                let document = PDFDocument(data: data) ?? PDFDocument()
+                
+                DispatchQueue.main.async {
+                    pdf.media = .document(document)
+                    if !state.isCancelled {
+                        completion(document)
+                    }
+                }
+            }
+            
+            return state
+        case .document(let document):
+            completion(document)
+            return nil
+        }
+    }
+    
+    @discardableResult
+    func loadPDFThumbnail(at index: Int, preferredSize: CGSize? = nil, completion: ((UIImage) -> Void)? = nil) -> Nuke.Cancellable? {
+        guard
+            let media = media[safe: index],
+            case .pdf(let pdf) = media.mediaType
+        else { return nil }
+        
+        switch pdf.cover {
+        case .image(let image):
+            switch image {
+            case .url(let url):
+                let request = ImageRequest(
+                    url: url,
+                    processors: preferredSize.map { [ImageProcessors.Resize(size: $0)] } ?? [],
+                    priority: index == displayingMediaIndex ? .high : .normal)
+                
+                return imagesPipeline.loadImage(with: request) { [weak self] result in
+                    guard let self else { return }
+                    let image = (try? result.get())?.image ?? pdf.placeholder ?? self.placeholder.pdf
+                    DispatchQueue.main.async {
+                        completion?(image)
+                    }
+                }
+            case .image(let image):
+                let state = CancellableState()
+                
+                if let preferredSize {
+                    DispatchQueue.global(qos: .userInteractive).async {
+                        let image = image.resizedToFill(size: preferredSize)
+                        DispatchQueue.main.async {
+                            if !state.isCancelled {
+                                completion?(image)
+                            }
+                        }
+                    }
+                } else {
+                    completion?(image)
+                }
+                
+                return state
+            case .asset(let asset):
+                let size = preferredSize ?? CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
+                let request = PHImageRequestOptions()
+
+                if preferredSize == nil {
+                    request.resizeMode = .none
+                }
+                
+                request.isNetworkAccessAllowed = true
+
+                let requestID = photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { [weak self] requestedImage, _ in
+                    guard let self else { return }
+                    let image = requestedImage ?? pdf.placeholder ?? self.placeholder.pdf
+                    completion?(image)
+                }
+                
+                return PHImageTask(manager: photosManager, requestID: requestID)
+                
+            }
+        case .page(let pageIndex):
+            let nestedTask = NestedTask()
+            
+            let pdfTask = loadPDF(at: index) { [weak self] document in
+                let placeholder = pdf.placeholder ?? self?.placeholder.pdf ?? UIImage()
+                
+                guard let document else {
+                    completion?(placeholder)
+                    return
+                }
+
+                DispatchQueue.global(qos: .userInteractive).async {
+                    let image = document.page(at: pageIndex)?.asImage ?? placeholder
+                    DispatchQueue.main.async {
+                        pdf.cover = .image(.image(image))
+                        
+                        if !nestedTask.isCancelled {
                             completion?(image)
                         }
                     }
                 }
             }
+            
+            if let pdfTask {
+                nestedTask.addSubtask(pdfTask)
+            }
+            
+            return nestedTask
         }
     }
 }
@@ -434,4 +651,3 @@ private final class ImagePipelineDefaultDelegate: ImagePipelineDelegate {
         return dataLoader
     }
 }
-

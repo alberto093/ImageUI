@@ -26,6 +26,7 @@ import AVFoundation
 import UIKit
 import Combine
 
+#warning("add resize to fill images preferredSize: CGSize? = nil")
 class IFVideoThumbnailGenerator {
     private enum Constants {
         static let minimumNumberOfThumbnails: Int = 2
@@ -44,13 +45,17 @@ class IFVideoThumbnailGenerator {
     private var thumbnailTimes: [NSValue]?
     private var bag: Set<AnyCancellable> = []
     
+    deinit {
+        imageGenerator.cancelAllCGImageGeneration()
+    }
+    
     init(asset: AVAsset) {
         self.asset = asset
         self.imageGenerator = AVAssetImageGenerator(asset: asset)
         self.imageGenerator.appliesPreferredTrackTransform = true
         
         let assetDuration = asset.duration
-        
+
         if assetDuration.value == 0 {
             self.numberOfThumbnails = Constants.minimumNumberOfThumbnails
         } else {
@@ -60,10 +65,6 @@ class IFVideoThumbnailGenerator {
 
         self.assetDuration = assetDuration
         self.thumbnailDuration = CMTimeMultiplyByRatio(assetDuration, multiplier: 1, divisor: Int32(numberOfThumbnails))
-    }
-    
-    deinit {
-        imageGenerator.cancelAllCGImageGeneration()
     }
     
     func generateAutoplayLastThumbnail(completion: @escaping (UIImage?) -> Void) {
@@ -107,7 +108,7 @@ class IFVideoThumbnailGenerator {
             thumbnails[$0.offset] == nil ? $0.element : nil
         }
         
-        let currentTime = currentTime.convertScale(thumbnailDuration.timescale, method: .quickTime)
+        let currentTime = currentTime.convertScale(thumbnailDuration.timescale, method: .roundTowardZero)
         let thumbnailIndex = Int(currentTime.value / thumbnailDuration.value)
 
         var sortedTimes: [NSValue]

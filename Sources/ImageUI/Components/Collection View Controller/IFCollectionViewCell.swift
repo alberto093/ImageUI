@@ -75,6 +75,12 @@ class IFCollectionViewCell: UICollectionViewCell {
     private(set) var videoStatus: IFVideo.Status?
     private var boundsObservation: NSKeyValueObservation?
     
+    private var loadingTask: Cancellable? {
+        didSet {
+            oldValue?.cancel()
+        }
+    }
+    
     // MARK: - Lifecycle
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -101,6 +107,7 @@ class IFCollectionViewCell: UICollectionViewCell {
         isAnimatingPlaybackLabelHidden = (false, false)
         needsVideoPlaybackLayout = true
         mediaManager?.videoPlaybackLabel.alpha = 0
+        loadingTask = nil
     }
     
     override func layoutSubviews() {
@@ -175,7 +182,16 @@ class IFCollectionViewCell: UICollectionViewCell {
             stackView.arrangedSubviews[numberOfImages...].forEach { $0.removeFromSuperview() }
         }
     }
+}
+
+private extension IFCollectionViewCell {
+    // MARK: - Image
+    func configureImage(_ image: UIImage) {
+        prepareStackView(numberOfImages: 1)
+        (stackView.arrangedSubviews.first as? UIImageView)?.image = image
+    }
     
+    // MARK: - Video
     func configureVideo(thumbnails: [UIImage], videoStatus: IFVideo.Status) {
         prepareStackView(numberOfImages: thumbnails.count)
         
@@ -193,6 +209,107 @@ class IFCollectionViewCell: UICollectionViewCell {
         }
         
         self.videoStatus = videoStatus
+    }
+}
+
+extension IFCollectionViewCell {
+    func loadMedia(at index: Int, itemSize: CGSize, isPreview: Bool, completion: (() -> Void)? = nil) {
+        guard let mediaManager else { return }
+        switch mediaManager.media[index].mediaType {
+        case .image:
+            loadingTask = mediaManager.loadImage(
+                at: index,
+                options: IFImage.LoadOptions(preferredSize: itemSize, kind: .thumbnail),
+                completion: { [weak self] container in
+                    self?.configureImage(container.image)
+                    completion?()
+                })
+        case .video:
+            let nestedTask = NestedTask()
+            
+            let generatorTask = mediaManager.videoThumbnailGenerator(at: index) { [weak mediaManager] generator in
+                guard let mediaManager else { return }
+                if isPreview {
+                    switch mediaManager.videoStatus.value {
+                    case .autoplay:
+                        if let generator {
+                            generator.generateAutoplayLastThumbnail { [weak mediaManager] thumb in
+                                guard !nestedTask.isCancelled else { return }
+                                let coverTask = mediaManager?.loadVideoCover(at: index) { [weak self] cover in
+                                    guard let self, let mediaManager else { return }
+                                    self.configureVideo(thumbnails: [cover, thumb ?? cover], videoStatus: mediaManager.videoStatus.value)
+                                    completion?()
+                                }
+                                
+                                if let coverTask {
+                                    nestedTask.addSubtask(coverTask)
+                                }
+                            }
+                        } else {
+                            let coverTask = mediaManager.loadVideoCover(at: index) { [weak self, weak mediaManager] image in
+                                guard let self, let mediaManager else { return }
+                                self.configureVideo(thumbnails: [image, image], videoStatus: mediaManager.videoStatus.value)
+                                completion?()
+                            }
+                            
+                            if let coverTask {
+                                nestedTask.addSubtask(coverTask)
+                            }
+                        }
+                    case .autoplayPause, .autoplayEnded:
+                        generator?.cancelAllImageGeneration()
+                        let coverTask = mediaManager.loadVideoCover(at: index) { [weak self] image in
+                            self?.configureImage(image)
+                            completion?()
+                        }
+                        
+                        if let coverTask {
+                            nestedTask.addSubtask(coverTask)
+                        }
+                    case .play, .pause:
+                        let coverTask = mediaManager.loadVideoCover(at: index) { [weak self, weak mediaManager] cover in
+                            if let generator {
+                                generator.generateImages(currentTime: mediaManager?.videoPlayback.value?.currentTime ?? .zero) { thumbnails in
+                                    guard let self, let mediaManager else { return }
+                                    let thumbnails = (0..<generator.numberOfThumbnails).map { thumbnails[$0] ?? cover }
+                                    self.configureVideo(thumbnails: thumbnails, videoStatus: mediaManager.videoStatus.value)
+                                    completion?()
+                                }
+                            } else if let self, let mediaManager {
+                                self.configureVideo(thumbnails: [cover, cover].compactMap { $0 }, videoStatus: mediaManager.videoStatus.value)
+                                completion?()
+                            }
+                        }
+                        
+                        if let coverTask {
+                            nestedTask.addSubtask(coverTask)
+                        }
+                    }
+                } else {
+                    generator?.cancelAllImageGeneration()
+                    
+                    let coverTask = mediaManager.loadVideoCover(at: index) { [weak self] image in
+                        self?.configureImage(image)
+                        completion?()
+                    }
+                    
+                    if let coverTask {
+                        nestedTask.addSubtask(coverTask)
+                    }
+                }
+            }
+            
+            nestedTask.addSubtask(generatorTask)
+            loadingTask = nestedTask
+        case .pdf:
+            loadingTask = mediaManager.loadPDFThumbnail(
+                at: index,
+                preferredSize: itemSize,
+                completion: { [weak self] image in
+                    self?.configureImage(image)
+                    completion?()
+                })
+        }
     }
     
     func configureVideo(playback: IFVideo.Playback, showVideoIndicator: Bool, showPlaybackTime: Bool) {
@@ -236,15 +353,6 @@ class IFCollectionViewCell: UICollectionViewCell {
                 }
             )
         }
-    }
-}
-
-extension IFCollectionViewCell: Nuke_ImageDisplaying {
-    func nuke_display(image: Nuke.PlatformImage?, data: Data?) {
-        prepareStackView(numberOfImages: 1)
-        (stackView.arrangedSubviews.first as? UIImageView)?.image = image
-        videoIndicatorView.isHidden = true
-        videoStatus = nil
     }
 }
 

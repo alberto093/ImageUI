@@ -23,18 +23,30 @@
 //
 
 import Foundation
+import UIKit
+import PDFKit
 
-public struct IFPDF {
+public final class IFPDF {
     public enum Source {
         case url(URL)
         case data(Data)
+        case document(PDFDocument)
     }
     
-    public let media: Source
-    public internal(set) var thumbnail: IFImage.Source?
+    public enum Cover {
+        case image(IFImage.Source)
+        case page(Int)
+    }
     
-    public init(media: Source, thumbnail: IFImage.Source?) {
+    public internal(set) var media: Source
+    public internal(set) var cover: Cover
+    
+    public let placeholder: UIImage?
+
+    
+    public init(media: Source, cover: Cover = .page(0), placeholder: UIImage? = nil) {
         self.media = media
-        self.thumbnail = thumbnail
+        self.cover = cover
+        self.placeholder = placeholder
     }
 }
