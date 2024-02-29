@@ -218,8 +218,11 @@ extension IFMediaManager {
                 request.resizeMode = .none
             }
             
-            request.deliveryMode = options.deliveryMode
             request.isNetworkAccessAllowed = true
+            
+            if #available(iOS 17, *) {
+                request.allowSecondaryDegradedImage = true
+            }
 
             
             let placeholder = image.placeholder ?? placeholder.image
@@ -337,7 +340,10 @@ extension IFMediaManager {
             completion(avAsset)
             return nil
         case .asset(let phAsset):
-            let requestID = photosManager.requestAVAsset(forVideo: phAsset, options: nil) { avAsset, _, userInfo in
+            let options = PHVideoRequestOptions()
+            options.isNetworkAccessAllowed = true
+            
+            let requestID = photosManager.requestAVAsset(forVideo: phAsset, options: options) { avAsset, _, userInfo in
                 let isCancelled = (userInfo?[PHImageCancelledKey] as? NSNumber)?.boolValue == true
                 
                 guard !isCancelled else { return }
@@ -389,6 +395,10 @@ extension IFMediaManager {
                 }
                 
                 request.isNetworkAccessAllowed = true
+                
+                if #available(iOS 17, *) {
+                    request.allowSecondaryDegradedImage = true
+                }
 
                 let requestID = photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { [weak self] requestedImage, _ in
                     guard let self else { return }
@@ -548,6 +558,10 @@ extension IFMediaManager {
                 }
                 
                 request.isNetworkAccessAllowed = true
+                
+                if #available(iOS 17, *) {
+                    request.allowSecondaryDegradedImage = true
+                }
 
                 let requestID = photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { [weak self] requestedImage, _ in
                     guard let self else { return }

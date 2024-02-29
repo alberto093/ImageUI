@@ -28,6 +28,7 @@ import UIKit
 import NukeVideo
 import PDFKit
 import FLAnimatedImage
+import Nuke
 
 class IFMediaViewController: UIViewController {
     private struct Constants {
@@ -55,6 +56,12 @@ class IFMediaViewController: UIViewController {
     private var aspectFillZoom: CGFloat = 1
     private var needsFirstLayout = true
     private var viewDidAppear = false
+    
+    private var loadingTask: Nuke.Cancellable? {
+        didSet {
+            oldValue?.cancel()
+        }
+    }
     
     private var timeObserver: Any? {
         didSet {
@@ -250,7 +257,7 @@ class IFMediaViewController: UIViewController {
             
             switch mediaManager.media[safe: displayingMediaIndex]?.mediaType {
             case .image:
-                mediaManager.loadImage(at: displayingMediaIndex, options: IFImage.LoadOptions(kind: .original)) { [weak self] container in
+                loadingTask = mediaManager.loadImage(at: displayingMediaIndex, options: IFImage.LoadOptions(kind: .original)) { [weak self] container in
                     self?.imageView.image = container.image
                     
                     if container.type == .gif, let data = container.data {
@@ -261,20 +268,32 @@ class IFMediaViewController: UIViewController {
                 }
             case .video:
                 imageView.image = nil
-                mediaManager.loadVideoCover(at: displayingMediaIndex) { [weak self] cover in
+                let nestedTask = NestedTask()
+                
+                let coverTask = mediaManager.loadVideoCover(at: displayingMediaIndex) { [weak self] cover in
                     self?.imageView.image = cover
                     self?.updateScrollView()
                 }
                 
-                mediaManager.loadVideo(at: displayingMediaIndex) { [weak self] videoAsset in
+                let videoTask = mediaManager.loadVideo(at: displayingMediaIndex) { [weak self] videoAsset in
                     self?.videoPlayerView.asset = videoAsset
 
                     if self?.viewDidAppear == true {
                         self?.mediaManager.videoStatus.value = .autoplay
                     }
                 }
+                
+                if let coverTask {
+                    nestedTask.addSubtask(coverTask)
+                }
+                
+                if let videoTask {
+                    nestedTask.addSubtask(videoTask)
+                }
+                
+                loadingTask = nestedTask
             case .pdf:
-                mediaManager.loadPDF(at: displayingMediaIndex) { [weak self] document in
+                loadingTask = mediaManager.loadPDF(at: displayingMediaIndex) { [weak self] document in
                     self?.pdfView.document = document
                     self?.updateScrollView()
                 }

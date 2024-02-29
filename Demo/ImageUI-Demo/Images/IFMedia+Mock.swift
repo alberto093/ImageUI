@@ -18,12 +18,13 @@ extension IFMedia {
         let imageAssets = IFMedia.imageAssets.enumerated().map { IFMedia(title: "Photo asset \($0.offset + 1)", mediaType: .image($0.element)) }
         
         let remoteVideos = IFMedia.remoteVideos.enumerated().map { IFMedia(title: "Remote video \($0.offset + 1)", mediaType: .video($0.element)) }
+        let videoAssets = IFMedia.videoAssets.enumerated().map { IFMedia(title: "Video asset \($0.offset + 1)", mediaType: .video($0.element)) }
         
         let remotePDF = IFMedia.remotePDF.enumerated().map { IFMedia(title: "Remote PDF \($0.offset + 1)", mediaType: .pdf($0.element)) }
         
         let remoteGIF = IFMedia.remoteGIF.enumerated().map { IFMedia(title: "Remote GIF \($0.offset + 1)", mediaType: .image($0.element)) }
         
-        return (localImages + remoteImages + memoryImages + imageAssets + remoteVideos + remotePDF + remoteGIF).shuffled()
+        return (localImages + remoteImages + memoryImages + imageAssets + remoteVideos + videoAssets + remotePDF + remoteGIF).shuffled()
     }()
     
     // MARK: - Images
@@ -161,6 +162,11 @@ extension IFMedia {
     ].map {
         IFVideo(media: .url(URL(string: $0)!))
     }
+    
+    private static let videoAssets: [IFVideo] = {
+        let result = PHAsset.fetchAssets(with: .video, options: nil)
+        return (0..<result.count).map { IFVideo(media: .asset(result.object(at: $0))) }
+    }()
     
     // MARK: - PDF
     

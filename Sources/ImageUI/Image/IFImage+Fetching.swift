@@ -45,16 +45,10 @@ extension IFImage {
     struct LoadOptions {
         let preferredSize: CGSize?
         let kind: Kind
-        let deliveryMode: PHImageRequestOptionsDeliveryMode
         
-        var allowsThumbnail: Bool {
-            kind == .original && deliveryMode == .opportunistic
-        }
-        
-        init(preferredSize: CGSize? = nil, kind: Kind, deliveryMode: PHImageRequestOptionsDeliveryMode = .opportunistic) {
+        init(preferredSize: CGSize? = nil, kind: Kind) {
             self.preferredSize = preferredSize
             self.kind = kind
-            self.deliveryMode = deliveryMode
         }
     }
 }
