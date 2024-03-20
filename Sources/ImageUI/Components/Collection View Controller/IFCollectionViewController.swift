@@ -259,7 +259,7 @@ class IFCollectionViewController: UIViewController {
                         let contentOffsetX = self.collectionViewLayout.contentOffsetX(forItemAt: self.collectionViewLayout.centerIndexPath)
                         let playbackOffsetX = contentOffsetX + cell.frame.width * (self.mediaManager.videoPlayback.value?.progress ?? 0)
                         
-                        self.collectionView.setContentOffset(CGPoint(x: contentOffsetX + playbackOffsetX, y: self.collectionView.contentOffset.y), animated: true)
+                        self.collectionView.setContentOffset(CGPoint(x: contentOffsetX + playbackOffsetX, y: self.collectionView.contentOffset.y), animated: false)
                     }
                     self.collectionView.videoHandler.invalidateDataSource()
                 } 
@@ -424,20 +424,21 @@ extension IFCollectionViewController: UICollectionViewDataSource {
         return cell
     }
     
-    func configureCell(_ cell: IFCollectionViewCell, indexPath: IndexPath) {
+    func configureCell(_ cell: IFCollectionViewCell, indexPath: IndexPath, completion: (() -> Void)? = nil) {
         cell.loadMedia(
             at: indexPath.item,
             itemSize: collectionViewLayout.itemSize,
             isPreview: indexPath == collectionViewLayout.centerIndexPath && collectionViewLayout.style == .carousel,
             completion: { [weak self] in
                 self?.updateCollectionViewLayout(forPreferredSizeAt: indexPath)
+                completion?()
             }
         )
     }
     
-    func configureCell(at indexPath: IndexPath) {
+    func configureCell(at indexPath: IndexPath, completion: (() -> Void)? = nil) {
         guard let cell = collectionView.cellForItem(at: indexPath) as? IFCollectionViewCell else { return }
-        configureCell(cell, indexPath: indexPath)
+        configureCell(cell, indexPath: indexPath, completion: completion)
     }
 }
 
@@ -521,7 +522,6 @@ extension IFCollectionViewController: UICollectionViewDelegate {
             } else if
                 let playback = mediaManager.videoPlayback.value,
                 let videoCell = collectionView.cellForItem(at: collectionViewLayout.centerIndexPath) as? IFCollectionViewCell,
-                videoCell.videoStatus?.isAutoplay == false,
                 !mediaManager.videoStatus.value.isAutoplay,
                 collectionView.isDragging || collectionView.isDecelerating
             {

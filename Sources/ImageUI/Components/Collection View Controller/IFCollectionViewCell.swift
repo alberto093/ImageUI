@@ -72,10 +72,9 @@ class IFCollectionViewCell: UICollectionViewCell {
     weak var mediaManager: IFMediaManager?
     private var isAnimatingPlaybackLabelHidden = (isAnimating: false, hidden: false)
     private var needsVideoPlaybackLayout = true
-    private(set) var videoStatus: IFVideo.Status?
     private var boundsObservation: NSKeyValueObservation?
     
-    private var loadingTask: Cancellable? {
+    private weak var loadingTask: Cancellable? {
         didSet {
             oldValue?.cancel()
         }
@@ -93,6 +92,7 @@ class IFCollectionViewCell: UICollectionViewCell {
     }
     
     deinit {
+        loadingTask?.cancel()
         boundsObservation?.invalidate()
     }
     
@@ -101,13 +101,8 @@ class IFCollectionViewCell: UICollectionViewCell {
         imageContainerView.alpha = 1
         imageContainerView.transform = .identity
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        videoIndicatorView.isHidden = true
-        videoIndicatorView.frame.origin.x = -videoIndicatorView.frame.size.width / 2.0
-        videoStatus = nil
-        isAnimatingPlaybackLabelHidden = (false, false)
-        needsVideoPlaybackLayout = true
-        mediaManager?.videoPlaybackLabel.alpha = 0
-        loadingTask = nil
+        
+        reset()
     }
     
     override func layoutSubviews() {
@@ -118,7 +113,7 @@ class IFCollectionViewCell: UICollectionViewCell {
     }
     
     override func preferredLayoutAttributesFitting(_ layoutAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutAttributes {
-        switch videoStatus {
+        switch mediaManager?.videoStatus.value {
         case .autoplay:
             layoutAttributes.size.width = Constants.videoAutoplayThumbnailWidth * 2
         case .play, .pause:
@@ -192,7 +187,7 @@ private extension IFCollectionViewCell {
     }
     
     // MARK: - Video
-    func configureVideo(thumbnails: [UIImage], videoStatus: IFVideo.Status) {
+    func configureVideo(thumbnails: [UIImage]) {
         prepareStackView(numberOfImages: thumbnails.count)
         
         thumbnails.enumerated().forEach { tuple in
@@ -207,13 +202,22 @@ private extension IFCollectionViewCell {
                 },
                 completion: nil)
         }
-        
-        self.videoStatus = videoStatus
+    }
+    
+    func reset() {
+        videoIndicatorView.isHidden = true
+        videoIndicatorView.frame.origin.x = -videoIndicatorView.frame.size.width / 2.0
+        isAnimatingPlaybackLabelHidden = (false, false)
+        needsVideoPlaybackLayout = true
+        mediaManager?.videoPlaybackLabel.alpha = 0
+        loadingTask = nil
     }
 }
 
 extension IFCollectionViewCell {
     func loadMedia(at index: Int, itemSize: CGSize, isPreview: Bool, completion: (() -> Void)? = nil) {
+        reset()
+        
         guard let mediaManager else { return }
         switch mediaManager.media[index].mediaType {
         case .image:
@@ -237,7 +241,7 @@ extension IFCollectionViewCell {
                                 guard !nestedTask.isCancelled else { return }
                                 let coverTask = mediaManager?.loadVideoCover(at: index) { [weak self] cover in
                                     guard let self, let mediaManager else { return }
-                                    self.configureVideo(thumbnails: [cover, thumb ?? cover], videoStatus: mediaManager.videoStatus.value)
+                                    self.configureVideo(thumbnails: [cover, thumb ?? cover])
                                     completion?()
                                 }
                                 
@@ -248,7 +252,7 @@ extension IFCollectionViewCell {
                         } else {
                             let coverTask = mediaManager.loadVideoCover(at: index) { [weak self, weak mediaManager] image in
                                 guard let self, let mediaManager else { return }
-                                self.configureVideo(thumbnails: [image, image], videoStatus: mediaManager.videoStatus.value)
+                                self.configureVideo(thumbnails: [image, image])
                                 completion?()
                             }
                             
@@ -272,11 +276,11 @@ extension IFCollectionViewCell {
                                 generator.generateImages(currentTime: mediaManager?.videoPlayback.value?.currentTime ?? .zero) { thumbnails in
                                     guard let self, let mediaManager else { return }
                                     let thumbnails = (0..<generator.numberOfThumbnails).map { thumbnails[$0] ?? cover }
-                                    self.configureVideo(thumbnails: thumbnails, videoStatus: mediaManager.videoStatus.value)
+                                    self.configureVideo(thumbnails: thumbnails)
                                     completion?()
                                 }
                             } else if let self, let mediaManager {
-                                self.configureVideo(thumbnails: [cover, cover].compactMap { $0 }, videoStatus: mediaManager.videoStatus.value)
+                                self.configureVideo(thumbnails: [cover, cover].compactMap { $0 })
                                 completion?()
                             }
                         }

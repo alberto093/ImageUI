@@ -34,7 +34,6 @@ class IFMediaViewController: UIViewController {
     private struct Constants {
         static let minimumMaximumZoomFactor: CGFloat = 3
         static let doubleTapZoomMultiplier: CGFloat = 0.85
-        static let preferredAspectFillRatio: CGFloat = 0.9
     }
     
     @IBOutlet private weak var scrollView: UIScrollView!
@@ -293,10 +292,28 @@ class IFMediaViewController: UIViewController {
                 
                 loadingTask = nestedTask
             case .pdf:
-                loadingTask = mediaManager.loadPDF(at: displayingMediaIndex) { [weak self] document in
+                imageView.image = nil
+                let nestedTask = NestedTask()
+                
+                let coverTask = mediaManager.loadPDFThumbnail(at: displayingMediaIndex) { [weak self] cover in
+                    self?.imageView.image = cover
+                    self?.updateScrollView()
+                }
+                
+                let pdfTask = mediaManager.loadPDF(at: displayingMediaIndex) { [weak self] document in
                     self?.pdfView.document = document
                     self?.updateScrollView()
                 }
+                
+                if let coverTask {
+                    nestedTask.addSubtask(coverTask)
+                }
+                
+                if let pdfTask {
+                    nestedTask.addSubtask(pdfTask)
+                }
+                
+                loadingTask = nestedTask
             case .none:
                 break
             }
@@ -313,9 +330,10 @@ class IFMediaViewController: UIViewController {
             return
         }
 
-        let safeAreaFrame = view.safeAreaLayoutGuide.layoutFrame
-        let horizontalSafeAreaInsets = view.safeAreaInsets.left + view.safeAreaInsets.right
-        let verticalSafeAreaInsets = view.safeAreaInsets.top + view.safeAreaInsets.bottom
+        let safeAreaInsets = UIApplication.shared.keyWindow?.safeAreaInsets ?? .zero
+        let safeAreaFrame = UIScreen.main.bounds.inset(by: safeAreaInsets)
+        let horizontalSafeAreaInsets = safeAreaInsets.left + safeAreaInsets.right
+        let verticalSafeAreaInsets = safeAreaInsets.top + safeAreaInsets.bottom
         
         let aspectFitZoom: CGFloat
 
@@ -329,17 +347,10 @@ class IFMediaViewController: UIViewController {
 
         let zoomMultiplier = (scrollView.zoomScale - scrollView.minimumZoomScale) / (scrollView.maximumZoomScale - scrollView.minimumZoomScale)
 
-        let minimumZoomScale: CGFloat
-        if mediaManager.prefersAspectFillZoom, aspectFitZoom / aspectFillZoom >= Constants.preferredAspectFillRatio {
-            minimumZoomScale = aspectFillZoom
-        } else {
-            minimumZoomScale = aspectFitZoom
-        }
-
-        scrollView.minimumZoomScale = minimumZoomScale
-        scrollView.maximumZoomScale = max(minimumZoomScale * Constants.minimumMaximumZoomFactor, aspectFillZoom)
+        scrollView.minimumZoomScale = aspectFitZoom
+        scrollView.maximumZoomScale = max(aspectFitZoom * Constants.minimumMaximumZoomFactor, aspectFillZoom)
         
-        let zoomScale = resetZoom ? minimumZoomScale : (minimumZoomScale + (scrollView.maximumZoomScale - minimumZoomScale) * zoomMultiplier)
+        let zoomScale = resetZoom ? aspectFitZoom : (aspectFitZoom + (scrollView.maximumZoomScale - aspectFitZoom) * zoomMultiplier)
         scrollView.zoomScale = zoomScale
         updateContentInset()
     }
@@ -394,7 +405,7 @@ class IFMediaViewController: UIViewController {
             .throttle(for: .seconds(1 / Double(UIScreen.main.maximumFramesPerSecond)), scheduler: DispatchQueue.main, latest: true)
             .compactMap(\.?.currentTime)
             .sink { [weak self] currentTime in
-                self?.videoPlayerView.playerLayer.player?.seek(to: currentTime)
+                self?.videoPlayerView.playerLayer.player?.seek(to: currentTime, toleranceBefore: .zero, toleranceAfter: .zero)
             }
     }
     

@@ -54,7 +54,6 @@ class IFMediaManager {
     
     let photosManager = PHCachingImageManager()
     
-    var prefersAspectFillZoom = false
     var allowsMediaPlay = true
     var videoStatus = CurrentValueSubject<IFVideo.Status, Never>(.autoplay)
     var videoPlayback = CurrentValueSubject<IFVideo.Playback?, Never>(nil)
@@ -483,7 +482,6 @@ extension IFMediaManager {
                 }
                 
                 let request = ImageRequest(url: url, priority: priority, userInfo: [.pdfAssetKey: url])
-                
                 return imagesPipeline.loadImage(with: request) { result in
                     completion((try? result.get())?.container.userInfo[.pdfAssetKey] as? PDFDocument)
                 }

@@ -42,13 +42,6 @@ extension IFBrowserViewController {
     
     public struct Configuration {
         public var actions: [Action]
-        
-        /// A Boolean value specifying whether the image should be zoomed to fill the entire container
-        ///
-        /// When this property is set to `true`, the browser allows the image to be displayed using the aspect fill zoom if the aspect ratio is similar to its container view one.
-        ///
-        /// When the property is set to `false` (the default), the browser use the aspect fit zoom as its minimum zoom value.
-        public var prefersAspectFillZoom: Bool
 
         /// A Boolean value indicating whether the navigation bar is always visible.
         ///
@@ -66,22 +59,24 @@ extension IFBrowserViewController {
         
         public var placeholder: Placeholder
         
+        public var pdfProgressViewClass: IFPDFProgressView.Type
+        
         var isNavigationBarHidden: Bool
         var isToolbarHidden: Bool
         
         public init(
             actions: [Action] = [],
-            prefersAspectFillZoom: Bool = false,
             alwaysShowNavigationBar: Bool = true,
             alwaysShowToolbar: Bool = false,
             placeholder: Placeholder = Placeholder(),
+            pdfProgressViewClass: IFPDFProgressView.Type = UIProgressView.self,
             isNavigationBarHidden: Bool = false,
             isToolbarHidden: Bool = true) {
                 self.actions = actions
-                self.prefersAspectFillZoom = prefersAspectFillZoom
                 self.alwaysShowNavigationBar = alwaysShowNavigationBar
                 self.alwaysShowToolbar = alwaysShowToolbar
                 self.placeholder = placeholder
+                self.pdfProgressViewClass = pdfProgressViewClass
                 self.isNavigationBarHidden = isNavigationBarHidden
                 self.isToolbarHidden = isToolbarHidden
             }

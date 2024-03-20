@@ -88,7 +88,6 @@ open class IFBrowserViewController: UIViewController {
     public weak var delegate: IFBrowserViewControllerDelegate?
     public var configuration = Configuration() {
         didSet {
-            mediaManager.prefersAspectFillZoom = configuration.prefersAspectFillZoom
             setupBars(mediaIndex: mediaManager.displayingMediaIndex)
             updateBars(toggle: false)
         }
