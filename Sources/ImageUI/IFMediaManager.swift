@@ -36,7 +36,7 @@ import LinkPresentation
 
 class IFMediaManager {
     private(set) var media: [IFMedia]
-    private let placeholder: IFBrowserViewController.Placeholder
+    var configuration: IFBrowserViewController.Configuration
     
     private let imagesPipeline: ImagePipeline
     
@@ -73,9 +73,9 @@ class IFMediaManager {
     private let videoGeneratorCache = IFVideoThumbnailGeneratorCache()
     private var bag: Set<AnyCancellable> = []
     
-    init(media: [IFMedia], placeholder: IFBrowserViewController.Placeholder = IFBrowserViewController.Placeholder(), initialIndex: Int = 0) {
+    init(media: [IFMedia], configuration: IFBrowserViewController.Configuration = IFBrowserViewController.Configuration(), initialIndex: Int = 0) {
         self.media = media
-        self.placeholder = placeholder
+        self.configuration = configuration
         self.displayingMediaIndex = min(max(initialIndex, 0), media.count - 1)
         
         self.imagesPipeline = ImagePipeline(delegate: ImagePipelineDefaultDelegate()) { configuration in
@@ -190,6 +190,7 @@ extension IFMediaManager {
         else { return nil }
         
         let preferredSize = options.preferredSize.map { CGSize(width: $0.width * UIScreen.main.scale, height: $0.height * UIScreen.main.scale) }
+        let configurationPlaceholder = configuration.placeholder(for: .images) ?? UIImage()
         
         switch image[options.kind] {
         case .image(let image):
@@ -224,7 +225,7 @@ extension IFMediaManager {
             }
 
             
-            let placeholder = image.placeholder ?? placeholder.image
+            let placeholder = image.placeholder ?? configurationPlaceholder
             let requestID: PHImageRequestID
             
             if PHAssetResource.assetResources(for: asset).contains(where: { $0.uniformTypeIdentifier == kUTTypeGIF as String }) {
@@ -250,8 +251,6 @@ extension IFMediaManager {
                 }
             }
             
-            
-            
             return PHImageTask(manager: photosManager, requestID: requestID)
         case .url(let url):
             let priority: ImageRequest.Priority
@@ -267,9 +266,8 @@ extension IFMediaManager {
                 processors: preferredSize.map { [ImageProcessors.Resize(size: $0)] } ?? [],
                 priority: priority)
             
-            return imagesPipeline.loadImage(with: request) { [weak self] result in
-                guard let self else { return }
-                let placeholder = image.placeholder ?? self.placeholder.image
+            return imagesPipeline.loadImage(with: request) { result in
+                let placeholder = image.placeholder ?? configurationPlaceholder
           
                 let container = (try? result.get())?.container ?? ImageContainer(image: placeholder)
                 DispatchQueue.main.async {
@@ -364,6 +362,7 @@ extension IFMediaManager {
         else { return nil }
         
         let preferredSize = preferredSize.map { CGSize(width: $0.width * UIScreen.main.scale, height: $0.height * UIScreen.main.scale) }
+        let configurationPlaceholder = configuration.placeholder(for: .videos) ?? UIImage()
         
         switch video.cover {
         case .image(let source):
@@ -399,9 +398,8 @@ extension IFMediaManager {
                     request.allowSecondaryDegradedImage = true
                 }
 
-                let requestID = photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { [weak self] requestedImage, _ in
-                    guard let self else { return }
-                    let image = requestedImage ?? video.placeholder ?? self.placeholder.video
+                let requestID = photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { requestedImage, _ in
+                    let image = requestedImage ?? video.placeholder ?? configurationPlaceholder
                     completion?(image)
                 }
                 
@@ -412,9 +410,8 @@ extension IFMediaManager {
                     processors: preferredSize.map { [ImageProcessors.Resize(size: $0)] } ?? [],
                     priority: index == displayingMediaIndex ? .high : .normal)
                 
-                return imagesPipeline.loadImage(with: request) { [weak self] result in
-                    guard let self else { return }
-                    let image = (try? result.get())?.image ?? video.placeholder ?? self.placeholder.video
+                return imagesPipeline.loadImage(with: request) { result in
+                    let image = (try? result.get())?.image ?? video.placeholder ?? configurationPlaceholder
                     DispatchQueue.main.async {
                         completion?(image)
                     }
@@ -422,8 +419,8 @@ extension IFMediaManager {
             }
         case .seek(let time):
             let nestedTask = NestedTask()
-            let videoTask = loadVideo(at: index) { [weak self] asset in
-                let placeholder = video.placeholder ?? self?.placeholder.video ?? UIImage()
+            let videoTask = loadVideo(at: index) { asset in
+                let placeholder = video.placeholder ?? configurationPlaceholder
                 
                 guard let asset else {
                     completion?(placeholder)
@@ -514,6 +511,8 @@ extension IFMediaManager {
             case .pdf(let pdf) = media.mediaType
         else { return nil }
         
+        let configurationPlaceholder = configuration.placeholder(for: .pdf) ?? UIImage()
+        
         switch pdf.cover {
         case .image(let image):
             switch image {
@@ -523,9 +522,8 @@ extension IFMediaManager {
                     processors: preferredSize.map { [ImageProcessors.Resize(size: $0)] } ?? [],
                     priority: index == displayingMediaIndex ? .high : .normal)
                 
-                return imagesPipeline.loadImage(with: request) { [weak self] result in
-                    guard let self else { return }
-                    let image = (try? result.get())?.image ?? pdf.placeholder ?? self.placeholder.pdf
+                return imagesPipeline.loadImage(with: request) { result in
+                    let image = (try? result.get())?.image ?? pdf.placeholder ?? configurationPlaceholder
                     DispatchQueue.main.async {
                         completion?(image)
                     }
@@ -561,9 +559,8 @@ extension IFMediaManager {
                     request.allowSecondaryDegradedImage = true
                 }
 
-                let requestID = photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { [weak self] requestedImage, _ in
-                    guard let self else { return }
-                    let image = requestedImage ?? pdf.placeholder ?? self.placeholder.pdf
+                let requestID = photosManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: request) { requestedImage, _ in
+                    let image = requestedImage ?? pdf.placeholder ?? configurationPlaceholder
                     completion?(image)
                 }
                 
@@ -573,8 +570,8 @@ extension IFMediaManager {
         case .page(let pageIndex):
             let nestedTask = NestedTask()
             
-            let pdfTask = loadPDF(at: index) { [weak self] document in
-                let placeholder = pdf.placeholder ?? self?.placeholder.pdf ?? UIImage()
+            let pdfTask = loadPDF(at: index) { document in
+                let placeholder = pdf.placeholder ?? configurationPlaceholder
                 
                 guard let document else {
                     completion?(placeholder)

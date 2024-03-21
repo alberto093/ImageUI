@@ -18,14 +18,16 @@ class ViewController: UIViewController {
     var browserViewController: IFBrowserViewController {
         let media = IFMedia.mock
         let viewController = IFBrowserViewController(media: media, initialIndex: .random(in: media.indices))
-        viewController.configuration.actions = [.share, .delete]
+        viewController.configuration.setActions([.share, .delete], for: .all)
         viewController.delegate = self
         return viewController
     }
     
     var browserHostingViewController: UIHostingController<IFBrowserView> {
         let media = IFMedia.mock
-        let configuration = IFBrowserViewController.Configuration(actions: [.share, .delete])
+        let configuration = IFBrowserViewController.Configuration()
+        configuration.setActions([.share, .delete], for: .all)
+        
         let contentView = IFBrowserView(
             media: media,
             selectedIndex: .constant(.random(in: media.indices)),

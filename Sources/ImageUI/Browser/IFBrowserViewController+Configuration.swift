@@ -25,24 +25,7 @@
 import UIKit
 
 extension IFBrowserViewController {
-    public enum Action: Hashable {
-        case share
-        case delete
-        case custom(identifier: String, title: String? = nil, image: UIImage? = nil)
-        
-        public func hash(into hasher: inout Hasher) {
-            switch self {
-            case .share, .delete:
-                hasher.combine(String(describing: self))
-            case .custom(let identifier, _, _):
-                hasher.combine(identifier)
-            }
-        }
-    }
-    
-    public struct Configuration {
-        public var actions: [Action]
-
+    public class Configuration {
         /// A Boolean value indicating whether the navigation bar is always visible.
         ///
         /// When this property is set to `true` (the default), the browser shows the navigation bar even if the navigation controller property `isNavigationBarHidden` is set to `true`.
@@ -57,7 +40,8 @@ extension IFBrowserViewController {
         /// When the property is set to `false` (the default), the browser shows the toolbar when it is available.
         public var alwaysShowToolbar: Bool
         
-        public var placeholder: Placeholder
+        private var actions: [MediaType: [Action]] = [:]
+        private var placeholders: [MediaType: UIImage] = [:]
         
         public var pdfProgressViewClass: IFPDFProgressView.Type
         
@@ -65,32 +49,84 @@ extension IFBrowserViewController {
         var isToolbarHidden: Bool
         
         public init(
-            actions: [Action] = [],
             alwaysShowNavigationBar: Bool = true,
             alwaysShowToolbar: Bool = false,
-            placeholder: Placeholder = Placeholder(),
             pdfProgressViewClass: IFPDFProgressView.Type = UIProgressView.self,
             isNavigationBarHidden: Bool = false,
             isToolbarHidden: Bool = true) {
-                self.actions = actions
                 self.alwaysShowNavigationBar = alwaysShowNavigationBar
                 self.alwaysShowToolbar = alwaysShowToolbar
-                self.placeholder = placeholder
                 self.pdfProgressViewClass = pdfProgressViewClass
                 self.isNavigationBarHidden = isNavigationBarHidden
                 self.isToolbarHidden = isToolbarHidden
             }
+        
+        public func setActions(_ actions: [Action], for mediaType: MediaType) {
+            self.actions[mediaType] = actions
+        }
+
+        public func actions(for mediaType: MediaType) -> [Action] {
+            actions[mediaType] ?? actions[.all] ?? []
+        }
+        
+        public func setPlaceholder(_ placeholder: UIImage, for mediaType: MediaType) {
+            self.placeholders[mediaType] = placeholder
+        }
+
+        public func placeholder(for mediaType: MediaType) -> UIImage? {
+            placeholders[mediaType] ?? placeholder(for: .all)
+        }
     }
     
-    public struct Placeholder {
-        public var image: UIImage
-        public var video: UIImage
-        public var pdf: UIImage
+    public enum Action: Hashable {
+        case share
+        case delete
+        case custom(identifier: String, title: String? = nil, image: UIImage? = nil)
         
-        public init(image: UIImage = UIImage(), video: UIImage = UIImage(), pdf: UIImage = UIImage()) {
-            self.image = image
-            self.video = video
-            self.pdf = pdf
+        public func hash(into hasher: inout Hasher) {
+            switch self {
+            case .share, .delete:
+                hasher.combine(String(describing: self))
+            case .custom(let identifier, _, _):
+                hasher.combine(identifier)
+            }
+        }
+    }
+
+    public struct MediaType: OptionSet, Hashable {
+        public let rawValue: Int
+        
+        public static let images = MediaType(rawValue: 1 << 0)
+        public static let videos = MediaType(rawValue: 1 << 1)
+        public static let pdf = MediaType(rawValue: 1 << 2)
+        public static let all: MediaType = [.images, .videos, .pdf]
+        
+        public init(rawValue: Int) {
+            self.rawValue = rawValue
+        }
+    }
+}
+
+extension IFBrowserViewController.Configuration {
+    func actions(for media: IFMedia) -> [IFBrowserViewController.Action] {
+        switch media.mediaType {
+        case .image:
+            return actions(for: .images)
+        case .video:
+            return actions(for: .videos)
+        case .pdf:
+            return actions(for: .pdf)
+        }
+    }
+    
+    func placeholder(for media: IFMedia) -> UIImage? {
+        switch media.mediaType {
+        case .image:
+            return placeholder(for: .images)
+        case .video:
+            return placeholder(for: .videos)
+        case .pdf:
+            return placeholder(for: .pdf)
         }
     }
 }

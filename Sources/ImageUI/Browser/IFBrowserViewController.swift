@@ -86,8 +86,12 @@ open class IFBrowserViewController: UIViewController {
     
     // MARK: - Public properties
     public weak var delegate: IFBrowserViewControllerDelegate?
-    public var configuration = Configuration() {
-        didSet {
+    public var configuration: Configuration {
+        get {
+            mediaManager.configuration
+        }
+        set {
+            mediaManager.configuration = newValue
             setupBars(mediaIndex: mediaManager.displayingMediaIndex)
             updateBars(toggle: false)
         }
@@ -136,7 +140,8 @@ open class IFBrowserViewController: UIViewController {
     private var isToolbarEnabled: Bool {
         switch (traitCollection.verticalSizeClass, traitCollection.horizontalSizeClass) {
         case (.regular, let horizontalClass) where horizontalClass != .regular:
-            return configuration.alwaysShowToolbar || !configuration.actions.isEmpty
+            let availableActions = configuration.actions(for: mediaManager.media[mediaManager.displayingMediaIndex])
+            return configuration.alwaysShowToolbar || !availableActions.isEmpty
         default:
             return false
         }
@@ -290,9 +295,11 @@ open class IFBrowserViewController: UIViewController {
     private func setupBars(mediaIndex: Int, animated: Bool = true) {
         guard isViewLoaded else { return }
         
-        var barButtonItems = configuration.actions.map { $0.barButtonItem(target: self, action: #selector(actionButtonDidTap)) }
+        let media = mediaManager.media[mediaIndex]
         
-        if mediaManager.media[mediaIndex].mediaType.isVideo {
+        var barButtonItems = configuration.actions(for: media).map { $0.barButtonItem(target: self, action: #selector(actionButtonDidTap)) }
+        
+        if media.mediaType.isVideo {
             barButtonItems.insert(mediaManager.soundStatus.value.isEnabled ? enabledSoundButton : disabledSoundButton, at: barButtonItems.count / 2)
             
             switch mediaManager.videoStatus.value {
@@ -486,14 +493,23 @@ open class IFBrowserViewController: UIViewController {
     }
     
     @objc private func actionButtonDidTap(_ sender: UIBarButtonItem) {
-        let senderIndex: Int?
+        var senderIndex: Int?
+        
         if navigationController?.isToolbarHidden == true {
             senderIndex = navigationItem.rightBarButtonItems?.reversed().firstIndex(of: sender)
         } else {
             senderIndex = toolbarItems?.firstIndex(of: sender).map { $0 / 2 }
         }
         
-        guard let actionIndex = senderIndex, let action = configuration.actions[safe: actionIndex] else { return }
+        let media = mediaManager.media[mediaManager.displayingMediaIndex]
+        let actions = configuration.actions(for: media)
+        
+        if media.mediaType.isVideo {
+            // Remove indices for play/pause and sound button
+            senderIndex = senderIndex.map { $0 > actions.count / 2 ? $0 - 2 : $0 }
+        }
+        
+        guard let actionIndex = senderIndex, let action = actions[safe: actionIndex] else { return }
         collectionViewController.scrollToDisplayingMediaIndex()
         pageViewController.invalidateDataSourceIfNeeded()
         
