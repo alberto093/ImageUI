@@ -80,15 +80,8 @@ class IFMediaViewController: UIViewController {
     
     private var contentSize: CGSize {
         switch mediaManager.media[safe: displayingMediaIndex]?.mediaType {
-        case .image:
+        case .image, .video:
             if let image = imageView.image {
-                return image.size
-            }
-        case .video:
-            if let video = videoPlayerView.asset, let track = video.tracks(withMediaType: .video).first {
-                let size = track.naturalSize.applying(track.preferredTransform)
-                return CGSize(width: abs(size.width), height: abs(size.height))
-            } else if let image = imageView.image {
                 return image.size
             }
         case .pdf:
