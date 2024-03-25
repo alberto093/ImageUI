@@ -113,16 +113,20 @@ class IFCollectionViewCell: UICollectionViewCell {
     }
     
     override func preferredLayoutAttributesFitting(_ layoutAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutAttributes {
-        switch mediaManager?.videoStatus.value {
-        case .autoplay:
-            layoutAttributes.size.width = Constants.videoAutoplayThumbnailWidth * 2
-        case .play, .pause:
-            let thumbWidth = layoutAttributes.size.height * Constants.videoPlayThumbnailAspectRatio
-            layoutAttributes.size.width = thumbWidth * CGFloat(stackView.arrangedSubviews.count)
-        case .autoplayPause, .autoplayEnded, .none:
-            if let image = (stackView.arrangedSubviews.first as? UIImageView)?.image, image.size.height != 0 {
-                let imageRatio = image.size.width / image.size.height
-                layoutAttributes.size.width = layoutAttributes.size.height * imageRatio
+        if let image = (stackView.arrangedSubviews.first as? UIImageView)?.image, image.size.height != 0 {
+            let imageRatio = image.size.width / image.size.height
+            layoutAttributes.size.width = layoutAttributes.size.height * imageRatio
+        }
+        
+        if mediaManager?.media[layoutAttributes.indexPath.item].mediaType.isVideo == true {
+            switch mediaManager?.videoStatus.value {
+            case .autoplay:
+                layoutAttributes.size.width = Constants.videoAutoplayThumbnailWidth * 2
+            case .play, .pause:
+                let thumbWidth = layoutAttributes.size.height * Constants.videoPlayThumbnailAspectRatio
+                layoutAttributes.size.width = thumbWidth * CGFloat(stackView.arrangedSubviews.count)
+            default:
+                break
             }
         }
         
@@ -240,7 +244,7 @@ extension IFCollectionViewCell {
                             generator.generateAutoplayLastThumbnail { [weak mediaManager] thumb in
                                 guard !nestedTask.isCancelled else { return }
                                 let coverTask = mediaManager?.loadVideoCover(at: index) { [weak self] cover in
-                                    guard let self, let mediaManager else { return }
+                                    guard let self else { return }
                                     self.configureVideo(thumbnails: [cover, thumb ?? cover])
                                     completion?()
                                 }
@@ -250,8 +254,8 @@ extension IFCollectionViewCell {
                                 }
                             }
                         } else {
-                            let coverTask = mediaManager.loadVideoCover(at: index) { [weak self, weak mediaManager] image in
-                                guard let self, let mediaManager else { return }
+                            let coverTask = mediaManager.loadVideoCover(at: index) { [weak self] image in
+                                guard let self else { return }
                                 self.configureVideo(thumbnails: [image, image])
                                 completion?()
                             }
@@ -274,12 +278,12 @@ extension IFCollectionViewCell {
                         let coverTask = mediaManager.loadVideoCover(at: index) { [weak self, weak mediaManager] cover in
                             if let generator {
                                 generator.generateImages(currentTime: mediaManager?.videoPlayback.value?.currentTime ?? .zero) { thumbnails in
-                                    guard let self, let mediaManager else { return }
+                                    guard let self else { return }
                                     let thumbnails = (0..<generator.numberOfThumbnails).map { thumbnails[$0] ?? cover }
                                     self.configureVideo(thumbnails: thumbnails)
                                     completion?()
                                 }
-                            } else if let self, let mediaManager {
+                            } else if let self {
                                 self.configureVideo(thumbnails: [cover, cover].compactMap { $0 })
                                 completion?()
                             }
