@@ -66,7 +66,13 @@ extension IFBrowserViewController {
         }
 
         public func actions(for mediaType: MediaType) -> [Action] {
-            actions[mediaType] ?? actions[.all] ?? []
+            if let mediaActions = actions[mediaType] {
+                return mediaActions
+            } else if let groupActions = actions.first(where: { $0.key.contains(mediaType) }) {
+                return groupActions.value
+            } else {
+                return actions[.all] ?? []
+            }
         }
         
         public func setPlaceholder(_ placeholder: UIImage, for mediaType: MediaType) {
@@ -74,7 +80,13 @@ extension IFBrowserViewController {
         }
 
         public func placeholder(for mediaType: MediaType) -> UIImage? {
-            placeholders[mediaType] ?? placeholder(for: .all)
+            if let mediaPlaceholder = placeholders[mediaType] {
+                return mediaPlaceholder
+            } else if let groupPlaceholder = placeholders.first(where: { $0.key.contains(mediaType) }) {
+                return groupPlaceholder.value
+            } else {
+                return placeholders[.all]
+            }
         }
     }
     
