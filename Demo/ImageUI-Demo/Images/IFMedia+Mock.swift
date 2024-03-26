@@ -24,7 +24,11 @@ extension IFMedia {
         
         let remoteGIF = IFMedia.remoteGIF.enumerated().map { IFMedia(title: "Remote GIF \($0.offset + 1)", mediaType: .image($0.element)) }
         
-        return (localImages + remoteImages + memoryImages /*+ imageAssets*/ + remoteVideos + videoAssets + remotePDF + remoteGIF).shuffled()
+        let local = localImages + memoryImages
+        let assets = imageAssets + videoAssets
+        let remote = remoteImages + remoteVideos + remotePDF + remoteGIF
+        
+        return (local + assets + remote).shuffled()
     }
     
     // MARK: - Images
