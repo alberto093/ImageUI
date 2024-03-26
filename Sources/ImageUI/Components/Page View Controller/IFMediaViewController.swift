@@ -80,13 +80,17 @@ class IFMediaViewController: UIViewController {
     
     private var contentSize: CGSize {
         switch mediaManager.media[safe: displayingMediaIndex]?.mediaType {
-        case .image, .video:
+        case .image:
             if let image = imageView.image {
                 return image.size
             }
-        case .pdf:
-            return .zero
-        case .none:
+        case .video:
+            if let asset = videoPlayerView.asset, let track = asset.tracks(withMediaType: .video).first {
+                return track.naturalSize
+            } else if let image = imageView.image {
+                return image.size
+            }
+        default:
             break
         }
         
