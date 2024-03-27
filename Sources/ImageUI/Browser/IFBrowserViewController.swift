@@ -603,11 +603,8 @@ extension IFBrowserViewController: IFCollectionViewControllerDelegate {
     }
     
     func collectionViewControllerDidEndSeekVideo(_ collectionViewController: IFCollectionViewController) {
-        switch mediaManager.videoStatus.value {
-        case .autoplay, .play:
+        if mediaManager.videoStatus.value == .play, let progress = mediaManager.videoPlayback.value?.progress, progress < 1 {
             pageViewController.playMedia()
-        default:
-            break
         }
     }
 }
