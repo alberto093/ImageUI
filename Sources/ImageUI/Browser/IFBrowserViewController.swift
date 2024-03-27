@@ -603,8 +603,12 @@ extension IFBrowserViewController: IFCollectionViewControllerDelegate {
     }
     
     func collectionViewControllerDidEndSeekVideo(_ collectionViewController: IFCollectionViewController) {
-        if mediaManager.videoStatus.value == .play, let progress = mediaManager.videoPlayback.value?.progress, progress < 1 {
+        guard mediaManager.videoStatus.value == .play else { return }
+        
+        if let progress = mediaManager.videoPlayback.value?.progress, progress < 1 {
             pageViewController.playMedia()
+        } else {
+            mediaManager.videoStatus.value = .pause
         }
     }
 }
