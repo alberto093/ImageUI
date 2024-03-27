@@ -10,7 +10,7 @@ import AVFoundation
 
 class IFVideoThumbnailGeneratorCache {
     typealias Completion = (IFVideoThumbnailGenerator) -> Void
-    private let queue = DispatchQueue(label: "IFVideoThumbnailGeneratorQueue", qos: .userInteractive, attributes: .concurrent)
+    private let queue = DispatchQueue(label: "IFVideoThumbnailGeneratorQueue", attributes: .concurrent)
     
     private var creatingIndices: Set<Int> = []
     private var generatorCompletion: [Int: [Completion]] = [:]
