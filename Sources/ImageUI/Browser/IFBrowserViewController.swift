@@ -293,9 +293,7 @@ open class IFBrowserViewController: UIViewController {
     }
         
     private func setupBars(mediaIndex: Int, animated: Bool = true) {
-        guard isViewLoaded else { return }
-        
-        let media = mediaManager.media[mediaIndex]
+        guard isViewLoaded, let media = mediaManager.media[safe: mediaIndex] else { return }
         
         var barButtonItems = configuration.actions(for: media).map { $0.barButtonItem(target: self, action: #selector(actionButtonDidTap)) }
         

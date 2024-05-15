@@ -68,7 +68,7 @@ class IFCollectionViewFlowLayout: UICollectionViewFlowLayout {
     }
     
     var isPlayingVideo: Bool {
-        guard style == .carousel && mediaManager.media[centerIndexPath.item].mediaType.isVideo else { return false }
+        guard style == .carousel && mediaManager.media[safe: centerIndexPath.item]?.mediaType.isVideo == true else { return false }
         
         switch mediaManager.videoStatus.value {
         case .autoplay, .play, .pause:

@@ -107,31 +107,31 @@ class IFVideoThumbnailGenerator {
         thumbnailTimes = thumbnailTimes!.enumerated().compactMap {
             thumbnails[$0.offset] == nil ? $0.element : nil
         }
-        
-        let currentTime = currentTime.convertScale(thumbnailDuration.timescale, method: .roundTowardZero)
-        let thumbnailIndex = Int(currentTime.value / thumbnailDuration.value)
 
-        var sortedTimes: [NSValue]
+        var sortedTimes = thumbnailTimes!
         
-        if thumbnailTimes!.indices.contains(thumbnailIndex) {
-            sortedTimes = [thumbnailTimes![thumbnailIndex]]
+        if thumbnailDuration.value != 0 {
+            let currentTime = currentTime.convertScale(thumbnailDuration.timescale, method: .roundTowardZero)
+            let thumbnailIndex = Int(currentTime.value / thumbnailDuration.value)
             
-            var lowerIndex = thumbnailIndex - 1
-            var upperIndex = thumbnailIndex + 1
-            
-            while lowerIndex >= 0 || upperIndex < thumbnailTimes!.count {
-                if upperIndex < thumbnailTimes!.count {
-                    sortedTimes.append(thumbnailTimes![upperIndex])
-                    upperIndex += 1
-                }
+            if thumbnailTimes!.indices.contains(thumbnailIndex) {
+                sortedTimes = [thumbnailTimes![thumbnailIndex]]
                 
-                if lowerIndex >= 0 {
-                    sortedTimes.append(thumbnailTimes![lowerIndex])
-                    lowerIndex -= 1
+                var lowerIndex = thumbnailIndex - 1
+                var upperIndex = thumbnailIndex + 1
+                
+                while lowerIndex >= 0 || upperIndex < thumbnailTimes!.count {
+                    if upperIndex < thumbnailTimes!.count {
+                        sortedTimes.append(thumbnailTimes![upperIndex])
+                        upperIndex += 1
+                    }
+                    
+                    if lowerIndex >= 0 {
+                        sortedTimes.append(thumbnailTimes![lowerIndex])
+                        lowerIndex -= 1
+                    }
                 }
             }
-        } else {
-            sortedTimes = thumbnailTimes!
         }
         
         imageGenerator.generateCGImagesAsynchronously(forTimes: sortedTimes) { [weak self] thumbnailTime, cgImage, _, result, _ in
