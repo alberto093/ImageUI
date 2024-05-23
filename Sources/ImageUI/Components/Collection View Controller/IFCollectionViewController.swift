@@ -245,7 +245,7 @@ class IFCollectionViewController: UIViewController {
             .compactMap { $0 }
             .filter { [weak self] _ in
                 guard let self else { return false }
-                return self.mediaManager.media[self.collectionViewLayout.centerIndexPath.item].mediaType.isVideo && self.collectionViewLayout.style == .carousel
+                return self.mediaManager.media[safe: self.collectionViewLayout.centerIndexPath.item]?.mediaType.isVideo == true && self.collectionViewLayout.style == .carousel
             }
             .sink { [weak self] status in
                 guard let self else { return }
