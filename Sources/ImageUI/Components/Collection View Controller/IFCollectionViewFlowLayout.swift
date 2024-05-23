@@ -406,7 +406,7 @@ private extension IFCollectionViewFlowLayout {
         
         switch mediaManager.videoStatus.value {
         case .autoplay, .play, .pause:
-            if mediaManager.media[indexPath.item].mediaType.isVideo {
+            if mediaManager.media[safe: indexPath.item]?.mediaType.isVideo == true {
                 return CGSize(width: itemSize.height * preferredItemRatio, height: itemSize.height)
             }
         default:

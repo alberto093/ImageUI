@@ -140,8 +140,13 @@ open class IFBrowserViewController: UIViewController {
     private var isToolbarEnabled: Bool {
         switch (traitCollection.verticalSizeClass, traitCollection.horizontalSizeClass) {
         case (.regular, let horizontalClass) where horizontalClass != .regular:
-            let availableActions = configuration.actions(for: mediaManager.media[mediaManager.displayingMediaIndex])
-            return configuration.alwaysShowToolbar || !availableActions.isEmpty
+            guard !configuration.alwaysShowToolbar else { return true }
+            
+            if let media = mediaManager.media[safe: mediaManager.displayingMediaIndex] {
+                return !configuration.actions(for: media).isEmpty
+            } else {
+                return false
+            }
         default:
             return false
         }
