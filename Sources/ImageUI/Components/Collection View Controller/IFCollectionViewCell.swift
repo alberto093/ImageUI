@@ -118,7 +118,7 @@ class IFCollectionViewCell: UICollectionViewCell {
             layoutAttributes.size.width = layoutAttributes.size.height * imageRatio
         }
         
-        if mediaManager?.media[layoutAttributes.indexPath.item].mediaType.isVideo == true {
+        if mediaManager?.media[safe: layoutAttributes.indexPath.item]?.mediaType.isVideo == true {
             switch mediaManager?.videoStatus.value {
             case .autoplay:
                 layoutAttributes.size.width = Constants.videoAutoplayThumbnailWidth * 2
