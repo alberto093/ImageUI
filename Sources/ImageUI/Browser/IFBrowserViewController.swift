@@ -496,6 +496,8 @@ open class IFBrowserViewController: UIViewController {
     }
     
     @objc private func actionButtonDidTap(_ sender: UIBarButtonItem) {
+        guard let media = mediaManager.media[safe: mediaManager.displayingMediaIndex] else { return }
+
         var senderIndex: Int?
         
         if navigationController?.isToolbarHidden == true {
@@ -504,7 +506,6 @@ open class IFBrowserViewController: UIViewController {
             senderIndex = toolbarItems?.firstIndex(of: sender).map { $0 / 2 }
         }
         
-        let media = mediaManager.media[mediaManager.displayingMediaIndex]
         let actions = configuration.actions(for: media)
         
         if media.mediaType.isVideo {
