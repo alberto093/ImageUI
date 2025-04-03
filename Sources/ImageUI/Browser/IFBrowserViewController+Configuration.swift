@@ -23,6 +23,7 @@
 //
 
 import UIKit
+import Nuke
 
 extension IFBrowserViewController {
     public class Configuration {
@@ -48,17 +49,24 @@ extension IFBrowserViewController {
         var isNavigationBarHidden: Bool
         var isToolbarHidden: Bool
         
+        public var dataCache: (any DataCaching)?
+        public var imageCache: (any ImageCaching)
+        
         public init(
             alwaysShowNavigationBar: Bool = true,
             alwaysShowToolbar: Bool = false,
             pdfProgressViewClass: IFPDFProgressView.Type = UIProgressView.self,
             isNavigationBarHidden: Bool = false,
-            isToolbarHidden: Bool = true) {
+            isToolbarHidden: Bool = true,
+            dataCache: (any DataCaching)? = nil,
+            imageCache: (any ImageCaching) = ImageCache.shared) {
                 self.alwaysShowNavigationBar = alwaysShowNavigationBar
                 self.alwaysShowToolbar = alwaysShowToolbar
                 self.pdfProgressViewClass = pdfProgressViewClass
                 self.isNavigationBarHidden = isNavigationBarHidden
                 self.isToolbarHidden = isToolbarHidden
+                self.dataCache = dataCache
+                self.imageCache = imageCache
             }
         
         public func setActions(_ actions: [Action], for mediaType: MediaType) {

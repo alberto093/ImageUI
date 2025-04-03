@@ -36,9 +36,13 @@ import LinkPresentation
 
 class IFMediaManager {
     private(set) var media: [IFMedia]
-    var configuration: IFBrowserViewController.Configuration
+    var configuration: IFBrowserViewController.Configuration {
+        didSet {
+            updatePipeline()
+        }
+    }
     
-    private let imagesPipeline: ImagePipeline
+    private var imagesPipeline: ImagePipeline = .shared
     
     let videoPlaybackLabel: IFVideoPlaybackLabel = {
         let label = IFVideoPlaybackLabel()
@@ -77,17 +81,7 @@ class IFMediaManager {
         self.media = media
         self.configuration = configuration
         self.displayingMediaIndex = min(max(initialIndex, 0), media.count - 1)
-        
-        self.imagesPipeline = ImagePipeline(delegate: ImagePipelineDefaultDelegate()) { configuration in
-            let registry = ImageDecoderRegistry()
-            registry.register(ImageDecoders.AVAsset.init)
-            registry.register(ImageDecoders.PDFDocument.init)
-
-            configuration.makeImageDecoder = {
-                registry.decoder(for: $0)
-            }
-        }
-        
+            
         if #available(iOS 13.0, *) {
             prepareDisplayingMetadata()
         }
@@ -100,6 +94,8 @@ class IFMediaManager {
                 self?.videoStatus.value = self?.videoStatus.value == .autoplay ? .play : .pause
             }
             .store(in: &bag)
+        
+        updatePipeline()
     }
     
     func updatedisplayingMedia(index: Int) {
@@ -171,6 +167,22 @@ class IFMediaManager {
 //        case .video(let video):
 //        case .pdf:
 //        }
+    }
+    
+    private func updatePipeline() {
+        let registry = ImageDecoderRegistry()
+        registry.register(ImageDecoders.AVAsset.init)
+        registry.register(ImageDecoders.PDFDocument.init)
+
+        var configuration = ImagePipeline.Configuration()
+        configuration.dataCache = self.configuration.dataCache
+        configuration.imageCache = self.configuration.imageCache
+        
+        configuration.makeImageDecoder = {
+            registry.decoder(for: $0)
+        }
+        
+        self.imagesPipeline = ImagePipeline(configuration: configuration, delegate: ImagePipelineDefaultDelegate())
     }
 }
 
